@@ -3,10 +3,14 @@ package com.example.eip.channels;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.camel.builder.RouteBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PulsarDemoDataGenerator extends RouteBuilder {
+
+    @Value("${eip.pulsar.demo.data.generator.enabled:true}")
+    boolean enabled;
 
     private final AtomicLong counter = new AtomicLong();
 
@@ -14,6 +18,7 @@ public class PulsarDemoDataGenerator extends RouteBuilder {
     public void configure() {
         from("timer:demo-pulsar-orders?period=5000&delay=4000")
             .routeId("demo-data-generator-pulsar")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 double amount = 50 + (id * 43 % 500);
