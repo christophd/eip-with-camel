@@ -1,0 +1,49 @@
+name: publish-subscribe-test
+description: Test verifying the Publish-Subscribe Channel route — fan-out to inventory, notification, analytics
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+  - name: order.status
+    value: "placed"
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "publish-subscribe"
+            file: "../publish-subscribe.yaml"
+            systemProperties:
+              file: "../application.properties"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.processed?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "publish-subscribe"
+          logMessage: "Publishing order event"
+  - camel:
+      jbang:
+        verify:
+          integration: "publish-subscribe"
+          logMessage: "Inventory subscriber received order"
+  - camel:
+      jbang:
+        verify:
+          integration: "publish-subscribe"
+          logMessage: "Notification subscriber received order"
+  - camel:
+      jbang:
+        verify:
+          integration: "publish-subscribe"
+          logMessage: "Analytics subscriber received order"

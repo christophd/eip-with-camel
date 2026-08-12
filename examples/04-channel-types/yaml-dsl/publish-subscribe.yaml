@@ -9,12 +9,12 @@
       parameters:
         brokers: "{{kafka.brokers}}"
         groupId: pubsub-publisher
-    steps:
-      - log: "Publishing order event ${header.kafka.KEY} → eip.orders.events"
-      - to:
-          uri: "kafka:eip.orders.events"
-          parameters:
-            brokers: "{{kafka.brokers}}"
+      steps:
+        - log: "Publishing order event ${header.kafka.KEY} → eip.orders.events"
+        - to:
+            uri: "kafka:eip.orders.events"
+            parameters:
+              brokers: "{{kafka.brokers}}"
 
 # Subscriber 1 — Inventory
 - route:
@@ -24,12 +24,12 @@
       parameters:
         brokers: "{{kafka.brokers}}"
         groupId: subscriber-inventory
-    steps:
-      - log: "Inventory subscriber received order ${header.kafka.KEY}"
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Reserving stock for SKU ${body[item_sku]}, qty ${body[quantity]}"
+      steps:
+        - log: "Inventory subscriber received order ${header.kafka.KEY}"
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Reserving stock for SKU ${body[item_sku]}, qty ${body[quantity]}"
 
 # Subscriber 2 — Notification
 - route:
@@ -39,12 +39,12 @@
       parameters:
         brokers: "{{kafka.brokers}}"
         groupId: subscriber-notification
-    steps:
-      - log: "Notification subscriber received order ${header.kafka.KEY}"
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Sending confirmation email for order ${body[order_id]}"
+      steps:
+        - log: "Notification subscriber received order ${header.kafka.KEY}"
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Sending confirmation email for order ${body[order_id]}"
 
 # Subscriber 3 — Analytics
 - route:
@@ -54,9 +54,9 @@
       parameters:
         brokers: "{{kafka.brokers}}"
         groupId: subscriber-analytics
-    steps:
-      - log: "Analytics subscriber received order ${header.kafka.KEY}"
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Recording analytics — order ${body[order_id]}, amount ${body[amount]}"
+      steps:
+        - log: "Analytics subscriber received order ${header.kafka.KEY}"
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Recording analytics — order ${body[order_id]}, amount ${body[amount]}"
