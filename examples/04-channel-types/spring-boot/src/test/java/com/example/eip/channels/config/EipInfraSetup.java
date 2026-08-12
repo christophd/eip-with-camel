@@ -18,7 +18,11 @@ public class EipInfraSetup implements TestActionSupport {
                     testcontainers().compose()
                             .up("_infra/compose.yaml")
                             .containerName("eip-infra")
-                            .autoRemove(false)
+                            .autoRemove(false),
+                    waitFor()
+                            .http()
+                            .url("http://localhost:8090")
+                            .seconds(25)
                 ).build();
     }
 
