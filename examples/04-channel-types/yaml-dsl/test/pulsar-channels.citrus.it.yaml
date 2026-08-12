@@ -1,0 +1,58 @@
+name: pulsar-channels-test
+description: Test verifying the Pulsar channel routes — P2P (Shared) and Pub/Sub (Exclusive) subscriptions
+variables:
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+  - name: order.status
+    value: "placed"
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "pulsar-channels"
+            file: "../pulsar-channels.yaml"
+            systemProperties:
+              file: "../application.properties"
+  # Send to Pulsar P2P topic
+  - send:
+      endpoint: >-
+        camel:pulsar:persistent://public/default/eip.orders.placed?serviceUrl=pulsar://localhost:6650&producerName=citrus-p2p
+      fork: true
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  # Send to Pulsar Pub/Sub topic
+  - send:
+      endpoint: >-
+        camel:pulsar:persistent://public/default/eip.orders.events?serviceUrl=pulsar://localhost:6650&producerName=citrus-pubsub
+      fork: true
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "pulsar-channels"
+          logMessage: "Pulsar P2P received order"
+  - camel:
+      jbang:
+        verify:
+          integration: "pulsar-channels"
+          logMessage: "Pulsar Pub/Sub [inventory] received"
+  - camel:
+      jbang:
+        verify:
+          integration: "pulsar-channels"
+          logMessage: "Pulsar Pub/Sub [notification] received"
+  - camel:
+      jbang:
+        verify:
+          integration: "pulsar-channels"
+          logMessage: "Pulsar Pub/Sub [analytics] received"

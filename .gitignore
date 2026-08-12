@@ -46,3 +46,7 @@ Thumbs.db
 .env.*
 !.env.example
 __pycache__/
+
+# JBang runtime
+.camel-jbang/
+.citrus-jbang/
