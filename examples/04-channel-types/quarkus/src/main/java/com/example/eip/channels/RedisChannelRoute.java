@@ -1,7 +1,5 @@
 package com.example.eip.channels;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import io.quarkus.redis.datasource.RedisDataSource;
 import io.quarkus.redis.datasource.pubsub.PubSubCommands;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -21,24 +19,8 @@ public class RedisChannelRoute extends RouteBuilder {
     @Inject
     RedisDataSource redis;
 
-    private final AtomicLong counter = new AtomicLong();
-
     @Override
     public void configure() {
-        from("timer:redis-publisher?period=8000&delay=5000")
-            .routeId("redis-pubsub-publisher")
-            .process(exchange -> {
-                long id = counter.incrementAndGet();
-                String json = """
-                    {"order_id": %d, "customer_id": "CUST-%03d", "event": "status_update", "status": "SHIPPED"}
-                    """.formatted(id, id % 100).strip();
-
-                PubSubCommands<String> pubsub = redis.pubsub(String.class);
-                pubsub.publish("eip.orders.notifications", json);
-                exchange.getIn().setBody(json);
-            })
-            .log("Redis Pub/Sub → published notification: ${body}");
-
         from("timer:redis-subscriber-start?repeatCount=1&delay=2000")
             .routeId("redis-pubsub-subscriber")
             .process(exchange -> {
