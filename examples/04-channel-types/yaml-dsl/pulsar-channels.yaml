@@ -10,8 +10,8 @@
       parameters:
         subscriptionName: pulsar-p2p-processor
         subscriptionType: Shared
-    steps:
-      - log: "Pulsar P2P received order: ${body}"
+      steps:
+        - log: "Pulsar P2P received order: ${body}"
 
 # Publish-Subscribe on Pulsar: each Exclusive subscription
 # receives every message independently (fan-out)
@@ -22,8 +22,8 @@
       parameters:
         subscriptionName: subscriber-inventory
         subscriptionType: Exclusive
-    steps:
-      - log: "Pulsar Pub/Sub [inventory] received: ${body}"
+      steps:
+        - log: "Pulsar Pub/Sub [inventory] received: ${body}"
 
 - route:
     id: pubsub-pulsar-notification
@@ -32,8 +32,8 @@
       parameters:
         subscriptionName: subscriber-notification
         subscriptionType: Exclusive
-    steps:
-      - log: "Pulsar Pub/Sub [notification] received: ${body}"
+      steps:
+        - log: "Pulsar Pub/Sub [notification] received: ${body}"
 
 - route:
     id: pubsub-pulsar-analytics
@@ -42,5 +42,5 @@
       parameters:
         subscriptionName: subscriber-analytics
         subscriptionType: Exclusive
-    steps:
-      - log: "Pulsar Pub/Sub [analytics] received: ${body}"
+      steps:
+        - log: "Pulsar Pub/Sub [analytics] received: ${body}"
