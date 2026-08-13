@@ -1,0 +1,43 @@
+name: document-message-test
+description: Test verifying the Document Message pattern — a complete data record published to and consumed from Kafka
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - waitFor:
+      timeout: "25000"
+      http:
+        url: http://localhost:8090
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "document-message"
+            file: "../document-message.yaml"
+            systemProperties:
+              file: "../application.properties"
+  - camel:
+      jbang:
+        verify:
+          integration: "document-message"
+          logMessage: "Routes startup"
+
+  # --- Send document message to Kafka ---
+  - send:
+      endpoint: >-
+        kafka:eip.documents.orders?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/document.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "document-message"
+          logMessage: "Received order document"
