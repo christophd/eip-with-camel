@@ -1,0 +1,57 @@
+name: channel-adapter-test
+description: Test verifying the Channel Adapter pattern — REST inbound persists to PostgreSQL and publishes to Kafka
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+  - name: order.status
+    value: "placed"
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - camel:
+      jbang:
+        run:
+          args:
+            - "--port"
+            - "8082"
+          integration:
+            name: "channel-adapter"
+            file: "../channel-adapter.yaml"
+            systemProperties:
+              file: "../application.properties"
+  - camel:
+      jbang:
+        verify:
+          integration: "channel-adapter"
+          logMessage: "Routes startup (total:2 rest-dsl:1)"
+
+  # --- Send order via REST inbound adapter ---
+  - http:
+      client: "http://localhost:8082"
+      sendRequest:
+        fork: true
+        POST:
+          path: "/api/orders"
+          contentType: "application/json"
+          body:
+            resource:
+              file: "templates/order.json"
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.incoming?server=${kafka.broker}&consumerGroup=citrus-incoming-group
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - http:
+      client: "http://localhost:8082"
+      receiveResponse:
+        response:
+          status: "200"
+          body:
+            data: '{"status": "accepted"}'
+          contentType: "application/json"
