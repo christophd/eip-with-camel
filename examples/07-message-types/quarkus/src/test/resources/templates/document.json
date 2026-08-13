@@ -1,0 +1,15 @@
+{
+  "order_id": ${id},
+  "customer_id": "CUST-${id}",
+  "items": [
+    { "sku": "SKU-TEST-${id}", "description": "Test Widget", "quantity": 1, "unit_price": ${amount} }
+  ],
+  "shipping_address": {
+    "street": "100 Commerce Blvd",
+    "city": "Metropolis",
+    "country": "US",
+    "postal_code": "10001"
+  },
+  "total_amount": ${amount},
+  "status": "PENDING"
+}
