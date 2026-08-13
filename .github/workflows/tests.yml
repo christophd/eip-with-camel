@@ -19,6 +19,7 @@ jobs:
           - 04-channel-types
           - 05-reliability
           - 06-channel-infra
+          - 07-message-types
       fail-fast: false
     name: Quarkus — ${{ matrix.example }}
     steps:
@@ -41,6 +42,7 @@ jobs:
           - 04-channel-types
           - 05-reliability
           - 06-channel-infra
+          - 07-message-types
       fail-fast: false
     name: Spring Boot — ${{ matrix.example }}
     steps:
@@ -62,6 +64,7 @@ jobs:
         example:
           - 04-channel-types
           - 06-channel-infra
+          - 07-message-types
       fail-fast: false
     name: YAML DSL — ${{ matrix.example }}
     steps:
