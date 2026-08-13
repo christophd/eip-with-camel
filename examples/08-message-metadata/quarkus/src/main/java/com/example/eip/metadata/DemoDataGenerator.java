@@ -4,9 +4,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class DemoDataGenerator extends RouteBuilder {
+
+    @ConfigProperty(name = "eip.demo.data.generator.enabled", defaultValue = "true")
+    boolean enabled;
 
     private final AtomicLong counter = new AtomicLong();
 
@@ -15,6 +19,7 @@ public class DemoDataGenerator extends RouteBuilder {
         // Generates individual orders for correlation-id and expiration demos
         from("timer:metadata-orders?period=5000&delay=3000")
             .routeId("demo-data-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 String[] skus = {"WIDGET-A", "GADGET-B", "SENSOR-C", "MOTOR-D", "VALVE-E"};
@@ -47,6 +52,7 @@ public class DemoDataGenerator extends RouteBuilder {
         // Generates bulk orders for the message-sequence (splitter/aggregator) demo
         from("timer:metadata-bulk?period=15000&delay=6000")
             .routeId("demo-bulk-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long batch = counter.incrementAndGet();
                 int itemCount = (int) (3 + batch % 4); // 3-6 items per bulk order
