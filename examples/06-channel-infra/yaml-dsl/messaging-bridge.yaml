@@ -13,13 +13,13 @@
       parameters:
         subscriptionName: kafka-bridge
         subscriptionType: Exclusive
-    steps:
-      - log: "Messaging Bridge — Pulsar → Kafka: ${body}"
-      - to:
-          uri: "kafka:eip.orders.placed"
-          parameters:
-            brokers: "{{kafka.brokers}}"
-      - log: "Messaging Bridge — order forwarded to Kafka"
+      steps:
+        - log: "Messaging Bridge — Pulsar → Kafka: ${body}"
+        - to:
+            uri: "kafka:eip.orders.placed"
+            parameters:
+              brokers: "{{kafka.brokers}}"
+        - log: "Messaging Bridge — order forwarded to Kafka"
 
 # Kafka → Pulsar: shipping events bridged to Pulsar for partner systems
 - route:
@@ -29,10 +29,10 @@
       parameters:
         brokers: "{{kafka.brokers}}"
         groupId: pulsar-bridge
-    steps:
-      - log: "Messaging Bridge — Kafka → Pulsar: ${body}"
-      - to:
-          uri: "pulsar:persistent://public/default/eip.shipping.scheduled"
-          parameters:
-            producerName: kafka-bridge
-      - log: "Messaging Bridge — shipping event forwarded to Pulsar"
+      steps:
+        - log: "Messaging Bridge — Kafka → Pulsar: ${body}"
+        - to:
+            uri: "pulsar:persistent://public/default/eip.shipping.scheduled"
+            parameters:
+              producerName: kafka-bridge
+        - log: "Messaging Bridge — shipping event forwarded to Pulsar"

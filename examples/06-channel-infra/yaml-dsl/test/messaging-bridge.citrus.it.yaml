@@ -1,0 +1,71 @@
+name: messaging-bridge-test
+description: Test verifying the Messaging Bridge pattern — bidirectional Pulsar ↔ Kafka bridging
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+  - name: order.status
+    value: "partner-placed"
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - waitFor:
+      timeout: "25000"
+      http:
+        url: http://localhost:8090
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "messaging-bridge"
+            file: "../messaging-bridge.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  # --- Pulsar → Kafka: send partner order to Pulsar, verify bridge logs ---
+  - send:
+      endpoint: >-
+        camel:pulsar:persistent://public/default/partner.orders.placed?serviceUrl=pulsar://localhost:6650&producerName=citrus-bridge-test
+      fork: true
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "messaging-bridge"
+          logMessage: "Messaging Bridge — Pulsar → Kafka"
+  - camel:
+      jbang:
+        verify:
+          integration: "messaging-bridge"
+          logMessage: "order forwarded to Kafka"
+
+  # --- Kafka → Pulsar: send shipping event to Kafka, verify bridge logs ---
+  - createVariables:
+      variables:
+        - name: order.id
+          value: "citrus:randomNumber(4)"
+        - name: order.status
+          value: "shipped"
+  - send:
+      endpoint: >-
+        kafka:eip.shipping.scheduled?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "messaging-bridge"
+          logMessage: "Messaging Bridge — Kafka → Pulsar"
+  - camel:
+      jbang:
+        verify:
+          integration: "messaging-bridge"
+          logMessage: "shipping event forwarded to Pulsar"

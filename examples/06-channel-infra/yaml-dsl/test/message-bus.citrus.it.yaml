@@ -1,0 +1,68 @@
+name: message-bus-test
+description: Test verifying the Message Bus pattern — multiple independent consumers on shared Kafka topics
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "message-bus"
+            file: "../message-bus.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  # --- Send order to bridged topic → fulfillment service forwards to fulfilled ---
+  - createVariables:
+      variables:
+        - name: order.id
+          value: "citrus:randomNumber(4)"
+        - name: order.status
+          value: "bridged"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.bridged?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "message-bus"
+          logMessage: "fulfilling bridged order"
+
+  # --- Send order to incoming topic → all bus consumers log ---
+  - createVariables:
+      variables:
+        - name: order.id
+          value: "citrus:randomNumber(4)"
+        - name: order.status
+          value: "placed"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.incoming?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "message-bus"
+          logMessage: "inventory-service"
+  - camel:
+      jbang:
+        verify:
+          integration: "message-bus"
+          logMessage: "payment-service"
+  - camel:
+      jbang:
+        verify:
+          integration: "message-bus"
+          logMessage: "notification-service"
