@@ -1,0 +1,102 @@
+name: content-based-router-test
+description: Test verifying the Content-Based Router pattern — routes orders to domestic, international, or hazmat topics
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "content-based-router"
+            file: "../content-based-router.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  # --- Send a domestic US order → should route to eip.orders.domestic ---
+  - createVariables:
+      variables:
+        - name: id
+          value: "citrus:randomNumber(4)"
+        - name: amount
+          value: "75.00"
+        - name: country
+          value: "US"
+        - name: hazmat
+          value: "false"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "content-based-router"
+          logMessage: "Domestic order"
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.domestic?server=${kafka.broker}&consumerGroup=citrus-domestic-group
+      message: {}
+
+  # --- Send an international order (GB) → should route to eip.orders.international ---
+  - createVariables:
+      variables:
+        - name: id
+          value: "citrus:randomNumber(4)"
+        - name: amount
+          value: "80.00"
+        - name: country
+          value: "GB"
+        - name: hazmat
+          value: "false"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "content-based-router"
+          logMessage: "International order"
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.international?server=${kafka.broker}&consumerGroup=citrus-international-group
+      message: {}
+
+  # --- Send a hazmat order → should route to eip.orders.hazmat ---
+  - createVariables:
+      variables:
+        - name: id
+          value: "citrus:randomNumber(4)"
+        - name: amount
+          value: "90.00"
+        - name: country
+          value: "US"
+        - name: hazmat
+          value: "true"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "content-based-router"
+          logMessage: "HAZMAT order"
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.hazmat?server=${kafka.broker}&consumerGroup=citrus-hazmat-group
+      message: {}

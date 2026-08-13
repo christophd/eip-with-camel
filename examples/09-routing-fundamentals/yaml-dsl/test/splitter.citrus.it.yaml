@@ -1,0 +1,45 @@
+name: splitter-test
+description: Test verifying the Splitter pattern — batch order is split into individual item messages
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "order-splitter"
+            file: "../splitter.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  # --- Send a batch order with 2 items → should produce 2 individual messages ---
+  - createVariables:
+      variables:
+        - name: id
+          value: "citrus:randomNumber(4)"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.batch?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/batch-order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "order-splitter"
+          logMessage: "Processing item: PART-A1"
+  - camel:
+      jbang:
+        verify:
+          integration: "order-splitter"
+          logMessage: "Processing item: PART-B2"
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.individual?server=${kafka.broker}&consumerGroup=citrus-individual-group
+      message: {}
