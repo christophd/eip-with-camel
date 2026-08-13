@@ -1,0 +1,12 @@
+{
+  "event_type": "OrderPlaced",
+  "event_id": "evt-${id}",
+  "event_time": "2025-01-01T00:00:00Z",
+  "source": "order-service",
+  "data": {
+    "order_id": ${id},
+    "customer_id": "CUST-${id}",
+    "item_count": 1,
+    "total_amount": ${amount}
+  }
+}

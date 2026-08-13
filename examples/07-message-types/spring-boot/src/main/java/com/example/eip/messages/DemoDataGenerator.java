@@ -2,6 +2,7 @@ package com.example.eip.messages;
 
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.apache.camel.builder.RouteBuilder;
 
@@ -18,6 +19,9 @@ import org.apache.camel.builder.RouteBuilder;
 @Component
 public class DemoDataGenerator extends RouteBuilder {
 
+    @Value("${eip.demo.data.generator.enabled:true}")
+    boolean enabled;
+
     private final AtomicLong counter = new AtomicLong();
 
     @Override
@@ -25,6 +29,7 @@ public class DemoDataGenerator extends RouteBuilder {
         // ── Command Messages ────────────────────────────────────────
         from("timer:generate-commands?period=6000&delay=2000")
             .routeId("generate-command-messages")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 double amount = 25.0 + (id * 17 % 475);
@@ -52,6 +57,7 @@ public class DemoDataGenerator extends RouteBuilder {
         // ── Document Messages ───────────────────────────────────────
         from("timer:generate-documents?period=8000&delay=4000")
             .routeId("generate-document-messages")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 String[] countries = {"US", "CA", "GB", "DE", "JP"};
@@ -89,6 +95,7 @@ public class DemoDataGenerator extends RouteBuilder {
         // ── Event Messages ──────────────────────────────────────────
         from("timer:generate-events?period=5000&delay=3000")
             .routeId("generate-event-messages")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 String eventId = "evt-" + java.util.UUID.randomUUID().toString().substring(0, 8);
