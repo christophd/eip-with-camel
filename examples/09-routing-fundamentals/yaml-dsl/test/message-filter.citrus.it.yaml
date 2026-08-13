@@ -1,0 +1,46 @@
+name: message-filter-test
+description: Test verifying the Message Filter pattern — only high-value orders (amount >= 100) pass through
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "message-filter"
+            file: "../message-filter.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  # --- Send a high-value order (amount=250) → should pass the filter ---
+  - createVariables:
+      variables:
+        - name: id
+          value: "citrus:randomNumber(4)"
+        - name: amount
+          value: "250.00"
+        - name: country
+          value: "US"
+        - name: hazmat
+          value: "false"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "message-filter"
+          logMessage: "High-value order"
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.high-value?server=${kafka.broker}&consumerGroup=citrus-high-value-group
+      message: {}
