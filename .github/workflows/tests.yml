@@ -20,6 +20,7 @@ jobs:
           - 05-reliability
           - 06-channel-infra
           - 07-message-types
+          - 08-message-metadata
       fail-fast: false
     name: Quarkus — ${{ matrix.example }}
     steps:
@@ -43,6 +44,7 @@ jobs:
           - 05-reliability
           - 06-channel-infra
           - 07-message-types
+          - 08-message-metadata
       fail-fast: false
     name: Spring Boot — ${{ matrix.example }}
     steps:
@@ -65,6 +67,7 @@ jobs:
           - 04-channel-types
           - 06-channel-infra
           - 07-message-types
+          - 08-message-metadata
       fail-fast: false
     name: YAML DSL — ${{ matrix.example }}
     steps:
