@@ -19,7 +19,7 @@ public class ChannelAdapterRoute extends RouteBuilder {
     @Override
     public void configure() {
         // --- Inbound Channel Adapter (REST → PostgreSQL → Kafka) ---
-        rest("/api/orders")
+        rest("/orders")
             .post()
                 .consumes("application/json")
                 .produces("application/json")
