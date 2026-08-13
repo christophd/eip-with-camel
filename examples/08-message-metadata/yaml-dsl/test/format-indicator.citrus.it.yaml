@@ -1,0 +1,43 @@
+name: format-indicator-test
+description: Test verifying the Format Indicator pattern — contentType header routes messages to correct processor
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "format-indicator"
+            file: "../format-indicator.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  # --- Send a JSON order → should be tagged and routed through JSON processing ---
+  - createVariables:
+      variables:
+        - name: id
+          value: "citrus:randomNumber(4)"
+        - name: amount
+          value: "99.95"
+  - send:
+      endpoint: >-
+        kafka:eip.metadata.orders?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "format-indicator"
+          logMessage: "Tagged message with contentType=application/json"
+  - camel:
+      jbang:
+        verify:
+          integration: "format-indicator"
+          logMessage: "JSON format detected"
