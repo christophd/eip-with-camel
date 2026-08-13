@@ -1,0 +1,7 @@
+{
+  "batch_id": "BATCH-${id}",
+  "items": [
+    { "item_sku": "PART-A1", "quantity": 2 },
+    { "item_sku": "PART-B2", "quantity": 1 }
+  ]
+}

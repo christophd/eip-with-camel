@@ -1,0 +1,7 @@
+{
+  "order_id": ${id},
+  "customer_id": "CUST-${id}",
+  "amount": ${amount},
+  "phone": "+1-555-${id}",
+  "tracking_number": "TRACK-${id}"
+}
