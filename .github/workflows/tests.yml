@@ -36,40 +36,6 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Determine Docker images
-        id: docker-images
-        run: |
-          COMPOSE_FILE="examples/${{ matrix.example }}/quarkus/src/test/resources/_infra/compose.yaml"
-          IMAGES=$(grep 'image:' "$COMPOSE_FILE" | sed 's/.*image:[[:space:]]*//' | tr '\n' ' ')
-          COMPOSE_HASH=$(sha256sum "$COMPOSE_FILE" | cut -c1-16)
-          echo "images=$IMAGES" >> "$GITHUB_OUTPUT"
-          echo "compose-hash=$COMPOSE_HASH" >> "$GITHUB_OUTPUT"
-          echo "week=$(date +%Y-W%V)" >> "$GITHUB_OUTPUT"
-      - name: Cache Docker images
-        uses: actions/cache@v4
-        with:
-          path: /tmp/docker-images.tar.gz
-          key: docker-${{ matrix.example }}-${{ steps.docker-images.outputs.compose-hash }}-${{ steps.docker-images.outputs.week }}
-          restore-keys: |
-            docker-${{ matrix.example }}-${{ steps.docker-images.outputs.compose-hash }}-
-      - name: Load or pull Docker images
-        run: |
-          if [ -f /tmp/docker-images.tar.gz ]; then
-            echo "Loading Docker images from cache..."
-            gunzip -c /tmp/docker-images.tar.gz | docker load
-          fi
-          NEEDS_SAVE=false
-          for img in ${{ steps.docker-images.outputs.images }}; do
-            if ! docker image inspect "$img" > /dev/null 2>&1; then
-              echo "Pulling $img..."
-              docker pull "$img"
-              NEEDS_SAVE=true
-            fi
-          done
-          if [ "$NEEDS_SAVE" = true ] || [ ! -f /tmp/docker-images.tar.gz ]; then
-            echo "Saving Docker images to cache..."
-            docker save ${{ steps.docker-images.outputs.images }} | gzip > /tmp/docker-images.tar.gz
-          fi
       - name: Run tests
         run: |
           mvn -B --no-transfer-progress verify -f examples/${{ matrix.example }}/quarkus
@@ -99,40 +65,6 @@ jobs:
           java-version: '25'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Determine Docker images
-        id: docker-images
-        run: |
-          COMPOSE_FILE="examples/${{ matrix.example }}/spring-boot/src/test/resources/_infra/compose.yaml"
-          IMAGES=$(grep 'image:' "$COMPOSE_FILE" | sed 's/.*image:[[:space:]]*//' | tr '\n' ' ')
-          COMPOSE_HASH=$(sha256sum "$COMPOSE_FILE" | cut -c1-16)
-          echo "images=$IMAGES" >> "$GITHUB_OUTPUT"
-          echo "compose-hash=$COMPOSE_HASH" >> "$GITHUB_OUTPUT"
-          echo "week=$(date +%Y-W%V)" >> "$GITHUB_OUTPUT"
-      - name: Cache Docker images
-        uses: actions/cache@v4
-        with:
-          path: /tmp/docker-images.tar.gz
-          key: docker-${{ matrix.example }}-${{ steps.docker-images.outputs.compose-hash }}-${{ steps.docker-images.outputs.week }}
-          restore-keys: |
-            docker-${{ matrix.example }}-${{ steps.docker-images.outputs.compose-hash }}-
-      - name: Load or pull Docker images
-        run: |
-          if [ -f /tmp/docker-images.tar.gz ]; then
-            echo "Loading Docker images from cache..."
-            gunzip -c /tmp/docker-images.tar.gz | docker load
-          fi
-          NEEDS_SAVE=false
-          for img in ${{ steps.docker-images.outputs.images }}; do
-            if ! docker image inspect "$img" > /dev/null 2>&1; then
-              echo "Pulling $img..."
-              docker pull "$img"
-              NEEDS_SAVE=true
-            fi
-          done
-          if [ "$NEEDS_SAVE" = true ] || [ ! -f /tmp/docker-images.tar.gz ]; then
-            echo "Saving Docker images to cache..."
-            docker save ${{ steps.docker-images.outputs.images }} | gzip > /tmp/docker-images.tar.gz
-          fi
       - name: Run tests
         run: |
           mvn -B --no-transfer-progress verify -f examples/${{ matrix.example }}/spring-boot
@@ -179,40 +111,6 @@ jobs:
 
           jbang citrus@citrusframework/citrus --version
           jbang camel@apache/camel --version
-      - name: Determine Docker images
-        id: docker-images
-        run: |
-          COMPOSE_FILE="examples/${{ matrix.example }}/yaml-dsl/test/_infra/compose.yaml"
-          IMAGES=$(grep 'image:' "$COMPOSE_FILE" | sed 's/.*image:[[:space:]]*//' | tr '\n' ' ')
-          COMPOSE_HASH=$(sha256sum "$COMPOSE_FILE" | cut -c1-16)
-          echo "images=$IMAGES" >> "$GITHUB_OUTPUT"
-          echo "compose-hash=$COMPOSE_HASH" >> "$GITHUB_OUTPUT"
-          echo "week=$(date +%Y-W%V)" >> "$GITHUB_OUTPUT"
-      - name: Cache Docker images
-        uses: actions/cache@v4
-        with:
-          path: /tmp/docker-images.tar.gz
-          key: docker-${{ matrix.example }}-${{ steps.docker-images.outputs.compose-hash }}-${{ steps.docker-images.outputs.week }}
-          restore-keys: |
-            docker-${{ matrix.example }}-${{ steps.docker-images.outputs.compose-hash }}-
-      - name: Load or pull Docker images
-        run: |
-          if [ -f /tmp/docker-images.tar.gz ]; then
-            echo "Loading Docker images from cache..."
-            gunzip -c /tmp/docker-images.tar.gz | docker load
-          fi
-          NEEDS_SAVE=false
-          for img in ${{ steps.docker-images.outputs.images }}; do
-            if ! docker image inspect "$img" > /dev/null 2>&1; then
-              echo "Pulling $img..."
-              docker pull "$img"
-              NEEDS_SAVE=true
-            fi
-          done
-          if [ "$NEEDS_SAVE" = true ] || [ ! -f /tmp/docker-images.tar.gz ]; then
-            echo "Saving Docker images to cache..."
-            docker save ${{ steps.docker-images.outputs.images }} | gzip > /tmp/docker-images.tar.gz
-          fi
       - name: Run tests
         env:
           CITRUS_CAMEL_JBANG_DUMP_INTEGRATION_OUTPUT: "true"
