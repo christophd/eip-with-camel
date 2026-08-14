@@ -1,0 +1,72 @@
+name: resequencer-test
+description: Test verifying the Resequencer pattern — out-of-order messages are collected and re-emitted in sequence order
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "batch-resequencer"
+            file: "../resequencer.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  # --- Send 3 out-of-order messages (seq 3, 1, 2) → resequencer should emit at least one ---
+  - createVariables:
+      variables:
+        - name: id
+          value: "citrus:randomNumber(4)"
+        - name: amount
+          value: "50.00"
+        - name: country
+          value: "US"
+        - name: priority
+          value: "STANDARD"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.sequenced?server=${kafka.broker}
+      message:
+        headers:
+          - name: sequenceNumber
+            value: 3
+        body:
+          resource:
+            file: "templates/order.json"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.sequenced?server=${kafka.broker}
+      message:
+        headers:
+          - name: sequenceNumber
+            value: 1
+        body:
+          resource:
+            file: "templates/order.json"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.sequenced?server=${kafka.broker}
+      message:
+        headers:
+          - name: sequenceNumber
+            value: 2
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "batch-resequencer"
+          logMessage: "Resequenced message seq="
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.resequenced?server=${kafka.broker}&consumerGroup=citrus-resequenced-group
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
