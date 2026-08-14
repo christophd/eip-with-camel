@@ -17,7 +17,7 @@ actions:
             systemProperties:
               file: "../application.properties"
 
-  # --- Send a JSON order → should be tagged and routed through JSON processing ---
+  # --- Scenario 1: Send a JSON order → should be routed through JSON processing ---
   - createVariables:
       variables:
         - name: id
@@ -26,18 +26,71 @@ actions:
           value: "99.95"
   - send:
       endpoint: >-
-        kafka:eip.metadata.orders?server=${kafka.broker}
+        kafka:eip.metadata.orders.tagged?server=${kafka.broker}
       message:
         body:
           resource:
             file: "templates/order.json"
-  - camel:
-      jbang:
-        verify:
-          integration: "format-indicator"
-          logMessage: "Tagged message with contentType=application/json"
+        headers:
+          contentType: "application/json"
+          schemaVersion: "1.0"
   - camel:
       jbang:
         verify:
           integration: "format-indicator"
           logMessage: "JSON format detected"
+  - receive:
+      endpoint: >-
+        kafka:eip.metadata.orders.processed?server=${kafka.broker}&consumerGroup=citrus-json-processed-group
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+
+  # --- Scenario 2: Send an XML order → should be routed through XML processing ---
+  - createVariables:
+      variables:
+        - name: id
+          value: "citrus:randomNumber(4)"
+  - send:
+      endpoint: >-
+        kafka:eip.metadata.orders.tagged?server=${kafka.broker}
+      message:
+        body: "<order><order_id>${id}</order_id></order>"
+        headers:
+          contentType: "application/xml"
+          schemaVersion: "1.0"
+  - camel:
+      jbang:
+        verify:
+          integration: "format-indicator"
+          logMessage: "XML format detected"
+  - receive:
+      endpoint: >-
+        kafka:eip.metadata.orders.processed?server=${kafka.broker}&consumerGroup=citrus-xml-processed-group
+      message:
+        body: "<order><order_id>${id}</order_id></order>"
+
+  # --- Scenario 3: Send unknown format → should be routed to dead letter ---
+  - createVariables:
+      variables:
+        - name: id
+          value: "citrus:randomNumber(4)"
+  - send:
+      endpoint: >-
+        kafka:eip.metadata.orders.tagged?server=${kafka.broker}
+      message:
+        body: "order_id=${id}|item=WIDGET"
+        headers:
+          contentType: "text/plain"
+          schemaVersion: "1.0"
+  - camel:
+      jbang:
+        verify:
+          integration: "format-indicator"
+          logMessage: "Unknown format 'text/plain'"
+  - receive:
+      endpoint: >-
+        kafka:eip.metadata.orders.dead?server=${kafka.broker}&consumerGroup=citrus-dead-group
+      message:
+        body: "order_id=${id}|item=WIDGET"
