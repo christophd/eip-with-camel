@@ -28,12 +28,14 @@ actions:
       endpoint: >-
         kafka:eip.metadata.orders.tagged?server=${kafka.broker}
       message:
+        headers:
+          - name: contentType
+            value: "application/json"
+          - name: schemaVersion
+            value: "1.0"
         body:
           resource:
             file: "templates/order.json"
-        headers:
-          contentType: "application/json"
-          schemaVersion: "1.0"
   - camel:
       jbang:
         verify:
@@ -56,10 +58,13 @@ actions:
       endpoint: >-
         kafka:eip.metadata.orders.tagged?server=${kafka.broker}
       message:
-        body: "<order><order_id>${id}</order_id></order>"
         headers:
-          contentType: "application/xml"
-          schemaVersion: "1.0"
+          - name: contentType
+            value: "application/xml"
+          - name: schemaVersion
+            value: "1.0"
+        body:
+          data: "<order><order_id>${id}</order_id></order>"
   - camel:
       jbang:
         verify:
@@ -69,7 +74,8 @@ actions:
       endpoint: >-
         kafka:eip.metadata.orders.processed?server=${kafka.broker}&consumerGroup=citrus-xml-processed-group
       message:
-        body: "<order><order_id>${id}</order_id></order>"
+        body:
+          data: "<order><order_id>${id}</order_id></order>"
 
   # --- Scenario 3: Send unknown format → should be routed to dead letter ---
   - createVariables:
@@ -80,10 +86,13 @@ actions:
       endpoint: >-
         kafka:eip.metadata.orders.tagged?server=${kafka.broker}
       message:
-        body: "order_id=${id}|item=WIDGET"
         headers:
-          contentType: "text/plain"
-          schemaVersion: "1.0"
+          - name: contentType
+            value: "text/plain"
+          - name: schemaVersion
+            value: "1.0"
+        body:
+          data: "order_id=${id}|item=WIDGET"
   - camel:
       jbang:
         verify:
@@ -93,4 +102,5 @@ actions:
       endpoint: >-
         kafka:eip.metadata.orders.dead?server=${kafka.broker}&consumerGroup=citrus-dead-group
       message:
-        body: "order_id=${id}|item=WIDGET"
+        body:
+          data: "order_id=${id}|item=WIDGET"
