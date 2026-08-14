@@ -3,18 +3,22 @@ package com.example.eip.advanced;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.camel.builder.RouteBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DemoDataGenerator extends RouteBuilder {
 
+    @Value("${eip.demo.data.generator.enabled:true}")
+    boolean enabled;
+
     private final AtomicLong counter = new AtomicLong();
 
     @Override
     public void configure() {
-        // Generate orders for Dynamic Router and Wire Tap demos
         from("timer:demo-orders?period=5000&delay=3000")
             .routeId("demo-data-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 String[] countries = {"US", "CA", "GB", "DE", "JP"};
@@ -46,9 +50,9 @@ public class DemoDataGenerator extends RouteBuilder {
             .to("kafka:eip.orders.placed?brokers={{kafka.brokers}}")
             .log("Generated order ${header.kafka.KEY} -> eip.orders.placed");
 
-        // Generate sequenced orders (deliberately out of order) for the Resequencer
         from("timer:demo-sequenced?period=3000&delay=5000")
             .routeId("demo-sequenced-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long seq = counter.incrementAndGet();
                 // Produce messages in scrambled order within batches of 10
@@ -72,9 +76,9 @@ public class DemoDataGenerator extends RouteBuilder {
             .to("kafka:eip.orders.sequenced?brokers={{kafka.brokers}}")
             .log("Generated sequenced order seq=${header.sequenceNumber} -> eip.orders.sequenced");
 
-        // Generate orders with line items for the Composed Message Processor
         from("timer:demo-composed?period=8000&delay=7000")
             .routeId("demo-composed-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 int itemCount = (int) (2 + id % 4);
@@ -100,9 +104,9 @@ public class DemoDataGenerator extends RouteBuilder {
             .to("kafka:eip.orders.composed?brokers={{kafka.brokers}}")
             .log("Generated composed order ${header.kafka.KEY} with line items -> eip.orders.composed");
 
-        // Generate orders for the Load Balancer
         from("timer:demo-loadbalanced?period=2000&delay=6000")
             .routeId("demo-loadbalanced-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 String json = """
