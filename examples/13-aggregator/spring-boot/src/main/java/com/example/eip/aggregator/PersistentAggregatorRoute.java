@@ -5,7 +5,7 @@ import javax.sql.DataSource;
 import org.apache.camel.AggregationStrategy;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
-import org.apache.camel.processor.aggregate.jdbc.PostgresAggregationRepository;
+import org.apache.camel.processor.aggregate.jdbc.JdbcAggregationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -24,12 +24,11 @@ public class PersistentAggregatorRoute extends RouteBuilder {
     DataSource dataSource;
 
     @Bean("jdbcAggregationRepo")
-    public PostgresAggregationRepository aggregationRepo() {
-        PostgresAggregationRepository repo = new PostgresAggregationRepository();
+    public JdbcAggregationRepository aggregationRepo() {
+        JdbcAggregationRepository repo = new JdbcAggregationRepository();
         repo.setDataSource(dataSource);
         repo.setTransactionManager(new DataSourceTransactionManager(dataSource));
         repo.setRepositoryName("camel_aggregation");
-        repo.setStoreBodyAsText(true);
         return repo;
     }
 

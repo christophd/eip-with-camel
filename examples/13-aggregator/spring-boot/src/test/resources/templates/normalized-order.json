@@ -1,0 +1,9 @@
+{
+  "order_id": "ORD-${id}",
+  "customer_id": "CUST-${id}",
+  "item_sku": "${sku}",
+  "quantity": ${quantity},
+  "amount": ${amount},
+  "source": "${source}",
+  "status": "NEW"
+}
