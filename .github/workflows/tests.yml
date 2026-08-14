@@ -23,6 +23,7 @@ jobs:
           - 08-message-metadata
           - 09-routing-fundamentals
           - 10-composed-routing
+          - 11-advanced-routing
       fail-fast: false
     name: Quarkus — ${{ matrix.example }}
     steps:
@@ -49,6 +50,7 @@ jobs:
           - 08-message-metadata
           - 09-routing-fundamentals
           - 10-composed-routing
+          - 11-advanced-routing
       fail-fast: false
     name: Spring Boot — ${{ matrix.example }}
     steps:
@@ -73,6 +75,7 @@ jobs:
           - 07-message-types
           - 08-message-metadata
           - 09-routing-fundamentals
+          - 11-advanced-routing
       fail-fast: false
     name: YAML DSL — ${{ matrix.example }}
     steps:
