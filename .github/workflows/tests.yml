@@ -24,6 +24,7 @@ jobs:
           - 09-routing-fundamentals
           - 10-composed-routing
           - 11-advanced-routing
+          - 12-transformation
       fail-fast: false
     name: Quarkus — ${{ matrix.example }}
     steps:
@@ -51,6 +52,7 @@ jobs:
           - 09-routing-fundamentals
           - 10-composed-routing
           - 11-advanced-routing
+          - 12-transformation
       fail-fast: false
     name: Spring Boot — ${{ matrix.example }}
     steps:
