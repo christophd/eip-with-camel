@@ -1,0 +1,6 @@
+{
+  "order_id": ${id},
+  "customer_id": "CUST-${id}",
+  "destination_country": "${country}",
+  "contains_hazmat": ${hazmat}
+}
