@@ -17,6 +17,9 @@
               - simple: "${body[contains_hazmat]} == true"
                 steps:
                   - log: "HAZMAT order ${body[order_id]} → hazmat handler"
+                  - marshal:
+                      json:
+                        library: Jackson
                   - to:
                       uri: "kafka:eip.orders.hazmat"
                       parameters:
@@ -24,6 +27,9 @@
               - simple: "${body[destination_country]} != 'US'"
                 steps:
                   - log: "International order ${body[order_id]} → customs"
+                  - marshal:
+                      json:
+                        library: Jackson
                   - to:
                       uri: "kafka:eip.orders.international"
                       parameters:
@@ -31,6 +37,9 @@
             otherwise:
               steps:
                 - log: "Domestic order ${body[order_id]} → standard"
+                - marshal:
+                    json:
+                      library: Jackson
                 - to:
                     uri: "kafka:eip.orders.domestic"
                     parameters:

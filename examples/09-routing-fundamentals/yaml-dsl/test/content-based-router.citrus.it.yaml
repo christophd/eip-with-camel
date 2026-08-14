@@ -43,7 +43,10 @@ actions:
   - receive:
       endpoint: >-
         kafka:eip.orders.domestic?server=${kafka.broker}&consumerGroup=citrus-domestic-group
-      message: {}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
 
   # --- Send an international order (GB) → should route to eip.orders.international ---
   - createVariables:
@@ -71,7 +74,10 @@ actions:
   - receive:
       endpoint: >-
         kafka:eip.orders.international?server=${kafka.broker}&consumerGroup=citrus-international-group
-      message: {}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
 
   # --- Send a hazmat order → should route to eip.orders.hazmat ---
   - createVariables:
@@ -99,4 +105,7 @@ actions:
   - receive:
       endpoint: >-
         kafka:eip.orders.hazmat?server=${kafka.broker}&consumerGroup=citrus-hazmat-group
-      message: {}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
