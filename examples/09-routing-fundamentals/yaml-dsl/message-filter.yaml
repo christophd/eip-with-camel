@@ -15,6 +15,9 @@
             simple: "${body[amount]} >= 100"
             steps:
               - log: "High-value order ${body[order_id]}: $${body[amount]}"
+              - marshal:
+                  json:
+                    library: Jackson
               - to:
                   uri: "kafka:eip.orders.high-value"
                   parameters:

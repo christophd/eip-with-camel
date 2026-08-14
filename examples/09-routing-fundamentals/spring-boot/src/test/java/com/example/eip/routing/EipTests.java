@@ -17,6 +17,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 
+import static org.citrusframework.actions.ReceiveTimeoutAction.Builder.expectTimeout;
+
 @SpringBootTest(classes = RoutingFundamentalsApplication.class)
 @CamelSpringBootTest
 @CitrusSpringSupport
@@ -64,6 +66,7 @@ class EipTests implements EipTestSupport {
                         receive()
                             .endpoint("kafka:eip.orders.domestic?consumerGroup=citrus-domestic-group")
                             .message()
+                            .body(Resources.create("templates/order.json"))
                     )
             );
         }
@@ -100,6 +103,7 @@ class EipTests implements EipTestSupport {
                         receive()
                             .endpoint("kafka:eip.orders.international?consumerGroup=citrus-international-group")
                             .message()
+                            .body(Resources.create("templates/order.json"))
                     )
             );
         }
@@ -136,6 +140,7 @@ class EipTests implements EipTestSupport {
                         receive()
                             .endpoint("kafka:eip.orders.hazmat?consumerGroup=citrus-hazmat-group")
                             .message()
+                            .body(Resources.create("templates/order.json"))
                     )
             );
         }
@@ -179,7 +184,39 @@ class EipTests implements EipTestSupport {
                         receive()
                             .endpoint("kafka:eip.orders.high-value?consumerGroup=citrus-high-value-group")
                             .message()
+                            .body(Resources.create("templates/order.json"))
                     )
+            );
+        }
+
+        @Test
+        public void shouldFilterLowValueOrder() {
+            t.given(
+                createVariables()
+                    .variable("id", "citrus:randomNumber(4)")
+                    .variable("amount", 50.00)
+                    .variable("country", "US")
+                    .variable("hazmat", false)
+            );
+
+            t.given(waitForCamelRouteStarted("message-filter", camelContext));
+
+            t.given(
+                print().message("Send low-value order (amount < 100) and verify it is filtered out")
+            );
+
+            t.when(
+                send()
+                    .endpoint("kafka:eip.orders.placed")
+                    .message()
+                    .body(Resources.create("templates/order.json"))
+                    .header("kafka.KEY", "${id}")
+            );
+
+            t.then(
+                expectTimeout()
+                    .endpoint("kafka:eip.orders.high-value?consumerGroup=citrus-filter-reject-group")
+                    .timeout(5000)
             );
         }
     }
@@ -240,7 +277,7 @@ class EipTests implements EipTestSupport {
             t.given(waitForCamelRouteStarted("order-splitter", camelContext));
 
             t.given(
-                print().message("Send batch order and verify individual items on output topic")
+                print().message("Send batch order with 2 items and verify both individual items on output topic")
             );
 
             t.when(
@@ -259,6 +296,11 @@ class EipTests implements EipTestSupport {
                         receive()
                             .endpoint("kafka:eip.orders.individual?consumerGroup=citrus-individual-group")
                             .message()
+                            .body(Resources.create("templates/item.json")),
+                        receive()
+                            .endpoint("kafka:eip.orders.individual?consumerGroup=citrus-individual-group")
+                            .message()
+                            .body(Resources.create("templates/item.json"))
                     )
             );
         }

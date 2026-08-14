@@ -42,4 +42,14 @@ actions:
   - receive:
       endpoint: >-
         kafka:eip.orders.individual?server=${kafka.broker}&consumerGroup=citrus-individual-group
-      message: {}
+      message:
+        body:
+          resource:
+            file: "templates/item.json"
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.individual?server=${kafka.broker}&consumerGroup=citrus-individual-group
+      message:
+        body:
+          resource:
+            file: "templates/item.json"
