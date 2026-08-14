@@ -1,0 +1,8 @@
+{
+  "order_id": "ORD-${id}",
+  "item_sku": "${sku}",
+  "quantity": ${quantity},
+  "amount": ${amount},
+  "destination_country": "${country}",
+  "status": "NEW"
+}
