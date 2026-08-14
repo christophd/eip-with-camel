@@ -1,0 +1,5 @@
+{
+  "order_id": ${id},
+  "weight_kg": ${weight},
+  "destination_country": "${country}"
+}
