@@ -84,15 +84,17 @@ class EipTests implements EipTestSupport {
             t.given(waitForCamelRouteStarted("format-indicator-consumer", camelContext));
 
             t.given(
-                print().message("Send order to Kafka and verify format indicator routing")
+                print().message("Send JSON order to tagged topic and verify routing to processed topic")
             );
 
             t.when(
                 send()
-                    .endpoint("kafka:eip.metadata.orders")
+                    .endpoint("kafka:eip.metadata.orders.tagged")
                     .message()
                     .body(Resources.create("templates/order.json"))
                     .header("kafka.KEY", "${id}")
+                    .header("contentType", "application/json")
+                    .header("schemaVersion", "1.0")
             );
 
             t.then(
@@ -101,9 +103,81 @@ class EipTests implements EipTestSupport {
                     .autoSleep(Duration.ofMillis(500))
                     .actions(
                         receive()
-                            .endpoint("kafka:eip.metadata.orders.processed?consumerGroup=citrus-processed-group")
+                            .endpoint("kafka:eip.metadata.orders.processed?consumerGroup=citrus-json-processed-group")
                             .message()
                             .body(Resources.create("templates/order.json"))
+                    )
+            );
+        }
+
+        @Test
+        public void shouldRouteXmlFormattedMessage() {
+            t.given(
+                createVariables()
+                    .variable("id", "citrus:randomNumber(4)")
+            );
+
+            t.given(waitForCamelRouteStarted("format-indicator-consumer", camelContext));
+
+            t.given(
+                print().message("Send XML order to tagged topic and verify routing to processed topic")
+            );
+
+            t.when(
+                send()
+                    .endpoint("kafka:eip.metadata.orders.tagged")
+                    .message()
+                    .body("<order><order_id>${id}</order_id></order>")
+                    .header("kafka.KEY", "${id}")
+                    .header("contentType", "application/xml")
+                    .header("schemaVersion", "1.0")
+            );
+
+            t.then(
+                repeatOnError()
+                    .until((i, context) -> i > 25)
+                    .autoSleep(Duration.ofMillis(500))
+                    .actions(
+                        receive()
+                            .endpoint("kafka:eip.metadata.orders.processed?consumerGroup=citrus-xml-processed-group")
+                            .message()
+                            .body("<order><order_id>${id}</order_id></order>")
+                    )
+            );
+        }
+
+        @Test
+        public void shouldRouteUnknownFormatToDeadLetter() {
+            t.given(
+                createVariables()
+                    .variable("id", "citrus:randomNumber(4)")
+            );
+
+            t.given(waitForCamelRouteStarted("format-indicator-consumer", camelContext));
+
+            t.given(
+                print().message("Send message with unknown contentType and verify routing to dead letter topic")
+            );
+
+            t.when(
+                send()
+                    .endpoint("kafka:eip.metadata.orders.tagged")
+                    .message()
+                    .body("order_id=${id}|item=WIDGET")
+                    .header("kafka.KEY", "${id}")
+                    .header("contentType", "text/plain")
+                    .header("schemaVersion", "1.0")
+            );
+
+            t.then(
+                repeatOnError()
+                    .until((i, context) -> i > 25)
+                    .autoSleep(Duration.ofMillis(500))
+                    .actions(
+                        receive()
+                            .endpoint("kafka:eip.metadata.orders.dead?consumerGroup=citrus-dead-group")
+                            .message()
+                            .body("order_id=${id}|item=WIDGET")
                     )
             );
         }
@@ -149,6 +223,7 @@ class EipTests implements EipTestSupport {
                         receive()
                             .endpoint("kafka:eip.metadata.orders.fulfilled?consumerGroup=citrus-fulfilled-group")
                             .message()
+                            .header("messageExpired", "false")
                     )
             );
         }
@@ -189,6 +264,7 @@ class EipTests implements EipTestSupport {
                         receive()
                             .endpoint("kafka:eip.metadata.orders.reassembled?consumerGroup=citrus-reassembled-group")
                             .message()
+                            .header("BulkOrderId", "BULK-${id}")
                     )
             );
         }
