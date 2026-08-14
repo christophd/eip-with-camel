@@ -36,18 +36,18 @@ actions:
         body:
           resource:
             file: "templates/order.json"
+  - receive:
+      endpoint: >-
+        kafka:eip.metadata.orders.processed?server=${kafka.broker}&consumerGroup=citrus-orders-processed-group
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
   - camel:
       jbang:
         verify:
           integration: "format-indicator"
           logMessage: "JSON format detected"
-  - receive:
-      endpoint: >-
-        kafka:eip.metadata.orders.processed?server=${kafka.broker}&consumerGroup=citrus-json-processed-group
-      message:
-        body:
-          resource:
-            file: "templates/order.json"
 
   # --- Scenario 2: Send an XML order → should be routed through XML processing ---
   - createVariables:
@@ -65,17 +65,17 @@ actions:
             value: "1.0"
         body:
           data: "<order><order_id>${id}</order_id></order>"
+  - receive:
+      endpoint: >-
+        kafka:eip.metadata.orders.processed?server=${kafka.broker}&consumerGroup=citrus-orders-processed-group
+      message:
+        body:
+          data: "<order><order_id>${id}</order_id></order>"
   - camel:
       jbang:
         verify:
           integration: "format-indicator"
           logMessage: "XML format detected"
-  - receive:
-      endpoint: >-
-        kafka:eip.metadata.orders.processed?server=${kafka.broker}&consumerGroup=citrus-xml-processed-group
-      message:
-        body:
-          data: "<order><order_id>${id}</order_id></order>"
 
   # --- Scenario 3: Send unknown format → should be routed to dead letter ---
   - createVariables:
