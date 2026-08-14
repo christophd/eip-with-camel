@@ -1,0 +1,6 @@
+{
+  "order_id": ${id},
+  "customer_id": "CUST-00${id}",
+  "line_items": "@ignore@",
+  "order_total": "@ignore@"
+}
