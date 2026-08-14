@@ -1,0 +1,10 @@
+{
+  "order_id": "ORD-${id}",
+  "customer_id": "CLIENT-${id}",
+  "item_sku": "${sku}",
+  "quantity": ${quantity},
+  "amount": ${amount},
+  "destination_country": "${country}",
+  "contains_hazmat": ${hazardous},
+  "status": "NEW"
+}
