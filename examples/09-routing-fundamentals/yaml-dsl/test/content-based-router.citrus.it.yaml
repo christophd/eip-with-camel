@@ -29,8 +29,16 @@ actions:
         - name: hazmat
           value: "false"
   - send:
+      fork: true
       endpoint: >-
         kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.domestic?server=${kafka.broker}&consumerGroup=citrus-domestic-group
       message:
         body:
           resource:
@@ -40,13 +48,6 @@ actions:
         verify:
           integration: "content-based-router"
           logMessage: "Domestic order"
-  - receive:
-      endpoint: >-
-        kafka:eip.orders.domestic?server=${kafka.broker}&consumerGroup=citrus-domestic-group
-      message:
-        body:
-          resource:
-            file: "templates/order.json"
 
   # --- Send an international order (GB) → should route to eip.orders.international ---
   - createVariables:
@@ -60,8 +61,16 @@ actions:
         - name: hazmat
           value: "false"
   - send:
+      fork: true
       endpoint: >-
         kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.international?server=${kafka.broker}&consumerGroup=citrus-international-group
       message:
         body:
           resource:
@@ -71,13 +80,6 @@ actions:
         verify:
           integration: "content-based-router"
           logMessage: "International order"
-  - receive:
-      endpoint: >-
-        kafka:eip.orders.international?server=${kafka.broker}&consumerGroup=citrus-international-group
-      message:
-        body:
-          resource:
-            file: "templates/order.json"
 
   # --- Send a hazmat order → should route to eip.orders.hazmat ---
   - createVariables:
@@ -91,8 +93,16 @@ actions:
         - name: hazmat
           value: "true"
   - send:
+      fork: true
       endpoint: >-
         kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.hazmat?server=${kafka.broker}&consumerGroup=citrus-hazmat-group
       message:
         body:
           resource:
@@ -102,10 +112,3 @@ actions:
         verify:
           integration: "content-based-router"
           logMessage: "HAZMAT order"
-  - receive:
-      endpoint: >-
-        kafka:eip.orders.hazmat?server=${kafka.broker}&consumerGroup=citrus-hazmat-group
-      message:
-        body:
-          resource:
-            file: "templates/order.json"

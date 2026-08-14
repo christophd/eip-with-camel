@@ -17,38 +17,7 @@ actions:
             systemProperties:
               file: "../application.properties"
 
-  # --- Scenario 1: Send a high-value order (amount=250) → should pass the filter ---
-  - createVariables:
-      variables:
-        - name: id
-          value: "citrus:randomNumber(4)"
-        - name: amount
-          value: "250.00"
-        - name: country
-          value: "US"
-        - name: hazmat
-          value: "false"
-  - send:
-      endpoint: >-
-        kafka:eip.orders.placed?server=${kafka.broker}
-      message:
-        body:
-          resource:
-            file: "templates/order.json"
-  - camel:
-      jbang:
-        verify:
-          integration: "message-filter"
-          logMessage: "High-value order"
-  - receive:
-      endpoint: >-
-        kafka:eip.orders.high-value?server=${kafka.broker}&consumerGroup=citrus-high-value-group
-      message:
-        body:
-          resource:
-            file: "templates/order.json"
-
-  # --- Scenario 2: Send a low-value order (amount=50) → should be filtered out ---
+  # --- Scenario 1: Send a low-value order (amount=50) → should be filtered out ---
   - createVariables:
       variables:
         - name: id
@@ -70,3 +39,34 @@ actions:
       endpoint: >-
         kafka:eip.orders.high-value?server=${kafka.broker}&consumerGroup=citrus-filter-reject-group
       wait: 5000
+
+  # --- Scenario 2: Send a high-value order (amount=250) → should pass the filter ---
+  - createVariables:
+      variables:
+        - name: id
+          value: "citrus:randomNumber(4)"
+        - name: amount
+          value: "250.00"
+        - name: country
+          value: "US"
+        - name: hazmat
+          value: "false"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.high-value?server=${kafka.broker}&consumerGroup=citrus-high-value-group
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "message-filter"
+          logMessage: "High-value order"
