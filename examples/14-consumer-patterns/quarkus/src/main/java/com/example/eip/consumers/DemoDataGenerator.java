@@ -4,9 +4,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class DemoDataGenerator extends RouteBuilder {
+
+    @ConfigProperty(name = "eip.demo.data.generator.enabled", defaultValue = "true")
+    boolean enabled;
 
     private final AtomicLong counter = new AtomicLong();
 
@@ -14,6 +18,7 @@ public class DemoDataGenerator extends RouteBuilder {
     public void configure() {
         from("timer:demo-orders?period=3000&delay=2000")
             .routeId("demo-data-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 String[] eventTypes = {"order_placed", "order_cancelled", "order_refunded"};
@@ -43,9 +48,9 @@ public class DemoDataGenerator extends RouteBuilder {
             .to("kafka:eip.consumer.orders?brokers={{kafka.brokers}}")
             .log("Generated order ${header.kafka.KEY} → eip.consumer.orders");
 
-        // Insert demo orders into PostgreSQL for the SQL polling consumer
         from("timer:demo-db-orders?period=30000&delay=10000")
             .routeId("demo-db-inserter")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 double amount = 25 + (id * 41 % 475);
