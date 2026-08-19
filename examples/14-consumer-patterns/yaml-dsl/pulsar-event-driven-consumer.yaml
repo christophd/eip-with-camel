@@ -8,5 +8,5 @@
         subscriptionName: event-driven-consumer
         subscriptionType: Shared
         numberOfConsumers: 3
-    steps:
-      - log: "Pulsar Event-Driven Consumer received: ${body}"
+      steps:
+        - log: "Pulsar Event-Driven Consumer received: ${body}"

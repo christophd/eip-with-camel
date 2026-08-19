@@ -9,8 +9,8 @@
         groupId: competing-consumers
         autoOffsetReset: earliest
         consumersCount: 3
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Competing consumer [thread=${threadName}] processing: order ${body[order_id]}, type=${body[event_type]}"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Competing consumer [thread=${threadName}] processing: order ${body[order_id]}, type=${body[event_type]}"
