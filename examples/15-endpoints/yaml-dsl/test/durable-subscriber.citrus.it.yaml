@@ -1,0 +1,45 @@
+name: durable-subscriber-test
+description: Test verifying the Durable Subscriber pattern — Pulsar maintains subscription state across reconnects
+variables:
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+  - name: order.amount
+    value: 175
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - waitFor:
+      timeout: "60000"
+      http:
+        url: http://localhost:8080/admin/v2/brokers/healthcheck
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "durable-subscriber"
+            file: "../durable-subscriber.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "durable-subscriber"
+          logMessage: "Routes startup"
+
+  - send:
+      endpoint: >-
+        camel:pulsar:persistent://public/default/eip.orders.placed?serviceUrl=pulsar://localhost:6650&producerName=citrus-durable-sub-test
+      fork: true
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "durable-subscriber"
+          logMessage: "Durable Subscriber"
