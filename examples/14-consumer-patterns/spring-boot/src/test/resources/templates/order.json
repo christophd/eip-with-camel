@@ -1,0 +1,8 @@
+{
+  "order_id": ${id},
+  "customer_id": "CUST-00${id}",
+  "event_type": "${eventType}",
+  "amount": ${amount},
+  "item_sku": "SKU-${id}",
+  "quantity": 1
+}
