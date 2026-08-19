@@ -9,5 +9,5 @@
         subscriptionName: notification-service
         subscriptionType: Shared
         ackTimeoutMillis: 30000
-    steps:
-      - log: "Durable Subscriber [Pulsar] — received order: ${body}"
+      steps:
+        - log: "Durable Subscriber [Pulsar] — received order: ${body}"
