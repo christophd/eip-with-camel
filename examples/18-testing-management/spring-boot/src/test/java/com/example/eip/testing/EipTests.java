@@ -2,37 +2,41 @@ package com.example.eip.testing;
 
 import java.time.Duration;
 
-import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Inject;
+import com.example.eip.testing.config.EipInfraSetup;
 import org.apache.camel.CamelContext;
+import org.apache.camel.test.spring.junit5.CamelSpringBootTest;
 import org.citrusframework.TestCaseRunner;
 import org.citrusframework.annotations.CitrusResource;
+import org.citrusframework.junit.jupiter.spring.CitrusSpringSupport;
 import org.citrusframework.kafka.message.KafkaMessageHeaders;
-import org.citrusframework.quarkus.CitrusSupport;
-import org.citrusframework.spi.BindToRegistry;
+import org.citrusframework.spring.config.CitrusSpringConfig;
 import org.citrusframework.spi.Resources;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.test.context.ContextConfiguration;
 
-@QuarkusTest
-@CitrusSupport
+@SpringBootTest(classes = TestingManagementApplication.class, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@CamelSpringBootTest
+@CitrusSpringSupport
+@ContextConfiguration(classes = { EipInfraSetup.class, CitrusSpringConfig.class })
 @TestClassOrder(ClassOrderer.OrderAnnotation.class)
 class EipTests implements EipTestSupport {
 
-    @CitrusResource
-    TestCaseRunner t;
-
-    @Inject
-    @BindToRegistry
+    @Autowired
     CamelContext camelContext;
 
     @Nested
     @Order(1)
     class DetourTest {
+
+        @CitrusResource
+        TestCaseRunner t;
 
         @Test
         public void shouldEnrichOrderWhenEnrichmentEnabled() {
@@ -81,6 +85,9 @@ class EipTests implements EipTestSupport {
     @Order(2)
     class SmartProxyTest {
 
+        @CitrusResource
+        TestCaseRunner t;
+
         @Test
         public void shouldRoutePaymentToMockGateway() {
             t.given(
@@ -93,7 +100,7 @@ class EipTests implements EipTestSupport {
 
             t.when(
                 http()
-                    .client("http://localhost:8081")
+                    .client("http://localhost:8082")
                     .send()
                     .post("/payments/process")
                     .message()
@@ -103,7 +110,7 @@ class EipTests implements EipTestSupport {
 
             t.then(
                 http()
-                    .client("http://localhost:8081")
+                    .client("http://localhost:8082")
                     .receive()
                     .response(HttpStatus.OK)
                     .message()
@@ -123,6 +130,9 @@ class EipTests implements EipTestSupport {
     @Nested
     @Order(3)
     class ManagedAdapterTest {
+
+        @CitrusResource
+        TestCaseRunner t;
 
         @Test
         public void shouldProcessOrderAndCheckInventory() {
@@ -210,8 +220,11 @@ class EipTests implements EipTestSupport {
     @Order(4)
     class TestMessagePatternTest {
 
+        @CitrusResource
+        TestCaseRunner t;
+
         @Test
-        public void shouldRouteTestMessageToVerifier() {
+        public void shouldRouteRealOrderToProcessed() {
             t.given(
                 createVariables()
                     .variable("id", "citrus:randomNumber(4)")
