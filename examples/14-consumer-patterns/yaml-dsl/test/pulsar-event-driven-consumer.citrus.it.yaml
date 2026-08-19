@@ -1,0 +1,49 @@
+name: pulsar-event-driven-consumer-test
+description: Test verifying the Pulsar Event-Driven Consumer pattern — push-based Pulsar consumption
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+  - name: order.eventType
+    value: "order_placed"
+  - name: order.amount
+    value: 175
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - waitFor:
+      timeout: "25000"
+      http:
+        url: http://localhost:8090
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "pulsar-event-driven-consumer"
+            file: "../pulsar-event-driven-consumer.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "pulsar-event-driven-consumer"
+          logMessage: "Routes startup"
+
+  - send:
+      endpoint: >-
+        camel:pulsar:persistent://public/default/eip.consumer.events?serviceUrl=pulsar://localhost:6650&producerName=citrus-consumer-test
+      fork: true
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "pulsar-event-driven-consumer"
+          logMessage: "Pulsar Event-Driven Consumer received"

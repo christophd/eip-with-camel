@@ -1,0 +1,48 @@
+name: event-driven-consumer-test
+description: Test verifying the Event-Driven Consumer pattern — push-based Kafka consumption
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+  - name: order.eventType
+    value: "order_placed"
+  - name: order.amount
+    value: 150
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - waitFor:
+      timeout: "25000"
+      http:
+        url: http://localhost:8090
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "event-driven-consumer"
+            file: "../event-driven-consumer.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "event-driven-consumer"
+          logMessage: "Routes startup"
+
+  - send:
+      endpoint: >-
+        kafka:eip.consumer.events?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "event-driven-consumer"
+          logMessage: "Event-driven consumer received: order ${order.id}"
