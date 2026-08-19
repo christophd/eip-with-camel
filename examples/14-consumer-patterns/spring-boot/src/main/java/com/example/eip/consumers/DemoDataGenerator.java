@@ -3,10 +3,14 @@ package com.example.eip.consumers;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.camel.builder.RouteBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DemoDataGenerator extends RouteBuilder {
+
+    @Value("${eip.demo.data.generator.enabled:true}")
+    private boolean enabled;
 
     private final AtomicLong counter = new AtomicLong();
 
@@ -14,6 +18,7 @@ public class DemoDataGenerator extends RouteBuilder {
     public void configure() {
         from("timer:demo-orders?period=3000&delay=2000")
             .routeId("demo-data-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 String[] eventTypes = {"order_placed", "order_cancelled", "order_refunded"};
@@ -46,6 +51,7 @@ public class DemoDataGenerator extends RouteBuilder {
         // Insert demo orders into PostgreSQL for the SQL polling consumer
         from("timer:demo-db-orders?period=30000&delay=10000")
             .routeId("demo-db-inserter")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 double amount = 25 + (id * 41 % 475);
