@@ -15,25 +15,25 @@
     id: control-bus-status
     from:
       uri: "direct:route-status"
-    steps:
-      - toD:
-          uri: "controlbus:route?routeId=${header.routeId}&action=status"
-      - log: "Route ${header.routeId} status: ${body}"
+      steps:
+        - toD:
+            uri: "controlbus:route?routeId=${header.routeId}&action=status"
+        - log: "Route ${header.routeId} status: ${body}"
 
 - route:
     id: control-bus-stop
     from:
       uri: "direct:route-stop"
-    steps:
-      - log: "Stopping route: ${header.routeId}"
-      - toD:
-          uri: "controlbus:route?routeId=${header.routeId}&action=stop"
+      steps:
+        - log: "Stopping route: ${header.routeId}"
+        - toD:
+            uri: "controlbus:route?routeId=${header.routeId}&action=stop"
 
 - route:
     id: control-bus-start
     from:
       uri: "direct:route-start"
-    steps:
-      - log: "Starting route: ${header.routeId}"
-      - toD:
-          uri: "controlbus:route?routeId=${header.routeId}&action=start"
+      steps:
+        - log: "Starting route: ${header.routeId}"
+        - toD:
+            uri: "controlbus:route?routeId=${header.routeId}&action=start"
