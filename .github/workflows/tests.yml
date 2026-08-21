@@ -28,6 +28,7 @@ jobs:
           - 13-aggregator
           - 14-consumer-patterns
           - 15-endpoints
+          - 16-endpoint-management
       fail-fast: false
     name: Quarkus — ${{ matrix.example }}
     steps:
@@ -59,6 +60,7 @@ jobs:
           - 13-aggregator
           - 14-consumer-patterns
           - 15-endpoints
+          - 16-endpoint-management
       fail-fast: false
     name: Spring Boot — ${{ matrix.example }}
     steps:
@@ -86,6 +88,7 @@ jobs:
           - 11-advanced-routing
           - 14-consumer-patterns
           - 15-endpoints
+          - 16-endpoint-management
       fail-fast: false
     name: YAML DSL — ${{ matrix.example }}
     steps:
