@@ -1,0 +1,52 @@
+name: wire-tap-test
+description: Test verifying the Wire Tap pattern — sends order copies to an audit topic without affecting the main flow
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+  - name: order.amount
+    value: 99
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - waitFor:
+      timeout: "25000"
+      http:
+        url: http://localhost:8090
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "wire-tap-monitor"
+            file: "../wire-tap-monitor.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "wire-tap-monitor"
+          logMessage: "Routes startup"
+
+  - send:
+      endpoint: >-
+        kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "wire-tap-monitor"
+          logMessage: "AUDIT"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "wire-tap-monitor"
+          logMessage: "processed"
