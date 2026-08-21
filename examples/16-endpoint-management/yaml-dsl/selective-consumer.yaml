@@ -8,17 +8,17 @@
       parameters:
         brokers: "{{kafka.brokers}}"
         groupId: selective-consumer-demo
-    steps:
-      - log: "Selective Consumer received order — containsHazmat=${header.containsHazmat}"
-      - choice:
-          when:
-            - simple: "${header.containsHazmat} == 'true'"
+      steps:
+        - log: "Selective Consumer received order — containsHazmat=${header.containsHazmat}"
+        - choice:
+            when:
+              - simple: "${header.containsHazmat} == 'true'"
+                steps:
+                  - log: "REJECTED — order contains hazmat, skipping"
+            otherwise:
               steps:
-                - log: "REJECTED — order contains hazmat, skipping"
-          otherwise:
-            steps:
-              - log: "ACCEPTED — forwarding non-hazmat order to eip.orders.accepted"
-              - to:
-                  uri: "kafka:eip.orders.accepted"
-                  parameters:
-                    brokers: "{{kafka.brokers}}"
+                - log: "ACCEPTED — forwarding non-hazmat order to eip.orders.accepted"
+                - to:
+                    uri: "kafka:eip.orders.accepted"
+                    parameters:
+                      brokers: "{{kafka.brokers}}"
