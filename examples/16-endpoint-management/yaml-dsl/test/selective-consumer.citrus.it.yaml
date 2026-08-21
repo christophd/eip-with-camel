@@ -1,0 +1,66 @@
+name: selective-consumer-test
+description: Test verifying the Selective Consumer pattern — filters Kafka messages based on header criteria
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+  - name: order.amount
+    value: 150
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - waitFor:
+      timeout: "25000"
+      http:
+        url: http://localhost:8090
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "selective-consumer"
+            file: "../selective-consumer.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "selective-consumer"
+          logMessage: "Routes startup"
+
+  - send:
+      endpoint: >-
+        kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        headers:
+          - name: containsHazmat
+            value: "false"
+        body:
+          resource:
+            file: "templates/order.json"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "selective-consumer"
+          logMessage: "ACCEPTED"
+
+  - send:
+      endpoint: >-
+        kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        headers:
+          - name: containsHazmat
+            value: "true"
+        body:
+          resource:
+            file: "templates/order.json"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "selective-consumer"
+          logMessage: "REJECTED"
