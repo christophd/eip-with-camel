@@ -7,7 +7,6 @@ import jakarta.inject.Inject;
 import org.apache.camel.CamelContext;
 import org.citrusframework.TestCaseRunner;
 import org.citrusframework.annotations.CitrusResource;
-import org.citrusframework.camel.dsl.CamelSupport;
 import org.citrusframework.kafka.message.KafkaMessageHeaders;
 import org.citrusframework.quarkus.CitrusSupport;
 import org.citrusframework.spi.BindToRegistry;
@@ -17,6 +16,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
+import org.springframework.http.HttpStatus;
 
 @QuarkusTest
 @CitrusSupport
@@ -92,16 +92,30 @@ class EipTests implements EipTestSupport {
             t.given(waitForCamelRouteStarted("smart-proxy-router", camelContext));
 
             t.when(
-                camel()
+                http()
+                    .client("http://localhost:8081")
                     .send()
-                    .endpoint(CamelSupport.camel().endpoints()
-                            .direct("smart-proxy-entry")::getRawUri)
+                    .post("/payments/process")
                     .message()
                     .body(Resources.create("templates/payment.json"))
+                    .contentType("application/json")
             );
 
             t.then(
-                assertProcessedExchanges("smart-proxy-mock-gateway", it -> it >= 1, camelContext)
+                http()
+                    .client("http://localhost:8081")
+                    .receive()
+                    .response(HttpStatus.OK)
+                    .message()
+                    .body("""
+                    {
+                      "gateway": "MOCK",
+                      "transaction_id": "@notEmpty()@",
+                      "status": "APPROVED",
+                      "message": "@notEmpty()@"
+                    }
+                    """)
+                    .contentType("application/json")
             );
         }
     }

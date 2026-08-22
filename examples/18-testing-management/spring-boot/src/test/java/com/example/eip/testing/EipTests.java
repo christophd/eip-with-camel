@@ -7,7 +7,6 @@ import org.apache.camel.CamelContext;
 import org.apache.camel.test.spring.junit5.CamelSpringBootTest;
 import org.citrusframework.TestCaseRunner;
 import org.citrusframework.annotations.CitrusResource;
-import org.citrusframework.camel.dsl.CamelSupport;
 import org.citrusframework.junit.jupiter.spring.CitrusSpringSupport;
 import org.citrusframework.kafka.message.KafkaMessageHeaders;
 import org.citrusframework.spring.config.CitrusSpringConfig;
@@ -19,9 +18,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 
-@SpringBootTest(classes = TestingManagementApplication.class)
+@SpringBootTest(classes = TestingManagementApplication.class, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @CamelSpringBootTest
 @CitrusSpringSupport
 @ContextConfiguration(classes = { EipInfraSetup.class, CitrusSpringConfig.class })
@@ -99,16 +99,30 @@ class EipTests implements EipTestSupport {
             t.given(waitForCamelRouteStarted("smart-proxy-router", camelContext));
 
             t.when(
-                camel()
+                http()
+                    .client("http://localhost:8082")
                     .send()
-                    .endpoint(CamelSupport.camel().endpoints()
-                            .direct("smart-proxy-entry")::getRawUri)
+                    .post("/payments/process")
                     .message()
                     .body(Resources.create("templates/payment.json"))
+                    .contentType("application/json")
             );
 
             t.then(
-                assertProcessedExchanges("smart-proxy-mock-gateway", it -> it >= 1, camelContext)
+                http()
+                    .client("http://localhost:8082")
+                    .receive()
+                    .response(HttpStatus.OK)
+                    .message()
+                    .body("""
+                    {
+                      "gateway": "MOCK",
+                      "transaction_id": "@notEmpty()@",
+                      "status": "APPROVED",
+                      "message": "@notEmpty()@"
+                    }
+                    """)
+                    .contentType("application/json")
             );
         }
     }
