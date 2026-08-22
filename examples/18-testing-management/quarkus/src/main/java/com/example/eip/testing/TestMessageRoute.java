@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
  * Test Message pattern — injects synthetic test orders into the production
@@ -15,6 +16,9 @@ import org.apache.camel.builder.RouteBuilder;
 @ApplicationScoped
 public class TestMessageRoute extends RouteBuilder {
 
+    @ConfigProperty(name = "eip.test.message.injector.enabled", defaultValue = "true")
+    boolean injectorEnabled;
+
     private final AtomicLong counter = new AtomicLong();
 
     @Override
@@ -22,6 +26,7 @@ public class TestMessageRoute extends RouteBuilder {
         // --- Inject synthetic test orders every 30 seconds ---
         from("timer:test-message-injector?period=30000&delay=10000")
             .routeId("test-message-injector")
+            .autoStartup(injectorEnabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 long testId = -1 * id;   // negative IDs mark test messages
