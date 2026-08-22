@@ -30,6 +30,7 @@ jobs:
           - 15-endpoints
           - 16-endpoint-management
           - 17-observability
+          - 18-testing-management
       fail-fast: false
     name: Quarkus — ${{ matrix.example }}
     steps:
@@ -63,6 +64,7 @@ jobs:
           - 15-endpoints
           - 16-endpoint-management
           - 17-observability
+          - 18-testing-management
       fail-fast: false
     name: Spring Boot — ${{ matrix.example }}
     steps:
