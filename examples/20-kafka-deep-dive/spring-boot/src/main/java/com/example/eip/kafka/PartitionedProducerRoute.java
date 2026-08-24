@@ -1,15 +1,20 @@
 package com.example.eip.kafka;
 
 import org.apache.camel.builder.RouteBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PartitionedProducerRoute extends RouteBuilder {
 
+    @Value("${eip.partitioned.producer.enabled:true}")
+    boolean enabled;
+
     @Override
     public void configure() {
         from("timer:order-generator?period=5000")
             .routeId("partitioned-producer")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long orderId = 1000 + (System.nanoTime() % 100);
                 exchange.getIn().setBody(String.format(
