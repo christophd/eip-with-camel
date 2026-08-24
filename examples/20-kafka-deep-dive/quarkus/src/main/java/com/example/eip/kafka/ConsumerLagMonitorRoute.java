@@ -10,14 +10,19 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class ConsumerLagMonitorRoute extends RouteBuilder {
+
+    @ConfigProperty(name = "eip.consumer.lag.monitor.enabled", defaultValue = "true")
+    boolean enabled;
 
     @Override
     public void configure() {
         from("timer:lag-monitor?period=30000&delay=10000")
             .routeId("consumer-lag-monitor")
+            .autoStartup(enabled)
             .process(exchange -> {
                 String brokers = exchange.getContext()
                     .resolvePropertyPlaceholders("{{kafka.brokers}}");
