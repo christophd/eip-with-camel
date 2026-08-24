@@ -23,7 +23,7 @@ public class TransactionalPipelineRoute extends RouteBuilder {
                 String customerId = (String) body.get("customer_id");
                 Number amount = (Number) body.get("amount");
 
-                String enriched = String.format(
+                String enriched = String.format(java.util.Locale.US,
                     "{\"order_id\": %d, \"customer_id\": \"%s\", \"amount\": %.2f, "
                         + "\"status\": \"ENRICHED\", \"warehouse\": \"WH-%d\", "
                         + "\"priority\": \"%s\", \"enriched_at\": \"%s\"}",
