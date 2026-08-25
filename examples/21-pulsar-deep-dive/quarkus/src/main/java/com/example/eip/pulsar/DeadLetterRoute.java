@@ -2,14 +2,19 @@ package com.example.eip.pulsar;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class DeadLetterRoute extends RouteBuilder {
+
+    @ConfigProperty(name = "eip.pulsar.producer.enabled", defaultValue = "true")
+    boolean enabled;
 
     @Override
     public void configure() {
         from("timer:dlt-order-gen?period=6000")
             .routeId("pulsar-dlt-producer")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long orderId = 4000 + (System.nanoTime() % 100);
                 exchange.getIn().setBody(String.format(

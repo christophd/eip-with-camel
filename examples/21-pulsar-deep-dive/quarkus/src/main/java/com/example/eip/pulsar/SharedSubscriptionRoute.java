@@ -2,14 +2,19 @@ package com.example.eip.pulsar;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class SharedSubscriptionRoute extends RouteBuilder {
+
+    @ConfigProperty(name = "eip.pulsar.producer.enabled", defaultValue = "true")
+    boolean enabled;
 
     @Override
     public void configure() {
         from("timer:pulsar-order-gen?period=5000")
             .routeId("pulsar-order-producer")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long orderId = 2000 + (System.nanoTime() % 100);
                 exchange.getIn().setBody(String.format(
