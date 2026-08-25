@@ -1,15 +1,20 @@
 package com.example.eip.pulsar;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.apache.camel.builder.RouteBuilder;
 
 @Component
 public class DeadLetterRoute extends RouteBuilder {
 
+    @Value("${eip.pulsar.producer.enabled:true}")
+    boolean enabled;
+
     @Override
     public void configure() {
         from("timer:dlt-order-gen?period=6000")
             .routeId("pulsar-dlt-producer")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long orderId = 4000 + (System.nanoTime() % 100);
                 exchange.getIn().setBody(String.format(
