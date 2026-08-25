@@ -1,15 +1,20 @@
 package com.example.eip.pulsar;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.apache.camel.builder.RouteBuilder;
 
 @Component
 public class KeySharedRoute extends RouteBuilder {
 
+    @Value("${eip.pulsar.producer.enabled:true}")
+    boolean enabled;
+
     @Override
     public void configure() {
         from("timer:keyed-order-gen?period=4000")
             .routeId("pulsar-keyed-producer")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long orderId = 3000 + (System.nanoTime() % 50);
                 String key = "order-" + orderId;

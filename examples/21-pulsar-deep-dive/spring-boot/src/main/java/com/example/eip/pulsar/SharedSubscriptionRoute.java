@@ -1,15 +1,20 @@
 package com.example.eip.pulsar;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.apache.camel.builder.RouteBuilder;
 
 @Component
 public class SharedSubscriptionRoute extends RouteBuilder {
 
+    @Value("${eip.pulsar.producer.enabled:true}")
+    boolean enabled;
+
     @Override
     public void configure() {
         from("timer:pulsar-order-gen?period=5000")
             .routeId("pulsar-order-producer")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long orderId = 2000 + (System.nanoTime() % 100);
                 exchange.getIn().setBody(String.format(
