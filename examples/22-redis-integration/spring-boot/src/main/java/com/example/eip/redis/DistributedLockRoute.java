@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -20,9 +21,13 @@ public class DistributedLockRoute extends RouteBuilder {
     @Autowired
     StringRedisTemplate redisTemplate;
 
+    @Value("${eip.distributed.lock.enabled:true}")
+    boolean enabled;
+
     @Override
     public void configure() {
         from("timer:nightly-export?period=60000")
+            .autoStartup(enabled)
             .routeId("distributed-lock")
             .process(this::tryAcquireLock)
             .choice()
