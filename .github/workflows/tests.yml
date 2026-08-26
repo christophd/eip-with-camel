@@ -33,6 +33,7 @@ jobs:
           - 18-testing-management
           - 20-kafka-deep-dive
           - 21-pulsar-deep-dive
+          - 22-redis-integration
       fail-fast: false
     name: Quarkus — ${{ matrix.example }}
     steps:
@@ -69,6 +70,7 @@ jobs:
           - 18-testing-management
           - 20-kafka-deep-dive
           - 21-pulsar-deep-dive
+          - 22-redis-integration
       fail-fast: false
     name: Spring Boot — ${{ matrix.example }}
     steps:
