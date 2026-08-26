@@ -6,6 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,9 +22,13 @@ public class DistributedLockRoute extends RouteBuilder {
     @Inject
     RedisAPI redis;
 
+    @ConfigProperty(name = "eip.distributed.lock.enabled", defaultValue = "true")
+    boolean enabled;
+
     @Override
     public void configure() {
         from("timer:nightly-export?period=60000")
+            .autoStartup(enabled)
             .routeId("distributed-lock")
             .process(this::tryAcquireLock)
             .choice()
