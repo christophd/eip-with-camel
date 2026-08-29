@@ -34,6 +34,7 @@ public class OrderFulfillmentRoute extends RouteBuilder {
             .choice()
                 .when(header("sagaState").isEqualTo("FAILED"))
                     .log("Saga FAILED at inventory for order ${body[order_id]}: ${header.failureReason}")
+                    .marshal().json()
                     .to("kafka:eip.orders.saga-failed?brokers={{kafka.brokers}}")
                 .otherwise()
                     .to("direct:saga-authorize-payment")
