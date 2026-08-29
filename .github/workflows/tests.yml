@@ -35,6 +35,7 @@ jobs:
           - 21-pulsar-deep-dive
           - 22-redis-integration
           - 24-drools-rules
+          - 27-observability-stack
       fail-fast: false
     name: Quarkus — ${{ matrix.example }}
     steps:
@@ -73,6 +74,7 @@ jobs:
           - 21-pulsar-deep-dive
           - 22-redis-integration
           - 24-drools-rules
+          - 27-observability-stack
       fail-fast: false
     name: Spring Boot — ${{ matrix.example }}
     steps:
