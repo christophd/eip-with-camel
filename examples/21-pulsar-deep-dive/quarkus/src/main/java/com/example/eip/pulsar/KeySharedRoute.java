@@ -2,14 +2,19 @@ package com.example.eip.pulsar;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class KeySharedRoute extends RouteBuilder {
+
+    @ConfigProperty(name = "eip.pulsar.producer.enabled", defaultValue = "true")
+    boolean enabled;
 
     @Override
     public void configure() {
         from("timer:keyed-order-gen?period=4000")
             .routeId("pulsar-keyed-producer")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long orderId = 3000 + (System.nanoTime() % 50);
                 String key = "order-" + orderId;
