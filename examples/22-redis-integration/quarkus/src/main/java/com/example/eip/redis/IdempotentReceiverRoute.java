@@ -24,12 +24,16 @@ public class IdempotentReceiverRoute extends RouteBuilder {
             .process(this::deduplicateAndProcess)
             .choice()
                 .when(header("CamelDuplicate").isEqualTo(true))
-                    .log("Duplicate payment event ${body[event_id]} -- skipping")
+                    .to("direct:handle-duplicate-payment")
                 .otherwise()
                     .log("Processing payment event ${body[event_id]} for order ${body[order_id]}")
                     .marshal().json()
                     .to("kafka:eip.orders.payment-confirmed?brokers={{kafka.brokers}}")
             .end();
+
+        from("direct:handle-duplicate-payment")
+            .routeId("handle-duplicate-payment")
+            .log("Duplicate payment event ${body[event_id]} -- skipping");
     }
 
     private void deduplicateAndProcess(Exchange exchange) {
