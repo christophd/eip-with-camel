@@ -34,8 +34,13 @@ public class MessageDispatcherRoute extends RouteBuilder {
                 })
                     .toD("direct:handle-${body[event_type]}")
                 .otherwise()
-                    .log("Unknown event_type '${body[event_type]}' — skipping")
+                    .to("direct:handle-order_unknown")
             .end();
+
+        // --- handler: unknown event type ---
+        from("direct:handle-order_unknown")
+            .routeId("handle-order-unknown")
+            .log("Unknown event_type '${body[event_type]}' — skipping");
 
         // --- handler: order_placed ---
         from("direct:handle-order_placed")
