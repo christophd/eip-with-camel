@@ -1,7 +1,7 @@
 package com.example.eip.reliability;
 
-import org.springframework.stereotype.Component;
 import org.apache.camel.builder.RouteBuilder;
+import org.springframework.stereotype.Component;
 
 @Component
 public class DeadLetterChannelRoute extends RouteBuilder {
@@ -28,6 +28,7 @@ public class DeadLetterChannelRoute extends RouteBuilder {
                 }
             })
             .log("Order ${body[order_id]} processed successfully")
+            .marshal().json()
             .to("kafka:eip.orders.processed?brokers={{kafka.brokers}}");
 
         from("kafka:eip.orders.dlq?brokers={{kafka.brokers}}&groupId=dlq-monitor")
