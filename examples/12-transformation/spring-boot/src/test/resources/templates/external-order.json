@@ -1,0 +1,9 @@
+{
+  "orderNumber": "ORD-${id}",
+  "clientRef": "CLIENT-${id}",
+  "productCode": "${sku}",
+  "qty": ${quantity},
+  "totalValue": ${amount},
+  "shipToCountry": "${country}",
+  "hazardous": ${hazardous}
+}

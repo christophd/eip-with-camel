@@ -3,6 +3,7 @@ package com.example.eip.transform;
 import java.util.Map;
 
 import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -12,12 +13,19 @@ public class RedisProductCatalog {
 
     private final HashOperations<String, String, String> hash;
 
+    @Value("${redis.catalog.seed:true}")
+    boolean seedEnabled;
+
     public RedisProductCatalog(StringRedisTemplate redisTemplate) {
         this.hash = redisTemplate.opsForHash();
     }
 
     @PostConstruct
-    void seedCatalog() {
+    void init() {
+        if (seedEnabled) seedCatalog();
+    }
+
+    public void seedCatalog() {
         addProduct("SKU-ABC-42", "Wireless Headphones", "29.99", "Electronics", "0.3", "ZONE-1");
         addProduct("SKU-DEF-77", "Running Shoes", "89.99", "Footwear", "1.2", "ZONE-2");
         addProduct("SKU-GHI-13", "Coffee Maker", "149.99", "Appliances", "4.5", "ZONE-3");
