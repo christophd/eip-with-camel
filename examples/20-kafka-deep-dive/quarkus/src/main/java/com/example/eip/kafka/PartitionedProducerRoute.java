@@ -2,14 +2,19 @@ package com.example.eip.kafka;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class PartitionedProducerRoute extends RouteBuilder {
+
+    @ConfigProperty(name = "eip.partitioned.producer.enabled", defaultValue = "true")
+    boolean enabled;
 
     @Override
     public void configure() {
         from("timer:order-generator?period=5000")
             .routeId("partitioned-producer")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long orderId = 1000 + (System.nanoTime() % 100);
                 exchange.getIn().setBody(String.format(
