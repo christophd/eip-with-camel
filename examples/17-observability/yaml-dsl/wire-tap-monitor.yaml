@@ -7,32 +7,32 @@
       parameters:
         brokers: "{{kafka.brokers}}"
         groupId: wiretap-demo
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Processing order ${body[order_id]}"
-      - wireTap:
-          uri: "direct:audit-log"
-      - log: "Order ${body[order_id]} processed"
-      - marshal:
-          json:
-            library: Jackson
-      - to:
-          uri: "kafka:eip.orders.processed"
-          parameters:
-            brokers: "{{kafka.brokers}}"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Processing order ${body[order_id]}"
+        - wireTap:
+            uri: "direct:audit-log"
+        - log: "Order ${body[order_id]} processed"
+        - marshal:
+            json:
+              library: Jackson
+        - to:
+            uri: "kafka:eip.orders.processed"
+            parameters:
+              brokers: "{{kafka.brokers}}"
 
 - route:
     id: audit-log-writer
     from:
       uri: "direct:audit-log"
-    steps:
-      - log: "AUDIT: order_id=${body[order_id]}, customer=${body[customer_id]}, amount=${body[amount]}"
-      - marshal:
-          json:
-            library: Jackson
-      - to:
-          uri: "kafka:eip.orders.audit"
-          parameters:
-            brokers: "{{kafka.brokers}}"
+      steps:
+        - log: "AUDIT: order_id=${body[order_id]}, customer=${body[customer_id]}, amount=${body[amount]}"
+        - marshal:
+            json:
+              library: Jackson
+        - to:
+            uri: "kafka:eip.orders.audit"
+            parameters:
+              brokers: "{{kafka.brokers}}"
