@@ -1,0 +1,8 @@
+{
+  "bulk_order_id": "BULK-${id}",
+  "customer_id": "CUST-${id}",
+  "items": [
+    { "line_number": 1, "item_sku": "PART-A1", "quantity": 2, "unit_price": 10.0 },
+    { "line_number": 2, "item_sku": "PART-B2", "quantity": 1, "unit_price": 23.0 }
+  ]
+}

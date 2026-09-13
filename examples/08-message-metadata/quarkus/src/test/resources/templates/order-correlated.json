@@ -1,0 +1,10 @@
+{
+  "order_id": ${id},
+  "customer_id": "CUST-${id}",
+  "item_sku": "WIDGET-A",
+  "quantity": 1,
+  "amount": ${amount},
+  "destination_country": "US",
+  "enriched": true,
+  "warehouse": "WH-EAST"
+}
