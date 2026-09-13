@@ -1,0 +1,7 @@
+{
+  "order_number": "ORD-${id}",
+  "buyer_ref": "CUST-${id}",
+  "sku": "${sku}",
+  "qty": ${quantity},
+  "price": ${amount}
+}

@@ -1,0 +1,7 @@
+{
+  "po_id": "ORD-${id}",
+  "account": "CUST-${id}",
+  "item_code": "${sku}",
+  "units": ${quantity},
+  "value": ${amount}
+}

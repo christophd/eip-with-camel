@@ -1,0 +1,7 @@
+{
+  "orderId": "ORD-${id}",
+  "client": "CUST-${id}",
+  "product": "${sku}",
+  "count": ${quantity},
+  "total": ${amount}
+}
