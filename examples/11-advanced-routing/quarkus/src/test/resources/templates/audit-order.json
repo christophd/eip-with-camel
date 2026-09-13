@@ -1,0 +1,11 @@
+{
+  "order_id": ${id},
+  "customer_id": "CUST-00${id}",
+  "item_sku": "SKU-TEST-${id}",
+  "quantity": 1,
+  "amount": ${amount},
+  "destination_country": "${country}",
+  "shipping_priority": "${priority}",
+  "audit_timestamp": "@ignore@",
+  "audit_source": "wire-tap"
+}
