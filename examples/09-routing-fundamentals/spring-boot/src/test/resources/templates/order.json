@@ -1,0 +1,10 @@
+{
+  "order_id": ${id},
+  "customer_id": "CUST-${id}",
+  "item_sku": "SKU-${id}",
+  "quantity": 1,
+  "amount": ${amount},
+  "destination_country": "${country}",
+  "contains_hazmat": ${hazmat},
+  "shipping_priority": "STANDARD"
+}

@@ -15,12 +15,15 @@ public class ContentBasedRouterRoute extends RouteBuilder {
             .choice()
                 .when(simple("${body[contains_hazmat]} == true"))
                     .log("HAZMAT order ${body[order_id]} → hazmat handler")
+                    .marshal().json()
                     .to("kafka:eip.orders.hazmat?brokers={{kafka.brokers}}")
                 .when(simple("${body[destination_country]} != 'US'"))
                     .log("International order ${body[order_id]} → customs")
+                    .marshal().json()
                     .to("kafka:eip.orders.international?brokers={{kafka.brokers}}")
                 .otherwise()
                     .log("Domestic order ${body[order_id]} → standard")
+                    .marshal().json()
                     .to("kafka:eip.orders.domestic?brokers={{kafka.brokers}}")
             .end();
     }
