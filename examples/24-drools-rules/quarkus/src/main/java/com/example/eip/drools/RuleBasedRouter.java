@@ -32,7 +32,7 @@ public class RuleBasedRouter {
         order.setDestinationCountry((String) body.getOrDefault("destination_country", "US"));
         order.setContainsHazmat(Boolean.TRUE.equals(body.get("contains_hazmat")));
 
-        KieSession session = kieContainer.newKieSession();
+        KieSession session = kieContainer.newKieSession("orderSession");
         try {
             session.insert(order);
             session.fireAllRules();
