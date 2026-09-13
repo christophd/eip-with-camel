@@ -30,21 +30,61 @@ jobs:
           - 16-endpoint-management
           - 17-observability
           - 18-testing-management
-          - loan-broker
+          - 20-kafka-deep-dive
+          - 21-pulsar-deep-dive
+          - 22-redis-integration
+          - 24-drools-rules
+          - 25-quarkus-flow
+          - 27-observability-stack
+          - 32-kafka-consumer-tuning
+          - 33-kafka-producer-tuning
+          - 37-testing-strategies
+          - 38-kubernetes-deploy
+          - 42-ai-mcp
           - bond-trading
+          - domain-model
+          - loan-broker
       fail-fast: false
 
     name: Build ${{ matrix.example }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
+      - name: Set up JDK 25
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: 'temurin'
           cache: 'maven'
 
+      # Most examples hold one Maven project per runtime, in quarkus/ and
+      # spring-boot/ subdirectories. A few (domain-model, 25-quarkus-flow) are a
+      # single project rooted at the example directory. Build whichever is present,
+      # and fail if an example turns out to contain no project at all — that is how
+      # this workflow silently passed nothing before.
       - name: Build ${{ matrix.example }}
-        run: mvn -B package -DskipTests
-        working-directory: examples/${{ matrix.example }}
+        run: |
+          set -euo pipefail
+          root="examples/${{ matrix.example }}"
+          built=0
+          for dir in "$root/quarkus" "$root/spring-boot"; do
+            if [ -f "$dir/pom.xml" ]; then
+              echo "::group::$dir"
+              mvn -B -f "$dir/pom.xml" package -DskipTests
+              echo "::endgroup::"
+              built=$((built + 1))
+            fi
+          done
+          if [ "$built" -eq 0 ]; then
+            if [ -f "$root/pom.xml" ]; then
+              echo "::group::$root"
+              mvn -B -f "$root/pom.xml" package -DskipTests
+              echo "::endgroup::"
+              built=1
+            fi
+          fi
+          if [ "$built" -eq 0 ]; then
+            echo "No pom.xml found under $root" >&2
+            exit 1
+          fi
+          echo "Built $built Maven project(s) for ${{ matrix.example }}"
