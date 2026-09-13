@@ -10,12 +10,12 @@
     id: document-message-producer
     from:
       uri: "direct:send-document"
-    steps:
-      - log: "Sending document → eip.documents.orders: order ${header.kafka.KEY}"
-      - to:
-          uri: "kafka:eip.documents.orders"
-          parameters:
-            brokers: "{{kafka.brokers}}"
+      steps:
+        - log: "Sending document → eip.documents.orders: order ${header.kafka.KEY}"
+        - to:
+            uri: "kafka:eip.documents.orders"
+            parameters:
+              brokers: "{{kafka.brokers}}"
 
 # Consumer: receive and inspect the document
 - route:
@@ -25,9 +25,9 @@
       parameters:
         brokers: "{{kafka.brokers}}"
         groupId: document-consumer
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Received order document: order_id=${body[order_id]}, customer=${body[customer_id]}, total=${body[total_amount]}, status=${body[status]}"
-      - log: "Full document payload: ${body}"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Received order document: order_id=${body[order_id]}, customer=${body[customer_id]}, total=${body[total_amount]}, status=${body[status]}"
+        - log: "Full document payload: ${body}"
