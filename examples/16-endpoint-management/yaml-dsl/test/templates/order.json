@@ -1,0 +1,7 @@
+{
+  "order_id": ${order.id},
+  "customer_id": "CUST-00${order.id}",
+  "item_sku": "SKU-MGMT-${order.id}",
+  "quantity": 1,
+  "amount": ${order.amount}
+}
