@@ -1,0 +1,39 @@
+name: point-to-point-test
+description: Test verifying the Point-to-Point Channel route — single consumer processes each order
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+  - name: order.status
+    value: "placed"
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "point-to-point"
+            file: "../point-to-point.yaml"
+            systemProperties:
+              file: "../application.properties"
+  - send:
+      endpoint: >-
+        kafka:eip.orders.placed?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/order.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "point-to-point"
+          logMessage: "P2P received order"
+  - camel:
+      jbang:
+        verify:
+          integration: "point-to-point"
+          logMessage: "→ eip.orders.processed"
