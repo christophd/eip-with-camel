@@ -282,8 +282,9 @@ from("direct:place-order")
     .to("sql:SELECT currval('orders.orders_id_seq') AS order_id"
         + "?dataSource=#orderDataSource")
     .process(exchange -> {
-        Map<String, Object> row = exchange.getIn().getBody(List.class).get(0);
-        exchange.getIn().setHeader("orderId", row.get("order_id"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rows = exchange.getIn().getBody(List.class);
+        exchange.getIn().setHeader("orderId", rows.get(0).get("order_id"));
     })
     .setBody(simple("""
         {

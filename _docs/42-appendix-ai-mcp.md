@@ -951,11 +951,11 @@ Nothing is published unless you name a tag. The untagged default pool — the on
 
 The order-status tool defined earlier is already tagged `shipping`, so it needs no change to be published:
 
-```java
-from("ai-tool:order-status"
-        + "?tags=shipping"
-        + "&description=Look up the status of a shipping order by order ID"
-        + "&parameter.orderId=string")
+```
+ai-tool:order-status
+    ?tags=shipping
+    &description=Look up the status of a shipping order by order ID
+    &parameter.orderId=string
 ```
 
 That single definition now serves both consumers: the LangChain4j agent inside the application, and external MCP clients.
