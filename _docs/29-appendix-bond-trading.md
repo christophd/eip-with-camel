@@ -114,7 +114,7 @@ Each market data source has its own format. Channel Adapters normalize them:
 ```java
 // Bloomberg feed — FIX-like delimited format
 from("kafka:bond.feed.raw.bloomberg?brokers=localhost:9092&groupId=feed-normalizer")
-    .routeId("bloomberg-channel-adapter")
+    .routeId("adapter-bloomberg")
     .unmarshal().json(RawPriceUpdate.class)
     .bean("bloombergNormalizer", "normalize")
     .setHeader(KafkaConstants.KEY, simple("${body.isin}"))
@@ -123,7 +123,7 @@ from("kafka:bond.feed.raw.bloomberg?brokers=localhost:9092&groupId=feed-normaliz
 
 // Reuters feed — different field names, different identifiers
 from("kafka:bond.feed.raw.reuters?brokers=localhost:9092&groupId=feed-normalizer")
-    .routeId("reuters-channel-adapter")
+    .routeId("adapter-reuters")
     .unmarshal().json(RawPriceUpdate.class)
     .bean("reutersNormalizer", "normalize")
     .setHeader(KafkaConstants.KEY, simple("${body.isin}"))
@@ -242,7 +242,7 @@ from("kafka:bond.prices.best?brokers=localhost:9092&groupId=desk-distributor")
 
 // Desk A: government bonds only
 from("direct:filter-desk-a")
-    .routeId("desk-a-filter")
+    .routeId("filter-desk-a")
     .filter(simple("${body.bondType} == 'government'"))
     .setHeader(KafkaConstants.KEY, simple("${body.isin}"))
     .marshal().json()
@@ -250,7 +250,7 @@ from("direct:filter-desk-a")
 
 // Desk B: corporate bonds, investment grade
 from("direct:filter-desk-b")
-    .routeId("desk-b-filter")
+    .routeId("filter-desk-b")
     .filter(simple("${body.bondType} == 'corporate'"))
     .setHeader(KafkaConstants.KEY, simple("${body.isin}"))
     .marshal().json()
@@ -258,7 +258,7 @@ from("direct:filter-desk-b")
 
 // Desk C: all bonds with maturity within 5 years
 from("direct:filter-desk-c")
-    .routeId("desk-c-filter")
+    .routeId("filter-desk-c")
     .filter().method("maturityFilter", "isWithinYears(5)")
     .setHeader(KafkaConstants.KEY, simple("${body.isin}"))
     .marshal().json()
@@ -382,6 +382,22 @@ from("direct:audit-log")
 ```
 
 **Pattern: Wire Tap.** The Wire Tap sends a copy of every validated trade to the audit topic without affecting the main processing flow. This is non-negotiable in financial systems — every order must be logged for regulatory compliance.
+
+## What the runnable example covers
+
+The five capabilities at the top of this chapter are what a trading desk needs, not a claim about what `examples/bond-trading/` builds. The example implements the first four patterns end to end and stops there:
+
+| Pattern | In the example? |
+|---------|-----------------|
+| 1. Channel Adapter — market data ingestion | Yes — `adapter-bloomberg`, `adapter-reuters`, `adapter-exchange` |
+| 2. Normalizer — best-price selection | Yes — `price-normalizer` |
+| 3. Content-Based Router — desk distribution | Yes — `desk-distributor`, `filter-desk-a/b/c` |
+| 4. Message Filter + Validator — order validation | Yes — `trade-validator` |
+| 5. Routing Slip — trade execution | No — illustrative only |
+| 6. Event-Driven Consumer — position updates | No — illustrative only |
+| 7. Wire Tap — audit trail | No — illustrative only |
+
+Patterns 5 to 7 need an execution venue and a position store that the local stack does not provide, so they are shown as code rather than run. Start the example and you will see market data flow through ingestion, normalization and desk distribution, and trade orders reach validation — nothing past that point.
 
 ## Pattern inventory
 
