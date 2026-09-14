@@ -73,6 +73,19 @@
             <groupId>org.apache.camel.springboot</groupId>
             <artifactId>camel-langchain4j-chat-starter</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.camel.springboot</groupId>
+            <artifactId>camel-ai-tool-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.camel.springboot</groupId>
+            <artifactId>camel-langchain4j-agent-starter</artifactId>
+        </dependency>
+        <!-- Publishes the ai-tool routes to external MCP clients -->
+        <dependency>
+            <groupId>org.apache.camel.springboot</groupId>
+            <artifactId>camel-mcp-server-starter</artifactId>
+        </dependency>
 
         <!-- LangChain4j Ollama -->
         <dependency>

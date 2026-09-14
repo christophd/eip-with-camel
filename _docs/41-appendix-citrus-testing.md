@@ -65,6 +65,54 @@ export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
 export TESTCONTAINERS_RYUK_DISABLED=true
 ```
 
+### Stop the development stack first
+
+Each example's tests bring up their own infrastructure from
+`src/test/resources/_infra/compose.yaml`, on the same fixed host ports the
+development stack uses — 9092 for Kafka, 6379 for Redis, 5432 for PostgreSQL,
+6650 for Pulsar. The two cannot both be up.
+
+Leaving the development stack running gives you a failure that names the
+symptom rather than the cause:
+
+```
+ContainerLaunchException: Local Docker Compose exited abnormally with code 1
+  whilst running command: compose up -d
+```
+
+Further up the container engine's own output is the real reason —
+`failed to bind host port 0.0.0.0:9092/tcp: address already in use`. Take the
+development stack down before running the tests:
+
+```bash
+podman-compose -p eip -f examples/_infra/compose.yaml down
+```
+
+For the same reason the examples' tests must run one at a time rather than in
+parallel across modules; they would otherwise contend for the same ports.
+
+### JMX on the Quarkus test classpath
+
+`citrus-camel` depends on `camel-management`, and Camel switches JMX
+management on whenever it finds that jar. In Camel Quarkus the management name
+strategy is set up by the `camel-quarkus-management` extension at augmentation
+time, so an application that does not use that extension gets the JMX
+lifecycle strategy without its configuration and fails to boot:
+
+```
+NullPointerException: Cannot invoke ManagementNameStrategy.getName()
+  because CamelContext.getManagementNameStrategy() is null
+```
+
+Turn JMX off for the test run, in `src/test/resources/application.properties`:
+
+```properties
+camel.main.jmx-enabled=false
+```
+
+This affects Camel Quarkus only. Camel on Spring Boot configures the strategy
+regardless and needs no equivalent setting.
+
 ## Test structure
 
 A Citrus test follows a four-step pattern that mirrors the Arrange-Act-Assert structure familiar from unit testing:

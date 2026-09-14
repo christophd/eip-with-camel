@@ -17,10 +17,14 @@ public class OrderAssistantRoute extends RouteBuilder {
         from("direct:assistant-chat")
             .routeId("assistant-chat")
             .log("Assistant query: ${body}")
-            .setHeader("CamelLangChain4jChatPrompt", simple(
+            // The agent takes the system prompt as its own header and the user
+            // query as the body, rather than the two being concatenated into a
+            // single chat prompt.
+            .setHeader("CamelLangChain4jAgentSystemMessage", constant(
                 "You are a helpful shipping order assistant. You can look up order statuses "
-                + "using the available tools. Be concise and helpful. User query: ${body}"))
-            .to("langchain4j-chat:assistant?toolTags=shipping")
+                + "using the available tools. Be concise and helpful."))
+            // tags=shipping selects the ai-tool routes this agent may call.
+            .to("langchain4j-agent:assistant?agent=#assistantAgent&tags=shipping")
             .log("Assistant response: ${body}");
     }
 }
