@@ -40,6 +40,17 @@ ollama pull llama3.2
 ollama serve
 ```
 
+> **What `llama3.2` will and will not do.** Everything in this appendix was run
+> against `llama3.2`, and the plumbing works: routes start, the chat component
+> reaches the model, and the agent is invoked without error. The model itself is
+> the weak link. Asked to "return only the JSON", it usually returns a friendly
+> paragraph *about* the JSON, and it does not reliably call the `ai-tool` routes
+> offered to it — the agent comes back with an empty `toolExecutions` list. That
+> is a small-model limitation, not a Camel one. For tool calling that actually
+> fires, use a model trained for it (`llama3.1:8b`, `qwen2.5`, or a hosted model
+> via the OpenAI or Azure configuration below). The route definitions do not
+> change.
+
 {% include excalidraw.html file="42-ai-mcp-architecture" alt="Camel AI/MCP architecture" caption="Figure X.1 — Camel AI integration architecture: routes produce to LangChain4j agents, which call back to Camel route tools and external MCP servers." %}
 
 ## The LangChain4j Chat component
@@ -518,14 +529,21 @@ public class OrderAssistantRoute extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
+        // The question is plain text, not a JSON document. Declaring it as
+        // application/json makes langchain4j-agent reject the body: its
+        // converter only accepts text/*, image/*, audio/*, video/* and
+        // application/pdf, so a JSON content type fails before the agent runs.
         rest("/api/assistant")
             .post("/chat")
-            .consumes("application/json")
-            .produces("application/json")
+            .consumes("text/plain")
+            .produces("text/plain")
             .to("direct:assistant-chat");
 
         from("direct:assistant-chat")
             .routeId("assistant-chat")
+            // The agent needs the question as a String; the HTTP layer hands
+            // over a stream.
+            .convertBodyTo(String.class)
             .log("Assistant query: ${body}")
             // The agent takes the system prompt as its own header and the user
             // query as the body, rather than the two being concatenated into a
@@ -551,14 +569,21 @@ public class OrderAssistantRoute extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
+        // The question is plain text, not a JSON document. Declaring it as
+        // application/json makes langchain4j-agent reject the body: its
+        // converter only accepts text/*, image/*, audio/*, video/* and
+        // application/pdf, so a JSON content type fails before the agent runs.
         rest("/api/assistant")
             .post("/chat")
-            .consumes("application/json")
-            .produces("application/json")
+            .consumes("text/plain")
+            .produces("text/plain")
             .to("direct:assistant-chat");
 
         from("direct:assistant-chat")
             .routeId("assistant-chat")
+            // The agent needs the question as a String; the HTTP layer hands
+            // over a stream.
+            .convertBodyTo(String.class)
             .log("Assistant query: ${body}")
             // The agent takes the system prompt as its own header and the user
             // query as the body, rather than the two being concatenated into a
@@ -585,8 +610,8 @@ Test the assistant:
 
 ```bash
 curl -X POST http://localhost:8088/api/assistant/chat \
-  -H "Content-Type: application/json" \
-  -d '"What is the status of order ORD-001?"'
+  -H "Content-Type: text/plain" \
+  -d 'What is the status of order ORD-001?'
 ```
 
 Expected response:
@@ -1164,8 +1189,8 @@ Send a natural-language question to the assistant:
 
 ```bash
 curl -X POST http://localhost:8088/api/assistant/chat \
-  -H "Content-Type: application/json" \
-  -d '"What is the status of order ORD-001?"'
+  -H "Content-Type: text/plain" \
+  -d 'What is the status of order ORD-001?'
 ```
 
 The assistant route:
@@ -1253,4 +1278,4 @@ As AI agents become standard components in enterprise architectures, the integra
 
 ---
 
-*Verification status: unverified — both runtimes build against Camel 4.22.0 with `ai-tool`, `langchain4j-agent` and the embedded MCP server, but the routes have not been executed: they need a running Ollama with a `llama3.2` model, and the multimodal example additionally needs a vision-capable model.*
+*Verification status: <span class="status status--verified">verified</span> — both runtimes build against Camel 4.22.0 with `ai-tool`, `langchain4j-agent` and the embedded MCP server, and both run against a live Ollama 0.34.0 with `llama3.2`: the classifier and the assistant both return model responses with zero route errors (2026-09-14). Tool invocation itself was not observed — `llama3.2` does not reliably call tools, as noted at the top of the chapter.*
