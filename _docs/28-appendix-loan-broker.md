@@ -451,4 +451,4 @@ from("kafka:eip.shipping.rate-requests?brokers=localhost:9092&groupId=carrier-sc
 
 ---
 
-*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Both runtime variants compile against Quarkus 3.39.3 / Camel 4.22.0 and Spring Boot 4.1.1 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack.*
+*Verification status: unverified — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) as of 2026-09-14, but the example ships no automated tests, so the routes have not been executed against the upgraded stack.*

@@ -322,4 +322,4 @@ Next: endpoint lifecycle and management — Messaging Gateway, Channel Purger, a
 
 ---
 
-*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Both runtime variants compile against Quarkus 3.39.3 / Camel 4.22.0 and Spring Boot 4.1.1 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack. YAML DSL routes provided for Camel CLI.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 10 Citrus integration tests pass against live containers (2026-09-14).*

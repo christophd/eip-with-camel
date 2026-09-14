@@ -60,7 +60,7 @@ Verify:
 
 ```bash
 jbang --version
-# 0.123.x
+# 0.137.x
 ```
 
 ### Installing the Camel CLI
@@ -145,7 +145,7 @@ No special `settings.xml` is needed. All dependencies come from Maven Central, a
 | Dependency | Version |
 |-----------|---------|
 | Apache Camel | 4.22.0 |
-| Camel Quarkus | 3.36.0 |
+| Camel Quarkus | 3.39.0 |
 | Quarkus | 3.39.3 |
 | Camel Spring Boot | 4.22.0 |
 | Spring Boot | 4.1.1 |
@@ -414,6 +414,6 @@ Next, we'll meet the shipping domain that drives every example in this tutorial 
 
 ---
 
-*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Builds against Quarkus 3.39.3 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack.*
+*Verification status: <span class="status status--verified">verified</span> — `setup-stack.sh` brings Kafka 4.3.1, Pulsar 4.2.4, Redis 8.10.1, PostgreSQL 18.6 and Apicurio 3.3.3 to healthy on Podman 5.8.4, and `init-schemas.sql` creates all five domain schemas (2026-09-14).*
 
-*To confirm on re-verification: SDKMAN install commands work on a clean machine; `setup-stack.sh` brings all containers to healthy on Podman 5.x; PostgreSQL init-schemas.sql creates all five schemas; Apicurio health endpoint responds at 8081.*
+*Not verified here: the SDKMAN install commands, which need a clean machine to test honestly.*
