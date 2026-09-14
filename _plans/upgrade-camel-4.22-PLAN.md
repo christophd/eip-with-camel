@@ -1,6 +1,6 @@
 # Phase 1 Plan — Camel 4.22 / Quarkus 3.39.3 / Spring Boot 4.1.1 upgrade
 
-**Status:** Phase 1 complete, plan APPROVED by user 2026-09-12. Executing.
+**Status:** COMPLETE — all nine steps executed. Closed out 2026-09-14.
 **Date:** 2026-09-12
 
 ## User gate decisions (2026-09-12 — do not re-open)
@@ -252,3 +252,64 @@ No `Co-authored-by` trailers.
   have run.
 - **CI covers 17 of 31 examples.** Green CI is weaker evidence than it looks until M1
   expands the matrix.
+
+
+---
+
+## Outcome — 2026-09-14
+
+All nine steps done, on branch `iteration/camel-4.22-upgrade`. CI green.
+
+### Final state
+
+- Camel **4.22.0** on all three runtimes; Quarkus platform **3.39.3**,
+  Spring Boot **4.1.1** (Spring Framework 7.0.9), Citrus **5.0.1**.
+- **56/56** Maven projects build; **44** run Citrus integration tests against
+  live containers. All green.
+- 94 compose files pinned. Kafka 4.3.1, Pulsar 4.2.4, Postgres 18.6,
+  Redis 8.10.1, Apicurio 3.3.3, Grafana 13.2.1, Loki 3.7.7, Mimir 3.2.1,
+  Tempo 3.0.3, OTel collector 0.160.0, kafka-ui v0.7.2.
+- 22 chapters re-verified with real test counts; 6 remain unverified and say why.
+- Issues #12, #13, #14, #15 all closed.
+
+### What the retest caught that the build could not
+
+1. **Postgres 18 volume layout** — expects `/var/lib/postgresql`, not
+   `/var/lib/postgresql/data`. Container refused to start. 23 compose files.
+2. **Apicurio 3.3.3 health moved to port 9000** — old check 404'd forever, so
+   the container sat "unhealthy" while working fine.
+3. **Citrus tests vs the dev stack** — both bind 9092/6379/5432/6650. The
+   surfaced error names the symptom, not the cause.
+4. **`citrus-camel` enables JMX on Camel Quarkus** — it pulls in
+   `camel-management`; Camel turns JMX on when it sees that jar, but Camel
+   Quarkus only configures the name strategy via `camel-quarkus-management`.
+   Every Quarkus example NPE'd before any route started. These 21 PRs' tests
+   had therefore never passed anywhere.
+5. **37-testing-strategies had 9 of 10 tests broken** — pre-existing, confirmed
+   by reproducing on Camel 4.20.0 / Spring Boot 4.0.7. `@UseAdviceWith` stops
+   the context before each method, so a `@BeforeAll` start is undone.
+
+### Content defects found by the A1/A2 audit
+
+- `redis-lettuce` is not a Camel component in any version — 10 references.
+- `redis:` in chapter 12 — also not a component.
+- All four YAML files in appendices 39/40 were schema-invalid.
+- Appendix 39 had `--open-api` backwards (it consumes a spec, not produces one).
+- `waitDurationInOpenState(10000)` meant 10,000 seconds against prose saying 10.
+- 8 dead external links; `/components/4.20.x/` was already 404 everywhere.
+- 28 chapter route ids did not match the example they pointed at.
+- 9 `eip.*.enabled` flags added by the PRs were wholly undocumented.
+
+### Known gaps, deliberately left
+
+- **Testcontainers runs on Docker here, not Podman.** The socket at
+  `/run/user/<uid>/podman/podman.sock` does not exist even though the systemd
+  unit reports active, so Testcontainers silently used Docker. The project
+  documents Podman everywhere else. Appendix 41 now explains how to tell which
+  engine served a run, but reconciling the two is not done.
+- **449 chapter/example identifier divergences remain.** Triaged as legitimate:
+  chapters deliberately show variants the examples implement once. Only true
+  1:1 renames were fixed.
+- **Appendix 42 is unverified** — needs a running Ollama, and the multimodal
+  example needs a vision-capable model.
+- **SDKMAN install instructions unverified** — needs a clean machine.
