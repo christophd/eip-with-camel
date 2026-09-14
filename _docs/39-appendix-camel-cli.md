@@ -69,12 +69,12 @@ camel run --dev *.yaml
 
 ### How dependency resolution works
 
-When the CLI parses your route file, it detects which Camel components you reference — `kafka:`, `redis-lettuce:`, `rest:`, `json` marshalling — and resolves the corresponding Maven artifacts automatically. You never declare dependencies in a pom.xml. The CLI's dependency resolver handles:
+When the CLI parses your route file, it detects which Camel components you reference — `kafka:`, `spring-redis:`, `rest:`, `json` marshalling — and resolves the corresponding Maven artifacts automatically. You never declare dependencies in a pom.xml. The CLI's dependency resolver handles:
 
 | Component reference | Resolved artifact |
 |---------------------|-------------------|
 | `kafka:eip.orders.express` | `camel-kafka` |
-| `redis-lettuce:localhost:6379` | `camel-redis-lettuce` |
+| `spring-redis:localhost:6379` | `camel-spring-redis` |
 | `rest:` configuration | `camel-rest`, `camel-platform-http` |
 | `json` marshal/unmarshal | `camel-jackson` |
 
@@ -93,42 +93,43 @@ The example directory contains two routes that demonstrate a content-based route
 - rest:
     path: /api/orders
     post:
-      - to: "direct:route-order"
-      - consumes: application/json
+      - path: /
+        consumes: application/json
         produces: application/json
+        to: "direct:route-order"
 
 - route:
     id: route-order
     from:
       uri: "direct:route-order"
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Order received: ${body[orderId]} — type: ${header.orderType}"
-      - choice:
-          when:
-            - simple: "${header.orderType} == 'EXPRESS'"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Order received: ${body[orderId]} — type: ${header.orderType}"
+        - choice:
+            when:
+              - simple: "${header.orderType} == 'EXPRESS'"
+                steps:
+                  - log: "EXPRESS order ${body[orderId]} → express topic"
+                  - to:
+                      uri: "kafka:eip.orders.express"
+                      parameters:
+                        brokers: "{{camel.component.kafka.brokers}}"
+              - simple: "${header.orderType} == 'BULK'"
+                steps:
+                  - log: "BULK order ${body[orderId]} → bulk topic"
+                  - to:
+                      uri: "kafka:eip.orders.bulk"
+                      parameters:
+                        brokers: "{{camel.component.kafka.brokers}}"
+            otherwise:
               steps:
-                - log: "EXPRESS order ${body[orderId]} → express topic"
+                - log: "STANDARD order ${body[orderId]} → standard topic"
                 - to:
-                    uri: "kafka:eip.orders.express"
+                    uri: "kafka:eip.orders.standard"
                     parameters:
                       brokers: "{{camel.component.kafka.brokers}}"
-            - simple: "${header.orderType} == 'BULK'"
-              steps:
-                - log: "BULK order ${body[orderId]} → bulk topic"
-                - to:
-                    uri: "kafka:eip.orders.bulk"
-                    parameters:
-                      brokers: "{{camel.component.kafka.brokers}}"
-          otherwise:
-            steps:
-              - log: "STANDARD order ${body[orderId]} → standard topic"
-              - to:
-                  uri: "kafka:eip.orders.standard"
-                  parameters:
-                    brokers: "{{camel.component.kafka.brokers}}"
 ```
 
 **order-enricher.yaml** — Consumes express orders from Kafka, looks up customer data in Redis, and publishes the enriched order downstream:
@@ -144,30 +145,32 @@ The example directory contains two routes that demonstrate a content-based route
       parameters:
         brokers: "{{camel.component.kafka.brokers}}"
         groupId: "{{camel.component.kafka.group-id}}"
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Enriching express order ${body[orderId]} for customer ${body[customerId]}"
-      - setHeader:
-          name: RedisKey
-          simple: "customer:${body[customerId]}"
-      - toD:
-          uri: "redis-lettuce:{{camel.component.redis-lettuce.host}}:{{camel.component.redis-lettuce.port}}?command=GET&key=${header.RedisKey}"
-      - setHeader:
-          name: customerName
-          jsonpath: "$.name"
-      - setHeader:
-          name: customerTier
-          jsonpath: "$.tier"
-      - log: "Enriched order ${body[orderId]} — customer: ${header.customerName}, tier: ${header.customerTier}"
-      - marshal:
-          json:
-            library: Jackson
-      - to:
-          uri: "kafka:eip.orders.enriched"
-          parameters:
-            brokers: "{{camel.component.kafka.brokers}}"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Enriching express order ${body[orderId]} for customer ${body[customerId]}"
+        - setHeader:
+            name: "CamelRedis.Key"
+            simple: "customer:${body[customerId]}"
+        - to:
+            uri: "spring-redis:{{redis.host}}:{{redis.port}}"
+            parameters:
+              command: "GET"
+        - setHeader:
+            name: customerName
+            jsonpath: "$.name"
+        - setHeader:
+            name: customerTier
+            jsonpath: "$.tier"
+        - log: "Enriched order ${body[orderId]} — customer: ${header.customerName}, tier: ${header.customerTier}"
+        - marshal:
+            json:
+              library: Jackson
+        - to:
+            uri: "kafka:eip.orders.enriched"
+            parameters:
+              brokers: "{{camel.component.kafka.brokers}}"
 ```
 
 ### Configuration
@@ -180,8 +183,8 @@ camel.component.kafka.brokers=localhost:9092
 camel.component.kafka.group-id=eip-cli-demo
 
 # Redis
-camel.component.redis-lettuce.host=localhost
-camel.component.redis-lettuce.port=6379
+redis.host=localhost
+redis.port=6379
 
 # REST
 camel.rest.port=8088
@@ -375,7 +378,7 @@ camel get endpoint
  1234  kafka:eip.orders.express      InOut       47     0       12ms ago
  1234  kafka:eip.orders.standard     Out         32     0       45s ago
  1234  kafka:eip.orders.bulk         Out         15     0       2m ago
- 1234  redis-lettuce:localhost:6379  InOut       15     1       28ms ago
+ 1234  spring-redis:localhost:6379   InOut       15     1       28ms ago
  1234  kafka:eip.orders.enriched     Out         14     0       28ms ago
 ```
 
@@ -500,7 +503,7 @@ order-router-quarkus/
 The generated `pom.xml` includes:
 
 - Quarkus BOM at the correct version
-- `camel-quarkus-kafka`, `camel-quarkus-redis-lettuce`, `camel-quarkus-rest`, `camel-quarkus-jackson` — every component detected from your route files
+- `camel-quarkus-kafka`, `camel-quarkus-spring-redis`, `camel-quarkus-rest`, `camel-quarkus-jackson` — every component detected from your route files
 - `camel-quarkus-yaml-dsl` for YAML route loading
 - The Quarkus Maven plugin with `quarkus:dev` and native build profiles
 

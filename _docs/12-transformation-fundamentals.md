@@ -277,12 +277,12 @@ For high-throughput enrichment, cache frequently accessed data in Redis to avoid
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=cached-enricher")
     .routeId("content-enricher-cached")
     .unmarshal().json(Map.class)
-    .process(exchange -> {
-        String customerId = (String) exchange.getIn().getBody(Map.class).get("customer_id");
-        exchange.getIn().setHeader("customerCacheKey", "customer:" + customerId);
-    })
+    // The spring-redis component takes the key from the CamelRedis.Key header,
+    // not from the endpoint URI — the URI is a static template, so a ${...}
+    // expression written into it would never be evaluated per message.
+    .setHeader("CamelRedis.Key", simple("customer:${body[customer_id]}"))
     // Try Redis cache first
-    .enrich("redis:GET?redisClient=#redisClient&key=${header.customerCacheKey}",
+    .enrich("spring-redis:localhost:6379?command=GET",
         (oldExchange, newExchange) -> {
             String cached = newExchange.getIn().getBody(String.class);
             if (cached != null) {

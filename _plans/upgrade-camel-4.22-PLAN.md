@@ -164,6 +164,62 @@ lines ~45, 591, 597, 801, 802, 810).
 
 ---
 
+## Content audit — added 2026-09-14 after the user asked whether the plan covered it
+
+It did not, and that was a real gap. The plan's semantic work (S1–S4) only
+covered what the 4.22 upgrade guide happened to flag. Everything else found so
+far was found *incidentally* while chasing those items:
+
+| Found | How | In the plan? |
+|---|---|---|
+| `redis-lettuce` component does not exist in any Camel version | chasing the Redis JEP-290 question | no |
+| ch 39's two YAML files had `steps` as a sibling of `from` — schema-invalid | chasing `redis-lettuce` | no |
+| ch 40's two YAML files had the same bug | running a check prompted by ch 39 | no |
+| ch 39/40 `rest:`/`post:` block shape was invalid | same | no |
+| `waitDurationInOpenState(10000)` meant 10,000 seconds while the prose said 10 | Resilience4j triage | partly |
+| `/components/4.20.x/` doc links already 404 across 12 chapters | version sweep | no |
+| malformed footer markdown in ch 02 | footer rewrite | no |
+
+That hit rate says the remaining, unlooked-at content almost certainly holds
+more of the same. Incidental discovery is not a strategy, so the following two
+steps are now explicit and gate the re-verification of any chapter footer.
+
+### A1 — DSL validation sweep (mechanical, scriptable)
+
+Covers every runnable artifact, not just the ones a chapter happens to mention:
+
+1. Validate every YAML DSL route against the Camel 4.22 schema.
+2. Resolve every endpoint URI scheme in both YAML and Java against the 4.22
+   component catalog. This is the check that would have caught `redis-lettuce`
+   on day one.
+3. Compile every Java snippet embedded in a chapter against 4.22, not just the
+   example sources. Chapters and examples are separate code.
+4. Resolve every external link in the docs. The Camel doc links are
+   version-scoped and silently rot on every upgrade.
+
+### A2 — Per-chapter content audit (semantic, one chapter at a time)
+
+For each of the 43 chapters:
+
+1. **Chapter/example parity** — code shown in the chapter must match the
+   runnable example it points at. The 21 merged Citrus PRs modified
+   `src/main/java` (`DemoDataGenerator`, `PulsarDemoDataGenerator`,
+   `RedisChannelRoute`, `RedisDemoDataGenerator`), so drift is expected here,
+   not hypothetical.
+2. **Prose/code agreement** — narrative claims about values, timings and
+   behaviour must match what the code does. This is the class of bug that hid
+   the 1000x circuit-breaker error in plain sight.
+3. **Config key existence** — properties referenced in prose and snippets must
+   be real options on the component (`camel.component.redis-lettuce.host` was
+   not).
+4. **4.22 currency** — support levels, CLI/TUI flags and config file names
+   reflect 4.22, not 4.20.
+
+A chapter's footer may only return to `verified` after A1 and A2 pass for it
+*and* its example actually runs in Step 6.
+
+---
+
 ## Execution order
 
 ```
@@ -173,8 +229,10 @@ Step 2  Mechanical version bumps (M2–M5)     → grep post-check
 Step 3  Image pinning (M6)
 Step 4  Semantic doc/code work (S1–S4)
 Step 5  Footers + verification status (M7–M8)
-Step 6  Full local retest (workstream 3)     → re-verify footers with real dates
-Step 7  Open issues (S5), per gate decision
+Step 6  DSL validation sweep (A1)            → build the checker, fix what it finds
+Step 7  Per-chapter content audit (A2)       → 43 chapters
+Step 8  Full local retest (workstream 3)     → re-verify footers with real dates
+Step 9  Open issues #12, #13, #14, #15
 ```
 
 Every step commits. Work happens on an iteration branch, never checkpointed onto `main`.
