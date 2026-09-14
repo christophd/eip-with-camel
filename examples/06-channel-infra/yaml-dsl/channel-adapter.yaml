@@ -19,23 +19,26 @@
     id: channel-adapter-inbound
     from:
       uri: "direct:inbound-adapter"
-    steps:
-      - log: "Inbound Channel Adapter — received order via REST: ${body}"
-      - unmarshal:
-          json:
-            library: Jackson
-      - to:
-          uri: "sql:INSERT INTO orders.orders (customer_id, item_sku, quantity, amount) VALUES (:#${body[customer_id]}, :#${body[item_sku]}, :#${body[quantity]}, :#${body[amount]})"
-      - log: "Inbound Channel Adapter — persisted to PostgreSQL"
-      - marshal:
-          json:
-            library: Jackson
-      - to:
-          uri: "kafka:eip.orders.incoming"
-          parameters:
-            brokers: "{{kafka.brokers}}"
-      - setBody:
-          constant: "{\"status\": \"accepted\"}"
+      steps:
+        - log: "Inbound Channel Adapter — received order via REST: ${body}"
+        - unmarshal:
+            json:
+              library: Jackson
+        - to:
+            uri: "sql"
+            parameters:
+              query: >-
+                INSERT INTO orders.orders (customer_id, item_sku, quantity, amount) VALUES (:#${body[customer_id]}, :#${body[item_sku]}, :#${body[quantity]}, :#${body[amount]})
+        - log: "Inbound Channel Adapter — persisted to PostgreSQL"
+        - marshal:
+            json:
+              library: Jackson
+        - to:
+            uri: "kafka:eip.orders.incoming"
+            parameters:
+              brokers: "{{kafka.brokers}}"
+        - setBody:
+            constant: "{\"status\": \"accepted\"}"
 
 # --- Outbound Channel Adapter (Kafka → external system) ---
 - route:
@@ -45,7 +48,7 @@
       parameters:
         brokers: "{{kafka.brokers}}"
         groupId: outbound-adapter
-    steps:
-      - log: "Outbound Channel Adapter — dispatching to external shipping API: ${body}"
-      - log: "  -> POST https://shipping.example.com/dispatch  (simulated)"
-      - log: "  -> Order dispatched successfully"
+      steps:
+        - log: "Outbound Channel Adapter — dispatching to external shipping API: ${body}"
+        - log: "  -> POST https://shipping.example.com/dispatch  (simulated)"
+        - log: "  -> Order dispatched successfully"

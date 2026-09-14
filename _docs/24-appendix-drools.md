@@ -140,7 +140,7 @@ public class RuleBasedRouter {
 
 // Camel route that uses the rule engine
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=rule-router")
-    .routeId("drools-content-based-router")
+    .routeId("drools-content-router")
     .unmarshal().json(Map.class)
     .bean("ruleBasedRouter", "evaluate")
     .log("Rule engine decided: ${header.routingDecision}")
@@ -184,4 +184,4 @@ The `drools-engine` artifact provides the core KIE API without requiring the Dro
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 8 Citrus integration tests pass against live containers (2026-09-14).*

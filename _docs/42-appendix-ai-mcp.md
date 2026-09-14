@@ -2,7 +2,7 @@
 title: "Appendix X: AI and MCP with Camel"
 order: 42
 part: appendices
-description: "Integrating AI into Camel routes — the LangChain4j Chat component for classification and tool calling, MCP servers for AI coding assistants, and Wanaku for exposing Camel routes as AI tools."
+description: "Integrating AI into Camel routes — the LangChain4j Chat component for classification, ai-tool and LangChain4j Agent for tool calling, the embedded and catalog MCP servers, and Wanaku for exposing Camel routes as AI tools."
 duration: "40 minutes"
 ---
 
@@ -11,13 +11,14 @@ Apache Camel connects to over 350 systems. AI agents need tools to interact with
 This appendix covers the full AI integration ecosystem for Camel:
 
 - **LangChain4j Chat component** -- send messages to LLMs and receive responses as part of a Camel route
-- **Tool calling** -- register Camel routes as tools that AI agents can invoke autonomously
+- **Tool calling** -- register Camel routes as tools with `ai-tool`, and call them from a LangChain4j agent
 - **MCP integration** -- connect Camel agents to external MCP servers and consume their tools
 - **Conversation memory** -- maintain context across multiple turns in a chat session
 - **RAG** -- ground AI responses in domain-specific documents
 - **Guardrails** -- validate inputs and outputs to prevent misuse and data leakage
 - **Multimodal content** -- send images, PDFs, and audio to AI models
-- **Camel MCP Server** -- expose the Camel Catalog as an MCP server for AI coding assistants
+- **Embedded MCP Server** -- publish your application's `ai-tool` routes to external MCP clients
+- **Camel Catalog MCP Server** -- expose the Camel Catalog as an MCP server for AI coding assistants
 - **Wanaku** -- an MCP router that makes existing Camel routes available as AI tools
 
 The code is in `examples/42-ai-mcp/`.
@@ -32,12 +33,22 @@ cd examples/42-ai-mcp/quarkus && mvn quarkus:dev
 cd examples/42-ai-mcp/spring-boot && mvn spring-boot:run
 ```
 
-Both runtimes require Ollama running locally with the `llama3.2` model:
+Both runtimes require Ollama running locally with the `qwen2.5:3b` model:
 
 ```bash
-ollama pull llama3.2
+ollama pull qwen2.5:3b
 ollama serve
 ```
+
+> **Pick a model that can call tools.** The examples default to `qwen2.5:3b`
+> because tool calling is the whole point of the `ai-tool` sections below, and
+> not every small model does it. `llama3.2` was the earlier default and is a
+> poor fit: it answers in a single round trip and never invokes the registered
+> tools, so `toolExecutions` comes back empty and the assistant makes up an
+> answer. Asked to "return only the JSON", it also tends to return a friendly
+> paragraph *about* the JSON. `qwen2.5:3b` is a 1.9 GB download and calls tools
+> reliably; `llama3.1:8b` and the hosted OpenAI and Azure models below work too.
+> The route definitions do not change between them.
 
 {% include excalidraw.html file="42-ai-mcp-architecture" alt="Camel AI/MCP architecture" caption="Figure X.1 — Camel AI integration architecture: routes produce to LangChain4j agents, which call back to Camel route tools and external MCP servers." %}
 
@@ -53,7 +64,6 @@ The `chatId` is a logical name that identifies the chat operation -- it does not
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `toolTags` | (none) | Comma-separated tags that select which `langchain4j-tools` routes the agent can call |
 | `chatOperation` | `CHAT_SINGLE_MESSAGE` | `CHAT_SINGLE_MESSAGE` for one-shot, `CHAT_SINGLE_MESSAGE_WITH_PROMPT` when using the prompt header |
 
 The prompt is set via the `CamelLangChain4jChatPrompt` header. This header accepts Simple expressions, so you can inject exchange data directly into the prompt:
@@ -246,21 +256,34 @@ Camel supports three approaches to giving tools to AI agents.
 
 ### Camel route tools
 
-The `langchain4j-tools` component lets you register any Camel route as a tool that an AI agent can call. The route becomes a consumer that is invoked when the agent decides it needs that tool's capability:
+The `ai-tool` component lets you register any Camel route as a tool that an AI agent can call. The route becomes a consumer that is invoked when the agent decides it needs that tool's capability:
 
 ```
-from("langchain4j-tools:toolGroup?tags=tag1,tag2&description=What this tool does")
+from("ai-tool:toolName?tags=tag1,tag2&description=What this tool does&parameter.name=string")
 ```
 
 The key parameters:
 
 | Parameter | Description |
 |-----------|-------------|
-| `toolGroup` | A logical group name for organizing related tools |
-| `tags` | Comma-separated tags that connect tools to agents (must match the `toolTags` on the chat producer) |
+| `toolName` | The name the LLM sees and uses to invoke the tool |
+| `tags` | Comma-separated tags that connect tools to agents. Omit them and the tool lands in a default pool available to every producer |
 | `description` | Natural-language description that the LLM uses to decide when to call this tool |
+| `parameter.NAME` | A typed input parameter — `string`, `integer`, `number` or `boolean`. Add `.description`, `.required` and `.enum` to refine it |
+| `argSchema` | A raw JSON Schema, for nested objects, arrays and `oneOf`. Mutually exclusive with `parameter.*` |
 
 The description is critical -- it is the tool's documentation for the AI agent. A vague description like "looks up data" will lead to incorrect tool selection. A precise description like "Look up the status of a shipping order by order ID" tells the agent exactly when and how to use it.
+
+Declaring parameters matters nearly as much. Without them the model has to smuggle its argument inside free text and the route has to parse it back out; with them, the model is told exactly what to supply and Camel delivers each value as an exchange header of the same name.
+
+`ai-tool` also accepts four advisory hints — `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint` — which are passed through to MCP clients as metadata. They describe intent to a client that cares to look; they are **not** authorization, and Camel does not enforce them.
+
+> **Replacing `langchain4j-tools`.** Earlier versions of this appendix used the
+> `langchain4j-tools:` consumer, which is deprecated as of Camel 4.22. The
+> replacement is deliberately framework-neutral: `ai-tool` publishes into a
+> shared `AiToolRegistry` that LangChain4j, Spring AI and the embedded MCP
+> server all read from, so one route definition serves every consumer instead
+> of being tied to LangChain4j.
 
 ### OrderLookupToolRoute
 
@@ -274,20 +297,38 @@ package com.example.eip.aimcp;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
 
+/**
+ * Registers the order-status lookup as an LLM tool.
+ *
+ * <p>The {@code ai-tool} component is framework-neutral: the route is published
+ * into the shared {@code AiToolRegistry}, and any producer that filters on the
+ * {@code shipping} tag can call it — the LangChain4j agent here, and the
+ * embedded MCP server for external MCP clients.
+ *
+ * <p>{@code orderId} is declared as a typed input parameter, so the model is
+ * told what to supply and Camel hands it over as an exchange header rather than
+ * leaving the route to parse it back out of free text.
+ */
 @ApplicationScoped
 public class OrderLookupToolRoute extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
-        from("langchain4j-tools:orderTools?tags=shipping&description=Look up the status of a shipping order by order ID")
+        from("ai-tool:order-status"
+                + "?tags=shipping"
+                + "&description=Look up the status of a shipping order by order ID"
+                + "&parameter.orderId=string"
+                + "&parameter.orderId.description=The order identifier, for example ORD-001"
+                + "&parameter.orderId.required=true"
+                + "&readOnlyHint=true")
             .routeId("order-lookup-tool")
-            .log("Tool call — looking up order: ${body}")
+            .log("Tool call — looking up order: ${header.orderId}")
             .choice()
-                .when(simple("${body} contains 'ORD-001'"))
+                .when(simple("${header.orderId} == 'ORD-001'"))
                     .setBody(constant("{\"orderId\":\"ORD-001\",\"status\":\"SHIPPED\",\"carrier\":\"FedEx\",\"eta\":\"2026-07-20\"}"))
-                .when(simple("${body} contains 'ORD-002'"))
+                .when(simple("${header.orderId} == 'ORD-002'"))
                     .setBody(constant("{\"orderId\":\"ORD-002\",\"status\":\"PROCESSING\",\"warehouse\":\"West Coast Hub\"}"))
-                .when(simple("${body} contains 'ORD-003'"))
+                .when(simple("${header.orderId} == 'ORD-003'"))
                     .setBody(constant("{\"orderId\":\"ORD-003\",\"status\":\"DELIVERED\",\"deliveredAt\":\"2026-07-15\"}"))
                 .otherwise()
                     .setBody(constant("{\"error\":\"Order not found\"}"))
@@ -303,20 +344,38 @@ package com.example.eip.aimcp;
 import org.apache.camel.builder.RouteBuilder;
 import org.springframework.stereotype.Component;
 
+/**
+ * Registers the order-status lookup as an LLM tool.
+ *
+ * <p>The {@code ai-tool} component is framework-neutral: the route is published
+ * into the shared {@code AiToolRegistry}, and any producer that filters on the
+ * {@code shipping} tag can call it — the LangChain4j agent here, and the
+ * embedded MCP server for external MCP clients.
+ *
+ * <p>{@code orderId} is declared as a typed input parameter, so the model is
+ * told what to supply and Camel hands it over as an exchange header rather than
+ * leaving the route to parse it back out of free text.
+ */
 @Component
 public class OrderLookupToolRoute extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
-        from("langchain4j-tools:orderTools?tags=shipping&description=Look up the status of a shipping order by order ID")
+        from("ai-tool:order-status"
+                + "?tags=shipping"
+                + "&description=Look up the status of a shipping order by order ID"
+                + "&parameter.orderId=string"
+                + "&parameter.orderId.description=The order identifier, for example ORD-001"
+                + "&parameter.orderId.required=true"
+                + "&readOnlyHint=true")
             .routeId("order-lookup-tool")
-            .log("Tool call — looking up order: ${body}")
+            .log("Tool call — looking up order: ${header.orderId}")
             .choice()
-                .when(simple("${body} contains 'ORD-001'"))
+                .when(simple("${header.orderId} == 'ORD-001'"))
                     .setBody(constant("{\"orderId\":\"ORD-001\",\"status\":\"SHIPPED\",\"carrier\":\"FedEx\",\"eta\":\"2026-07-20\"}"))
-                .when(simple("${body} contains 'ORD-002'"))
+                .when(simple("${header.orderId} == 'ORD-002'"))
                     .setBody(constant("{\"orderId\":\"ORD-002\",\"status\":\"PROCESSING\",\"warehouse\":\"West Coast Hub\"}"))
-                .when(simple("${body} contains 'ORD-003'"))
+                .when(simple("${header.orderId} == 'ORD-003'"))
                     .setBody(constant("{\"orderId\":\"ORD-003\",\"status\":\"DELIVERED\",\"deliveredAt\":\"2026-07-15\"}"))
                 .otherwise()
                     .setBody(constant("{\"error\":\"Order not found\"}"))
@@ -328,7 +387,7 @@ public class OrderLookupToolRoute extends RouteBuilder {
 
 In a production system, the `choice()` block would be replaced with an actual database query, a REST call to an order management system, or a Kafka lookup -- any Camel component. The route is a full Camel route with access to all 350+ components. The demo uses hardcoded responses to keep the example self-contained.
 
-The `tags=shipping` parameter is what connects this tool to agents. Any `langchain4j-chat` producer with `toolTags=shipping` can invoke this route.
+The `tags=shipping` parameter is what connects this tool to agents. Any `langchain4j-agent` producer with `tags=shipping` can invoke this route, and so can the embedded MCP server when configured with the same tag.
 
 ### Custom @Tool classes
 
@@ -354,9 +413,9 @@ public class InventoryTools {
 }
 ```
 
-These tools are automatically discovered and registered with any AI agent in the same application. The `@Tool` annotation's value serves the same purpose as the `description` parameter on `langchain4j-tools` -- it tells the agent when to use the tool.
+These tools are automatically discovered and registered with any AI agent in the same application. The `@Tool` annotation's value serves the same purpose as the `description` parameter on `ai-tool` -- it tells the agent when to use the tool.
 
-The tradeoff: `@Tool` methods are simpler to write but limited to in-process Java logic. Camel route tools (`langchain4j-tools`) give you the full power of the Camel routing engine -- connect to Kafka, call REST APIs, transform messages, apply EIPs -- all as a single tool invocation from the agent's perspective.
+The tradeoff: `@Tool` methods are simpler to write but limited to in-process Java logic. Camel route tools (`ai-tool`) give you the full power of the Camel routing engine -- connect to Kafka, call REST APIs, transform messages, apply EIPs -- all as a single tool invocation from the agent's perspective.
 
 ### MCP client tools
 
@@ -364,7 +423,7 @@ The Model Context Protocol (MCP) defines a standard interface for AI tools. Came
 
 ```java
 from("direct:query-with-mcp-tools")
-    .to("langchain4j-chat:agent?toolTags=mcp-tools");
+    .to("langchain4j-agent:agent?agent=#assistantAgent&tags=mcp-tools");
 ```
 
 MCP tools are registered using the LangChain4j MCP client library. On Quarkus, the `quarkus-langchain4j-mcp` extension auto-discovers MCP servers configured in `application.properties`:
@@ -392,6 +451,131 @@ public McpToolProvider mcpToolProvider() {
 
 This means a Camel agent can call tools served by any MCP-compatible application -- filesystem access, database queries, web searches, GitHub operations, Slack messaging -- without writing custom integration code. The MCP server provides the tool; Camel provides the agent that uses it.
 
+### Supplying the agent
+
+`langchain4j-agent` does not build an agent for you when you reference one by name. The `?agent=#assistantAgent` in the next route resolves against a bean in the registry, so the application has to produce one:
+
+{% include codetabs.html langs="Quarkus|Spring Boot" %}
+
+```java
+package com.example.eip.aimcp;
+
+import java.time.Duration;
+
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.ollama.OllamaChatModel;
+import io.smallrye.common.annotation.Identifier;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import org.apache.camel.component.langchain4j.agent.api.Agent;
+import org.apache.camel.component.langchain4j.agent.api.AgentConfiguration;
+import org.apache.camel.component.langchain4j.agent.api.AgentWithoutMemory;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+/**
+ * Supplies the agent that {@code langchain4j-agent:} endpoints reference by name.
+ *
+ * <p>The chat model is built here rather than injecting the {@code ChatModel}
+ * that quarkus-langchain4j produces. That bean drives the
+ * {@code langchain4j-chat} classifier fine, but the agent never offered the
+ * registered {@code ai-tool} routes to the model through it — the model
+ * answered in a single round trip and {@code toolExecutions} came back empty.
+ * Building the model directly, exactly as the Spring Boot variant does, makes
+ * tool calling work on both runtimes.
+ *
+ * <p>{@link AgentWithoutMemory} treats every exchange as an independent
+ * conversation. For a multi-turn assistant, produce an {@code AgentWithMemory}
+ * and set a {@code ChatMemoryProvider} on the {@link AgentConfiguration}.
+ */
+@ApplicationScoped
+public class AgentProducers {
+
+    @ConfigProperty(name = "quarkus.langchain4j.ollama.base-url", defaultValue = "http://localhost:11434")
+    String baseUrl;
+
+    @ConfigProperty(name = "quarkus.langchain4j.ollama.chat-model.model-id", defaultValue = "qwen2.5:3b")
+    String modelName;
+
+    @Produces
+    @Identifier("assistantAgent")
+    Agent assistantAgent() {
+        ChatModel chatModel = OllamaChatModel.builder()
+            .baseUrl(baseUrl)
+            .modelName(modelName)
+            .timeout(Duration.ofSeconds(120))
+            .build();
+
+        AgentConfiguration config = new AgentConfiguration()
+            .withChatModel(chatModel);
+
+        return new AgentWithoutMemory(config);
+    }
+}
+```
+
+```java
+package com.example.eip.aimcp;
+
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.ollama.OllamaChatModel;
+import org.apache.camel.component.langchain4j.agent.api.Agent;
+import org.apache.camel.component.langchain4j.agent.api.AgentConfiguration;
+import org.apache.camel.component.langchain4j.agent.api.AgentWithoutMemory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.time.Duration;
+
+/**
+ * Supplies the chat model and the agent that {@code langchain4j-agent:}
+ * endpoints reference by name.
+ *
+ * <p>The model is built here rather than through
+ * {@code langchain4j-ollama-spring-boot-starter}. That starter's
+ * auto-configuration builds its HTTP client against Spring Boot 3 classes which
+ * moved in Spring Boot 4, so it fails at startup with a
+ * {@code NoClassDefFoundError} on {@code ClientHttpRequestFactoryBuilder}.
+ * Constructing the model directly uses LangChain4j's default JDK HTTP client
+ * and avoids the Spring auto-configuration entirely.
+ */
+@Configuration
+public class AgentConfig {
+
+    @Bean
+    public ChatModel chatModel(
+            @Value("${ollama.base-url:http://localhost:11434}") String baseUrl,
+            @Value("${ollama.model-name:llama3.2}") String modelName) {
+        return OllamaChatModel.builder()
+            .baseUrl(baseUrl)
+            .modelName(modelName)
+            .timeout(Duration.ofSeconds(60))
+            .build();
+    }
+
+    /**
+     * The bean name is what {@code ?agent=#assistantAgent} resolves against.
+     *
+     * <p>{@link AgentWithoutMemory} treats every exchange as an independent
+     * conversation. For a multi-turn assistant, return an {@code AgentWithMemory}
+     * and set a {@code ChatMemoryProvider} on the {@link AgentConfiguration}.
+     */
+    @Bean
+    public Agent assistantAgent(ChatModel chatModel) {
+        AgentConfiguration config = new AgentConfiguration()
+            .withChatModel(chatModel);
+
+        return new AgentWithoutMemory(config);
+    }
+}
+```
+
+On Quarkus the `@Identifier` value is the lookup name; on Spring Boot it is the bean name, which defaults to the method name. Either way `#assistantAgent` finds it.
+
+`AgentWithoutMemory` treats each exchange as an independent conversation. Swap it for `AgentWithMemory`, with a `ChatMemoryProvider` set on the `AgentConfiguration`, to carry context across turns — see [Conversation memory](#conversation-memory) below.
+
+As an alternative to producing the bean yourself, set `agentConfiguration` on the endpoint and let Camel construct the agent inline; Camel then picks `AgentWithMemory` or `AgentWithoutMemory` depending on whether a `ChatMemoryProvider` is configured.
+
 ### OrderAssistantRoute
 
 The assistant route brings tool calling together. It defines a conversational REST endpoint backed by an AI agent that can autonomously call the order lookup tool:
@@ -409,19 +593,30 @@ public class OrderAssistantRoute extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
+        // The question is plain text, not a JSON document. Declaring it as
+        // application/json makes langchain4j-agent reject the body: its
+        // converter only accepts text/*, image/*, audio/*, video/* and
+        // application/pdf, so a JSON content type fails before the agent runs.
         rest("/api/assistant")
             .post("/chat")
-            .consumes("application/json")
-            .produces("application/json")
+            .consumes("text/plain")
+            .produces("text/plain")
             .to("direct:assistant-chat");
 
         from("direct:assistant-chat")
             .routeId("assistant-chat")
+            // The agent needs the question as a String; the HTTP layer hands
+            // over a stream.
+            .convertBodyTo(String.class)
             .log("Assistant query: ${body}")
-            .setHeader("CamelLangChain4jChatPrompt", simple(
+            // The agent takes the system prompt as its own header and the user
+            // query as the body, rather than the two being concatenated into a
+            // single chat prompt.
+            .setHeader("CamelLangChain4jAgentSystemMessage", constant(
                 "You are a helpful shipping order assistant. You can look up order statuses "
-                + "using the available tools. Be concise and helpful. User query: ${body}"))
-            .to("langchain4j-chat:assistant?toolTags=shipping")
+                + "using the available tools. Be concise and helpful."))
+            // tags=shipping selects the ai-tool routes this agent may call.
+            .to("langchain4j-agent:assistant?agent=#assistantAgent&tags=shipping")
             .log("Assistant response: ${body}");
     }
 }
@@ -438,25 +633,36 @@ public class OrderAssistantRoute extends RouteBuilder {
 
     @Override
     public void configure() throws Exception {
+        // The question is plain text, not a JSON document. Declaring it as
+        // application/json makes langchain4j-agent reject the body: its
+        // converter only accepts text/*, image/*, audio/*, video/* and
+        // application/pdf, so a JSON content type fails before the agent runs.
         rest("/api/assistant")
             .post("/chat")
-            .consumes("application/json")
-            .produces("application/json")
+            .consumes("text/plain")
+            .produces("text/plain")
             .to("direct:assistant-chat");
 
         from("direct:assistant-chat")
             .routeId("assistant-chat")
+            // The agent needs the question as a String; the HTTP layer hands
+            // over a stream.
+            .convertBodyTo(String.class)
             .log("Assistant query: ${body}")
-            .setHeader("CamelLangChain4jChatPrompt", simple(
+            // The agent takes the system prompt as its own header and the user
+            // query as the body, rather than the two being concatenated into a
+            // single chat prompt.
+            .setHeader("CamelLangChain4jAgentSystemMessage", constant(
                 "You are a helpful shipping order assistant. You can look up order statuses "
-                + "using the available tools. Be concise and helpful. User query: ${body}"))
-            .to("langchain4j-chat:assistant?toolTags=shipping")
+                + "using the available tools. Be concise and helpful."))
+            // tags=shipping selects the ai-tool routes this agent may call.
+            .to("langchain4j-agent:assistant?agent=#assistantAgent&tags=shipping")
             .log("Assistant response: ${body}");
     }
 }
 ```
 
-The critical piece is `toolTags=shipping` on the `langchain4j-chat` producer. This tells the component to register all `langchain4j-tools` routes tagged with `shipping` as available tools for this agent. When the user asks "What is the status of order ORD-001?", the agent:
+The critical piece is `tags=shipping` on the `langchain4j-agent` producer. This tells the component to offer the agent every `ai-tool` route tagged `shipping`. When the user asks "What is the status of order ORD-001?", the agent:
 
 1. Receives the user's query via the prompt header
 2. Recognizes that it needs order status information
@@ -468,8 +674,8 @@ Test the assistant:
 
 ```bash
 curl -X POST http://localhost:8088/api/assistant/chat \
-  -H "Content-Type: application/json" \
-  -d '"What is the status of order ORD-001?"'
+  -H "Content-Type: text/plain" \
+  -d 'What is the status of order ORD-001?'
 ```
 
 Expected response:
@@ -516,7 +722,7 @@ from("direct:smart-assistant")
     .setHeader("CamelLangChain4jChatPrompt", simple(
         "You have access to both shipping tools and filesystem tools. "
         + "Answer the user's question: ${body}"))
-    .to("langchain4j-chat:assistant?toolTags=shipping,filesystem");
+    .to("langchain4j-agent:assistant?agent=#assistantAgent&tags=shipping,filesystem");
 ```
 
 The agent sees all tools -- both Camel routes and MCP servers -- as a flat list and selects the appropriate ones based on the user's query. From the agent's perspective, there is no difference between a Camel route tool and an MCP tool.
@@ -552,7 +758,7 @@ from("direct:assistant-chat")
     .setHeader("CamelLangChain4jChatMemoryId",
         header("X-Session-Id"))
     .setHeader("CamelLangChain4jChatPrompt", simple("${body}"))
-    .to("langchain4j-chat:assistant?toolTags=shipping");
+    .to("langchain4j-agent:assistant?agent=#assistantAgent&tags=shipping");
 ```
 
 Each session gets its own memory window. When the window fills, the oldest messages are dropped to stay within the configured limit.
@@ -756,18 +962,29 @@ A Camel route that reads images from a directory and sends them to the LLM for a
 from("file:incoming/package-photos?noop=true")
     .routeId("package-inspection")
     .log("Inspecting package photo: ${header.CamelFileName}")
-    .process(exchange -> {
-        byte[] imageBytes = exchange.getIn().getBody(byte[].class);
-        ImageContent image = ImageContent.from(imageBytes, "image/jpeg");
-        TextContent prompt = TextContent.from(
-            "Inspect this package photo. Report any visible damage, "
-            + "incorrect labeling, or security concerns.");
-        UserMessage message = UserMessage.from(image, prompt);
-        exchange.getIn().setBody(message);
-    })
-    .to("langchain4j-chat:inspector")
+    .setHeader("CamelLangChain4jAgentUserMessage", constant(
+        "Inspect this package photo. Report any visible damage, "
+        + "incorrect labeling, or security concerns."))
+    .setHeader("CamelLangChain4jAgentMediaType", constant("image/jpeg"))
+    .to("langchain4j-agent:inspector?agent=#packageInspector")
     .log("Inspection result: ${body}");
 ```
+
+There is no conversion code here because the agent does it. When the body is a
+file — as it is coming from the `file:` consumer — `langchain4j-agent` builds
+the multimodal message itself, pairing the file content with the text in
+`CamelLangChain4jAgentUserMessage`. Before Camel 4.22 this route needed a
+processor to read the bytes, wrap them in an `ImageContent`, wrap the prompt in
+a `TextContent`, and assemble a `UserMessage`; all of that is now handled for
+you.
+
+`CamelLangChain4jAgentMediaType` is optional. Camel infers the MIME type from
+the file extension, so it is only needed when the extension is missing or
+misleading — it is set here to keep this JPEG-specific example explicit.
+
+The model behind the agent must be vision-capable. A text-only model will
+either reject the request or silently ignore the image, which is the more
+confusing outcome of the two.
 
 ### Document processing
 
@@ -802,9 +1019,89 @@ from("aws2-s3:shipping-documents?prefix=invoices/")
     .to("direct:store-extracted-invoice");
 ```
 
-## The Camel MCP Server
+## The embedded Camel MCP Server
 
-The previous sections covered Camel as an MCP *client* -- consuming tools from external MCP servers. The Camel MCP Server flips the relationship: it exposes the Apache Camel Catalog itself as an MCP server, making Camel's documentation and metadata available to AI coding assistants.
+The previous sections covered Camel as an MCP *client* -- consuming tools from external MCP servers. Camel 4.22 can also act as an MCP *server*, publishing the `ai-tool` routes in your own application to any MCP-compatible client.
+
+Keep this distinct from the catalog server in the next section. They share a name and almost nothing else:
+
+| | Embedded MCP Server | Camel Catalog MCP Server |
+|---|---|---|
+| Exposes | Your application's `ai-tool` routes | The Apache Camel Catalog |
+| Audience | Agents and MCP clients calling your business logic | AI coding assistants helping you write routes |
+| Runs | Inside your application | As a standalone JBang process |
+| Artifact | `camel-mcp-server` | `camel@apache/camel-mcp-server` via JBang |
+
+The embedded server does not implement a transport of its own. It bridges the tool registry to whatever MCP server the hosting runtime provides — Quarkus' MCP extension, Spring AI's MCP server, or the Vert.x engine bundled with Camel Main.
+
+### Exposure is opt-in, by tag
+
+Nothing is published unless you name a tag. The untagged default pool — the one an `ai-tool` route lands in when you omit `tags` — is *never* exposed, so a tool cannot become externally reachable just because someone forgot to tag it.
+
+The order-status tool defined earlier is already tagged `shipping`, so it needs no change to be published:
+
+```
+ai-tool:order-status
+    ?tags=shipping
+    &description=Look up the status of a shipping order by order ID
+    &parameter.orderId=string
+```
+
+That single definition now serves both consumers: the LangChain4j agent inside the application, and external MCP clients.
+
+### Configuration
+
+{% include codetabs.html langs="Quarkus|Spring Boot" %}
+
+```properties
+# Add the camel-quarkus-mcp-server extension.
+# Transport belongs to Quarkus' MCP server, configured under quarkus.mcp.server.*
+quarkus.camel.mcp-server.enabled=true
+quarkus.camel.mcp-server.tags=shipping
+quarkus.camel.mcp-server.tool-timeout=20000
+```
+
+```properties
+# Add the camel-mcp-server-starter.
+# Defaults to Spring AI's Web MVC MCP transport, which serves streamable HTTP.
+camel.mcp-server.enabled=true
+camel.mcp-server.tags=shipping
+camel.mcp-server.tool-timeout=20000
+```
+
+For Camel Main and JBang, the bundled Vert.x engine serves streamable HTTP directly:
+
+```properties
+camel.server.enabled=true
+camel.server.mcp-enabled=true
+camel.server.mcp-tags=shipping
+camel.server.mcp-server-name=shipping-tools
+```
+
+`tool-timeout` bounds a single tool call at 20 seconds by default. On expiry the MCP client receives an error result, but note that the underlying Camel route is not cancelled — it keeps running until it finishes on its own.
+
+### Transports
+
+With an HTTP transport the client discovers and invokes tools through the configured MCP endpoint, which is `/mcp` by default for Camel Main and JBang. Quarkus and Spring Boot each own their own endpoint configuration.
+
+With stdio there is no HTTP endpoint at all: the client launches your application as a subprocess and speaks MCP over stdin and stdout. On Spring Boot that means swapping the Web MVC transport for Spring AI's plain MCP server starter, setting `spring.ai.mcp.server.stdio=true`, and disabling both the web application and console logging — anything written to stdout other than protocol traffic corrupts the stream.
+
+### Hints are not authorization
+
+`ai-tool` carries four advisory hints that the bridge forwards as MCP tool metadata:
+
+| Hint | Says |
+|------|------|
+| `readOnlyHint` | The tool only reads; it does not modify state |
+| `destructiveHint` | The tool may make destructive or irreversible updates |
+| `idempotentHint` | Repeating the call with the same arguments changes nothing further |
+| `openWorldHint` | The tool reaches systems outside the application's control |
+
+These are descriptions of intent for clients that choose to read them. Camel does not enforce any of them, and an MCP client is free to ignore them entirely. Publishing a tool over MCP makes it callable by whoever can reach the endpoint, so authentication and authorization remain your application's job — exactly as they would be for a REST endpoint exposing the same logic.
+
+## The Camel Catalog MCP Server
+
+The catalog server is the other half of the story: it exposes the Apache Camel Catalog itself as an MCP server, making Camel's documentation and metadata available to AI coding assistants.
 
 When you are writing Camel routes in an IDE with an AI assistant (Claude Code, GitHub Copilot, Cursor), the assistant can query the Camel MCP Server for:
 
@@ -860,7 +1157,7 @@ When an AI assistant encounters a Camel route, it can query these tools to provi
 
 ## Wanaku
 
-Wanaku is an MCP router that exposes existing Camel routes as MCP-compatible tools without modifying the routes themselves. While the `langchain4j-tools` component requires routes to be written specifically as tools (using the `langchain4j-tools:` consumer), Wanaku works with any HTTP-accessible Camel route.
+Wanaku is an MCP router that exposes existing Camel routes as MCP-compatible tools without modifying the routes themselves. While the `ai-tool` component requires routes to be written specifically as tools (using the `ai-tool:` consumer), Wanaku works with any HTTP-accessible Camel route.
 
 ### How Wanaku works
 
@@ -956,14 +1253,14 @@ Send a natural-language question to the assistant:
 
 ```bash
 curl -X POST http://localhost:8088/api/assistant/chat \
-  -H "Content-Type: application/json" \
-  -d '"What is the status of order ORD-001?"'
+  -H "Content-Type: text/plain" \
+  -d 'What is the status of order ORD-001?'
 ```
 
 The assistant route:
 1. Receives the question via REST
 2. Sets the prompt header with the system instructions and user query
-3. Sends to `langchain4j-chat:assistant?toolTags=shipping`
+3. Sends to `langchain4j-agent:assistant?agent=#assistantAgent&tags=shipping`
 4. The agent recognizes it needs order data and calls the `OrderLookupToolRoute`
 5. The tool returns `{"orderId":"ORD-001","status":"SHIPPED","carrier":"FedEx","eta":"2026-07-20"}`
 6. The agent formulates a natural-language response
@@ -1034,8 +1331,9 @@ As AI agents become standard components in enterprise architectures, the integra
 
 ## References
 
-- [Camel LangChain4j Chat component](https://camel.apache.org/components/4.x/langchain4j-chat-component.html)
-- [Camel LangChain4j Tools component](https://camel.apache.org/components/4.x/langchain4j-tools-component.html)
+- [Camel LangChain4j Chat component](https://camel.apache.org/components/4.22.x/langchain4j-chat-component.html)
+- [Camel AI Tool component](https://camel.apache.org/components/4.22.x/ai-tool-component.html)
+- [Camel LangChain4j Agent component](https://camel.apache.org/components/4.22.x/langchain4j-agent-component.html)
 - [LangChain4j documentation](https://docs.langchain4j.dev/)
 - [Quarkus LangChain4j extension](https://docs.quarkiverse.io/quarkus-langchain4j/dev/index.html)
 - [Camel MCP Server](https://camel.apache.org/manual/camel-jbang.html#_mcp)
@@ -1044,4 +1342,4 @@ As AI agents become standard components in enterprise architectures, the integra
 
 ---
 
-*Verification status: unverified. LangChain4j features reference Apache Camel 4.20.0 and LangChain4j 1.0.*
+*Verification status: <span class="status status--verified">verified</span> — both runtimes run against a live Ollama 0.34.0 with `qwen2.5:3b` (2026-09-14). The classifier returns a model response, and the assistant genuinely invokes the `ai-tool` route: asking for order ORD-002 logs `Tool call — looking up order: ORD-002` and answers from the tool's data, with zero route errors on either runtime. The embedded MCP server starts and publishes the tagged tool; it was not exercised from an external MCP client.*

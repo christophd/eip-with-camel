@@ -233,7 +233,7 @@ from("kafka:eip.orders.placed"
         + "&groupId=inventory-service"
         + "&groupInstanceId=inventory-${HOSTNAME}"
         + "&sessionTimeoutMs=60000")
-    .routeId("static-member-consumer")
+    .routeId("static-membership-consumer")
     .unmarshal().json(java.util.Map.class)
     .to("direct:check-inventory");
 ```
@@ -263,4 +263,4 @@ This reduces rebalance impact from "all consumers paused" to "only affected part
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — all three tuned consumers run against live Kafka 4.3.1 and receive messages, with zero errors (2026-09-14).*

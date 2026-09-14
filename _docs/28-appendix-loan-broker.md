@@ -128,7 +128,7 @@ Enrich the loan request with credit bureau data:
 
 ```java
 from("kafka:loan.requests?brokers=localhost:9092&groupId=loan-enricher")
-    .routeId("credit-bureau-enricher")
+    .routeId("credit-enricher")
     .unmarshal().json(LoanRequest.class)
     .enrich("direct:credit-bureau-lookup", (oldExchange, newExchange) -> {
         LoanRequest request = oldExchange.getIn().getBody(LoanRequest.class);
@@ -234,7 +234,7 @@ Each bank consumes from its request topic, evaluates the loan, and publishes a q
 
 ```java
 from("kafka:loan.bank.request.bank-a?brokers=localhost:9092&groupId=bank-a")
-    .routeId("bank-a-service")
+    .routeId("bank-a-quote")
     .unmarshal().json(EnrichedLoanRequest.class)
     .process(exchange -> {
         EnrichedLoanRequest request = exchange.getIn().getBody(EnrichedLoanRequest.class);
@@ -374,6 +374,12 @@ from("platform-http:/api/loans/{requestId}?httpMethodRestrict=GET")
     .marshal().json();
 ```
 
+## What the runnable example covers
+
+Steps 1 to 5 are implemented in `examples/loan-broker/` and run against the local stack: `loan-gateway` accepts the request, `credit-enricher` adds the credit score, `bank-recipient-list` fans out to the eligible banks, `bank-a-quote` / `bank-b-quote` / `bank-c-quote` reply, and `loan-offer-aggregator` picks the winner. A `demo-loan-generator` feeds it so there is traffic to watch.
+
+Step 6's result store is shown as code only. Holding quotes for later `GET /api/loans/{requestId}` retrieval needs a store with an eviction policy, which is a distraction from the Scatter-Gather pattern this case study exists to demonstrate. The example logs the winning offer instead.
+
 ## Pattern inventory
 
 This case study uses these EIP patterns:
@@ -451,4 +457,4 @@ from("kafka:eip.shipping.rate-requests?brokers=localhost:9092&groupId=carrier-sc
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — the example runs against the live stack on both runtimes: the demo generator submits a loan request, the recipient list fans out to the eligible banks, and the aggregator selects the best offer, with zero errors (2026-09-14). Step 6's result store is illustrative and is not exercised.*

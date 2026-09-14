@@ -6,56 +6,61 @@
 - rest:
     path: /api/orders
     post:
-      - to: "direct:validate-order"
       - consumes: application/json
         produces: application/json
+        to: "direct:validate-order"
 
 - route:
     id: validate-order
     from:
       uri: "direct:validate-order"
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Order received: ${body}"
-      - choice:
-          when:
-            - simple: "${body[orderId]} != null && ${body[customerId]} != null && ${body[item]} != null"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Order received: ${body}"
+        - choice:
+            when:
+              - simple: "${body[orderId]} != null && ${body[customerId]} != null && ${body[item]} != null"
+                steps:
+                  - setHeader:
+                      name: receivedAt
+                      simple: "${date:now:yyyy-MM-dd'T'HH:mm:ss.SSSZ}"
+                  - setHeader:
+                      name: processingNode
+                      simple: "tui-demo-node-1"
+                  - log: "Order accepted: ${body[orderId]} — customer ${body[customerId]}, item: ${body[item]}"
+                  # Keep the id: after marshal the body is JSON text, so
+                  # ${body[orderId]} no longer resolves for the HTTP response.
+                  - setProperty:
+                      name: acceptedOrderId
+                      simple: "${body[orderId]}"
+                  - marshal:
+                      json:
+                        library: Jackson
+                  - to:
+                      uri: "kafka:eip.orders.validated"
+                      parameters:
+                        brokers: "{{camel.component.kafka.brokers}}"
+                  - setBody:
+                      simple: '{"status":"accepted","orderId":"${exchangeProperty.acceptedOrderId}"}'
+            otherwise:
               steps:
+                - log:
+                    message: "Order rejected — missing required fields"
+                    loggingLevel: WARN
                 - setHeader:
-                    name: receivedAt
-                    simple: "${date:now:yyyy-MM-dd'T'HH:mm:ss.SSSZ}"
-                - setHeader:
-                    name: processingNode
-                    simple: "tui-demo-node-1"
-                - log: "Order accepted: ${body[orderId]} — customer ${body[customerId]}, item: ${body[item]}"
+                    name: CamelHttpResponseCode
+                    constant: 400
                 - marshal:
                     json:
                       library: Jackson
                 - to:
-                    uri: "kafka:eip.orders.validated"
+                    uri: "kafka:eip.orders.rejected"
                     parameters:
                       brokers: "{{camel.component.kafka.brokers}}"
                 - setBody:
-                    simple: '{"status":"accepted","orderId":"${body[orderId]}"}'
-          otherwise:
-            steps:
-              - log:
-                  message: "Order rejected — missing required fields"
-                  loggingLevel: WARN
-              - setHeader:
-                  name: CamelHttpResponseCode
-                  constant: 400
-              - marshal:
-                  json:
-                    library: Jackson
-              - to:
-                  uri: "kafka:eip.orders.rejected"
-                  parameters:
-                    brokers: "{{camel.component.kafka.brokers}}"
-              - setBody:
-                  simple: '{"status":"rejected","reason":"missing required fields (orderId, customerId, item)"}'
+                    simple: '{"status":"rejected","reason":"missing required fields (orderId, customerId, item)"}'
 
 - route:
     id: process-validated-orders
@@ -64,21 +69,21 @@
       parameters:
         brokers: "{{camel.component.kafka.brokers}}"
         groupId: "{{camel.component.kafka.group-id}}"
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Processing validated order: ${body[orderId]}"
-      - delay:
-          constant: 100
-      - setHeader:
-          name: processingStatus
-          constant: "PROCESSING"
-      - log: "Order ${body[orderId]} status set to PROCESSING"
-      - marshal:
-          json:
-            library: Jackson
-      - to:
-          uri: "kafka:eip.orders.processed"
-          parameters:
-            brokers: "{{camel.component.kafka.brokers}}"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Processing validated order: ${body[orderId]}"
+        - delay:
+            constant: 100
+        - setHeader:
+            name: processingStatus
+            constant: "PROCESSING"
+        - log: "Order ${body[orderId]} status set to PROCESSING"
+        - marshal:
+            json:
+              library: Jackson
+        - to:
+            uri: "kafka:eip.orders.processed"
+            parameters:
+              brokers: "{{camel.component.kafka.brokers}}"

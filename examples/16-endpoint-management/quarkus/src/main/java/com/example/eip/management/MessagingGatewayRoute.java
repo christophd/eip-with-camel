@@ -4,6 +4,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Named;
 import org.apache.camel.FluentProducerTemplate;
 import org.apache.camel.builder.RouteBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +15,9 @@ import org.slf4j.LoggerFactory;
  */
 @ApplicationScoped
 public class MessagingGatewayRoute extends RouteBuilder {
+
+    @ConfigProperty(name = "eip.gateway.demo.enabled", defaultValue = "true")
+    boolean gatewayDemoEnabled;
 
     @Override
     public void configure() {
@@ -32,6 +36,7 @@ public class MessagingGatewayRoute extends RouteBuilder {
         // Timer that exercises the gateway every 8 seconds
         from("timer:gateway-demo?period=8000&delay=5000")
             .routeId("gateway-demo-timer")
+            .autoStartup(gatewayDemoEnabled)
             .bean("orderMessagingGateway", "publishSampleOrder");
     }
 

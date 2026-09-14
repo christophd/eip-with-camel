@@ -1,0 +1,9 @@
+{
+  "command": "ProcessPayment",
+  "payment_id": "PAY-${id}",
+  "order_id": ${id},
+  "customer_id": "CUST-${id}",
+  "amount": ${amount},
+  "currency": "USD",
+  "payment_method": "CREDIT_CARD"
+}

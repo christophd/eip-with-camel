@@ -204,7 +204,7 @@ from("direct:get-shipping-estimate")
     .circuitBreaker()
         .resilience4jConfiguration()
             .failureRateThreshold(50)
-            .waitDurationInOpenState(10000)
+            .waitDurationInOpenState("10s")
             .slidingWindowSize(5)
         .end()
         .to("http://localhost:8084/api/shipping/estimate"
@@ -282,8 +282,9 @@ from("direct:place-order")
     .to("sql:SELECT currval('orders.orders_id_seq') AS order_id"
         + "?dataSource=#orderDataSource")
     .process(exchange -> {
-        Map<String, Object> row = exchange.getIn().getBody(List.class).get(0);
-        exchange.getIn().setHeader("orderId", row.get("order_id"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rows = exchange.getIn().getBody(List.class);
+        exchange.getIn().setHeader("orderId", rows.get(0).get("order_id"));
     })
     .setBody(simple("""
         {
@@ -387,12 +388,12 @@ The goal isn't to use only messaging — it's to choose the right style for each
 ## References
 
 - Hohpe & Woolf, *Enterprise Integration Patterns*, Chapter 2: "Integration Styles"
-- [enterpriseintegrationpatterns.com — Integration Styles](https://www.enterpriseintegrationpatterns.com/patterns/messaging/IntegrationStyles.html)
-- [Apache Camel — File Component](https://camel.apache.org/components/4.20.x/file-component.html)
-- [Apache Camel — SQL Component](https://camel.apache.org/components/4.20.x/sql-component.html)
-- [Apache Camel — HTTP Component](https://camel.apache.org/components/4.20.x/http-component.html)
-- [Apache Camel — Kafka Component](https://camel.apache.org/components/4.20.x/kafka-component.html)
-- [Apache Camel — Circuit Breaker EIP](https://camel.apache.org/components/4.20.x/eips/circuitBreaker-eip.html)
+- [enterpriseintegrationpatterns.com — Integration Styles](https://www.enterpriseintegrationpatterns.com/patterns/messaging/IntegrationStylesIntro.html)
+- [Apache Camel — File Component](https://camel.apache.org/components/4.22.x/file-component.html)
+- [Apache Camel — SQL Component](https://camel.apache.org/components/4.22.x/sql-component.html)
+- [Apache Camel — HTTP Component](https://camel.apache.org/components/4.22.x/http-component.html)
+- [Apache Camel — Kafka Component](https://camel.apache.org/components/4.22.x/kafka-component.html)
+- [Apache Camel — Circuit Breaker EIP](https://camel.apache.org/components/4.22.x/eips/circuitBreaker-eip.html)
 
 ## What you learned
 
@@ -405,5 +406,6 @@ Next, we enter the world of messaging systems — the six building blocks (chann
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — integration style examples verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11).*
-Confirm: all Java DSL routes compile against Camel 4.20 APIs; SQL component named parameter syntax is correct; Kafka component URI options are valid for camel-kafka 4.20; Resilience4j circuit breaker configuration properties match the Camel integration.*
+*Verification status: <span class="status status--verified">verified</span> — every Java snippet in this chapter compiles against Camel 4.22.0, and the messaging style it recommends is the one exercised by the rest of the tutorial (2026-09-14). The file, shared-database and RPI routes are illustrative and have no runnable example of their own.*
+
+*To confirm on re-verification: all Java DSL routes compile against Camel 4.22 APIs; SQL component named parameter syntax is correct; Kafka component URI options are valid for camel-kafka 4.22; Resilience4j circuit breaker durations use the 4.22 string form (`.waitDurationInOpenState("10s")`) rather than the pre-4.22 integer seconds.*

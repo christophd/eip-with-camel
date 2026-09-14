@@ -6,7 +6,7 @@ description: "Topics, subscriptions, schema registry, per-message TTL, and Pulsa
 duration: "30 minutes"
 ---
 
-Apache Pulsar appears in this tutorial wherever its features provide a better fit than Kafka: per-message TTL (Message Expiration), key-shared subscriptions (ordered competing consumers), and native schema enforcement. This appendix covers the Pulsar concepts that differentiate it from Kafka and how Camel integrates with them.
+Apache Pulsar appears in this tutorial wherever its features provide a better fit than Kafka: key-shared subscriptions (ordered competing consumers), shared subscriptions, and dead-letter topics. This appendix covers those, and also the Pulsar concepts that differentiate it from Kafka more broadly — per-message TTL, namespace retention policies and native schema enforcement. Those last three are explained rather than exercised: the runnable example implements the subscription types and the dead-letter topic, and does not configure TTL or a schema.
 
 The code is in `examples/21-pulsar-deep-dive/`.
 
@@ -100,7 +100,7 @@ Key-shared subscriptions give you per-key ordering *without* partitions. Unlike 
 from("pulsar:persistent://public/default/eip.orders.placed"
         + "?subscriptionName=inventory-service"
         + "&subscriptionType=Key_Shared")
-    .routeId("pulsar-key-shared")
+    .routeId("pulsar-key-shared-consumer")
     .log("Processing order — key ensures per-order ordering")
     .to("direct:check-inventory");
 ```
@@ -266,4 +266,4 @@ Key parameters for the `pulsar:` component:
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 8 Citrus integration tests pass against live containers (2026-09-14).*

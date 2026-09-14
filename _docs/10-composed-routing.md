@@ -54,7 +54,7 @@ Camel's `routingSlip()` EIP reads a header containing a comma-separated list of 
 ```java
 // Step 1: Determine the routing slip based on order type
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=routing-slip")
-    .routeId("routing-slip-entry")
+    .routeId("order-routing-slip")
     .unmarshal().json(Map.class)
     .process(exchange -> {
         Map<String, Object> order = exchange.getIn().getBody(Map.class);
@@ -252,15 +252,15 @@ A **Scatter-Gather** sends the same request to multiple recipients (scatter) and
 
 ### How Camel models it
 
-Camel's `multicast()` with an `aggregationStrategy` is the natural implementation:
+Camel's `multicast()` with an `aggregationStrategy` is the natural implementation. The snippet below adds DHL as a fourth carrier and calls the carriers over HTTP; the runnable example quotes three carriers off a Kafka rate-request topic, but the pattern and the timeout are the same:
 
 ```java
 from("direct:get-shipping-estimates")
-    .routeId("scatter-gather")
+    .routeId("carrier-scatter-gather")
     .log("Requesting shipping estimates for order ${body[order_id]}")
     .multicast(new LowestPriceAggregation())
         .parallelProcessing()
-        .timeout(10000)
+        .timeout(5000)
         .to("direct:quote-fedex", "direct:quote-ups", "direct:quote-dhl", "direct:quote-usps")
     .end()
     .log("Best shipping estimate: ${body[carrier]} at $${body[price]}");
@@ -325,7 +325,7 @@ Other common aggregation strategies:
 
 ### Handling partial results
 
-The `timeout(10000)` ensures the scatter-gather doesn't wait forever if a carrier is slow. If DHL doesn't respond within 10 seconds, the aggregation proceeds with the 3 responses it has. This is critical for user-facing flows — a customer waiting for a shipping estimate can't wait 60 seconds for a slow carrier.
+The `timeout(5000)` ensures the scatter-gather doesn't wait forever if a carrier is slow. If DHL doesn't respond within 5 seconds, the aggregation proceeds with the 3 responses it has. This is critical for user-facing flows — a customer waiting for a shipping estimate can't wait 60 seconds for a slow carrier.
 
 You can also set `stopOnException(false)` to continue aggregation even if one carrier throws an error (the failed carrier is excluded from the comparison).
 
@@ -345,9 +345,9 @@ You can also set `stopOnException(false)` to continue aggregation even if one ca
 - [enterpriseintegrationpatterns.com — Routing Slip](https://www.enterpriseintegrationpatterns.com/patterns/messaging/RoutingTable.html)
 - [enterpriseintegrationpatterns.com — Process Manager](https://www.enterpriseintegrationpatterns.com/patterns/messaging/ProcessManager.html)
 - [enterpriseintegrationpatterns.com — Scatter-Gather](https://www.enterpriseintegrationpatterns.com/patterns/messaging/BroadcastAggregate.html)
-- [Apache Camel — Routing Slip EIP](https://camel.apache.org/components/4.20.x/eips/routingSlip-eip.html)
-- [Apache Camel — Saga EIP](https://camel.apache.org/components/4.20.x/eips/saga-eip.html)
-- [Apache Camel — Multicast EIP](https://camel.apache.org/components/4.20.x/eips/multicast-eip.html)
+- [Apache Camel — Routing Slip EIP](https://camel.apache.org/components/4.22.x/eips/routingSlip-eip.html)
+- [Apache Camel — Saga EIP](https://camel.apache.org/components/4.22.x/eips/saga-eip.html)
+- [Apache Camel — Multicast EIP](https://camel.apache.org/components/4.22.x/eips/multicast-eip.html)
 
 ## What you learned
 
@@ -360,4 +360,4 @@ Next: Advanced Routing — Dynamic Router, Wire Tap, Resequencer, Composed Messa
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 8 Citrus integration tests pass against live containers (2026-09-14).*

@@ -520,4 +520,4 @@ kubectl delete namespace kafka redis
 
 ---
 
-*Verification status: unverified. Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. Quarkus variant compiles against Quarkus 3.37.0, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — the application builds and runs on both runtimes against the local stack (2026-09-14). The Kubernetes manifests and the deployment lifecycle they describe are not exercised here; that needs a cluster.*

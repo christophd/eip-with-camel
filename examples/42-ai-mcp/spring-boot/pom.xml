@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.7</version>
+        <version>4.1.1</version>
         <relativePath/>
     </parent>
 
@@ -18,7 +18,7 @@
 
     <properties>
         <java.version>25</java.version>
-        <camel.version>4.20.0</camel.version>
+        <camel.version>4.22.0</camel.version>
     </properties>
 
     <dependencyManagement>
@@ -51,11 +51,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.camel.springboot</groupId>
-            <artifactId>camel-rest-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.camel.springboot</groupId>
-            <artifactId>camel-servlet-starter</artifactId>
+            <artifactId>camel-platform-http-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.camel.springboot</groupId>
@@ -73,12 +69,30 @@
             <groupId>org.apache.camel.springboot</groupId>
             <artifactId>camel-langchain4j-chat-starter</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.camel.springboot</groupId>
+            <artifactId>camel-ai-tool-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.camel.springboot</groupId>
+            <artifactId>camel-langchain4j-agent-starter</artifactId>
+        </dependency>
+        <!-- Publishes the ai-tool routes to external MCP clients -->
+        <dependency>
+            <groupId>org.apache.camel.springboot</groupId>
+            <artifactId>camel-mcp-server-starter</artifactId>
+        </dependency>
 
-        <!-- LangChain4j Ollama -->
+        <!-- LangChain4j Ollama.
+             The Spring Boot starter is not usable here: its auto-configuration
+             builds an HTTP client against Spring Boot 3 classes that moved in
+             Spring Boot 4, so it fails with NoClassDefFoundError on
+             ClientHttpRequestFactoryBuilder. The plain artifact works, and the
+             ChatModel is built explicitly in AgentConfig instead. -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
-            <artifactId>langchain4j-ollama-spring-boot-starter</artifactId>
-            <version>1.0.0-beta4</version>
+            <artifactId>langchain4j-ollama</artifactId>
+            <version>1.20.0</version>
         </dependency>
 
         <!-- Test -->

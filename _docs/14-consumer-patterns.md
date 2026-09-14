@@ -219,7 +219,7 @@ You can scale competing consumers at two levels:
 
 {% include excalidraw.html file="14-consumer-scaling" alt="Two application instances each with two consumer threads, distributing 12 Kafka partitions evenly — 3 partitions per thread" caption="Figure 14.1 — Competing consumer scaling: 2 instances × 2 threads = 4 consumers, each assigned 3 of 12 partitions." %}
 
-Adding a third instance with `consumersCount=2` would trigger a rebalance, redistributing partitions to 2 per thread (12 partitions ÷ 6 threads).
+Adding a third instance, still at two threads each, would trigger a rebalance and redistribute to 2 partitions per thread (12 partitions ÷ 6 threads). The figure uses two threads per instance to keep the arithmetic legible; the route above sets `consumersCount=3`, which would give 9 threads across three instances and leave 3 of them idle against a 12-partition topic only once you reach four instances.
 
 ### The partition ceiling
 
@@ -229,7 +229,7 @@ You can't have more active consumers than partitions. If a topic has 6 partition
 
 ### The problem
 
-A single Kafka consumer receives events from `eip.orders.status-updates`, but different event types need different handlers: `OrderPlaced` events go to the order creation handler, `OrderCancelled` events go to the cancellation handler, `OrderRefunded` events go to the refund handler. You could use a content-based router in every route that consumes from this topic, but that scatters the routing logic.
+A single Kafka consumer receives events from `eip.orders.status-updates`, but different event types need different handlers: `order_placed` events go to the order creation handler, `order_cancelled` events go to the cancellation handler, `order_refunded` events go to the refund handler. You could use a content-based router in every route that consumes from this topic, but that scatters the routing logic.
 
 ### The solution
 
@@ -246,18 +246,18 @@ from("kafka:eip.orders.status-updates?brokers=localhost:9092&groupId=order-dispa
     .toD("direct:handle-${body[event_type]}");
 
 // Handler routes — each handles one event type
-from("direct:handle-OrderPlaced")
-    .routeId("handler-order-placed")
+from("direct:handle-order_placed")
+    .routeId("handle-order-placed")
     .log("Creating order ${body[order_id]}")
     .to("direct:create-order");
 
-from("direct:handle-OrderCancelled")
-    .routeId("handler-order-cancelled")
+from("direct:handle-order_cancelled")
+    .routeId("handle-order-cancelled")
     .log("Cancelling order ${body[order_id]}")
     .to("direct:cancel-order");
 
-from("direct:handle-OrderRefunded")
-    .routeId("handler-order-refunded")
+from("direct:handle-order_refunded")
+    .routeId("handle-order-refunded")
     .log("Processing refund for order ${body[order_id]}")
     .to("direct:process-refund");
 ```
@@ -278,7 +278,7 @@ The `toD()` (dynamic to) resolves the endpoint URI at runtime from the message b
 ```java
 .process(exchange -> {
     String eventType = (String) exchange.getIn().getBody(Map.class).get("event_type");
-    Set<String> allowed = Set.of("OrderPlaced", "OrderCancelled", "OrderRefunded", "OrderUpdated");
+    Set<String> allowed = Set.of("order_placed", "order_cancelled", "order_refunded");
     if (!allowed.contains(eventType)) {
         throw new IllegalArgumentException("Unknown event type: " + eventType);
     }
@@ -294,7 +294,7 @@ The `toD()` (dynamic to) resolves the endpoint URI at runtime from the message b
 
 **Event-driven consumers without backpressure.** If the consumer processes slower than messages arrive, the internal buffer grows unbounded. Use `maxPollRecords` to limit batch size and let the Kafka client pause fetching until the current batch is processed.
 
-**Dispatchers without a fallback.** If `toD("direct:handle-${body[event_type]}")` encounters an unknown event type, the `direct:handle-UnknownType` endpoint doesn't exist and the route throws `NoSuchEndpointException`. Add a `doTry`/`doCatch` or validate the type before dispatching.
+**Dispatchers without a fallback.** If `toD("direct:handle-${body[event_type]}")` encounters an event type with no matching handler, the computed endpoint does not exist and the route throws `NoSuchEndpointException`. The runnable example avoids this the same way it closes the injection hole above: it checks `event_type` against an allow-list and sends anything unrecognised to `direct:handle-order_unknown` through an `otherwise` branch, so an unexpected value is logged rather than fatal.
 
 ## References
 
@@ -303,8 +303,8 @@ The `toD()` (dynamic to) resolves the endpoint URI at runtime from the message b
 - [enterpriseintegrationpatterns.com — Event-Driven Consumer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/EventDrivenConsumer.html)
 - [enterpriseintegrationpatterns.com — Competing Consumers](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CompetingConsumers.html)
 - [enterpriseintegrationpatterns.com — Message Dispatcher](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageDispatcher.html)
-- [Apache Camel — Polling Consumer](https://camel.apache.org/manual/polling-consumer.html)
-- [Apache Camel — Kafka Component](https://camel.apache.org/components/4.20.x/kafka-component.html)
+- [Apache Camel — Polling Consumer](https://camel.apache.org/components/4.22.x/eips/polling-consumer.html)
+- [Apache Camel — Kafka Component](https://camel.apache.org/components/4.22.x/kafka-component.html)
 
 ## What you learned
 
@@ -317,4 +317,4 @@ Next: producer-side patterns, transactional messaging, and durable subscribers.
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. YAML DSL routes provided for Camel CLI.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 18 Citrus integration tests pass against live containers (2026-09-14).*

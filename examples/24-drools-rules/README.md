@@ -69,4 +69,4 @@ echo '{"order_id": 1004, "customer_id": "C-400", "amount": 15000.00, "destinatio
 
 ---
 
-*Verification status: unverified. Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: unverified. Spring Boot variant compiles against Spring Boot 4.1.1, Camel 4.22.0.*

@@ -120,7 +120,7 @@ Camel's `errorHandler` with a `deadLetterChannel` is the standard approach:
 
 ```java
 from("kafka:eip.inventory.reserved?brokers=localhost:9092&groupId=payment-service")
-    .routeId("dead-letter-channel")
+    .routeId("dead-letter-channel-demo")
     .errorHandler(deadLetterChannel("kafka:eip.inventory.reserved.dlq?brokers=localhost:9092")
         .maximumRedeliveries(3)
         .redeliveryDelay(1000)
@@ -247,7 +247,7 @@ from("kafka:eip.orders.placed"
 - [enterpriseintegrationpatterns.com — Dead Letter Channel](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DeadLetterChannel.html)
 - [enterpriseintegrationpatterns.com — Guaranteed Delivery](https://www.enterpriseintegrationpatterns.com/patterns/messaging/GuaranteedMessaging.html)
 - [Apache Camel — Error Handler](https://camel.apache.org/manual/error-handler.html)
-- [Apache Camel — Dead Letter Channel](https://camel.apache.org/components/4.20.x/eips/dead-letter-channel.html)
+- [Apache Camel — Dead Letter Channel](https://camel.apache.org/components/4.22.x/eips/dead-letter-channel.html)
 - [Apache Kafka — Producer Configs](https://kafka.apache.org/documentation/#producerconfigs)
 
 ## What you learned
@@ -261,4 +261,4 @@ Next, we look at the infrastructure-level channel patterns: Channel Adapter, Mes
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 4 Citrus integration tests pass against live containers (2026-09-14).*

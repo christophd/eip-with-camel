@@ -160,6 +160,8 @@ from("kafka:eip.shipping.scheduled?brokers=localhost:9092&groupId=shipping-servi
 
 For our shipping domain, Redis is already in the stack — so `RedisIdempotentRepository` is the natural choice for production. The idempotent key is `event_id` from the event envelope (Chapter 07 / 12).
 
+The runnable Redis example in [Appendix G]({{ '/docs/22-appendix-redis/' | relative_url }}) does the deduplication by hand against Redis rather than through `RedisIdempotentRepository`, so the mechanics are visible on the page. Reach for the repository in real code: it handles the eviction, expiry and concurrent-claim edge cases that a hand-rolled check quietly skips.
+
 ### Why `event_id` matters
 
 This is why we put `event_id` in the event envelope from the beginning. Without a unique per-message ID, you'd have to use a combination of fields (`order_id` + `event_type` + timestamp) for deduplication — which is fragile. A UUID per event makes idempotent consumption straightforward.
@@ -308,8 +310,8 @@ The service activator pattern keeps your business logic clean. `PaymentProcessor
 - [enterpriseintegrationpatterns.com — Idempotent Receiver](https://www.enterpriseintegrationpatterns.com/patterns/messaging/IdempotentReceiver.html)
 - [enterpriseintegrationpatterns.com — Transactional Client](https://www.enterpriseintegrationpatterns.com/patterns/messaging/TransactionalClient.html)
 - [enterpriseintegrationpatterns.com — Service Activator](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessagingAdapter.html)
-- [Apache Camel — Idempotent Consumer EIP](https://camel.apache.org/components/4.20.x/eips/idempotentConsumer-eip.html)
-- [Apache Camel — Transactional Client](https://camel.apache.org/manual/transactional-client.html)
+- [Apache Camel — Idempotent Consumer EIP](https://camel.apache.org/components/4.22.x/eips/idempotentConsumer-eip.html)
+- [Apache Camel — Transactional Client](https://camel.apache.org/components/4.22.x/eips/transactional-client.html)
 
 ## What you learned
 
@@ -322,4 +324,4 @@ Next: endpoint lifecycle and management — Messaging Gateway, Channel Purger, a
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. YAML DSL routes provided for Camel CLI.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 10 Citrus integration tests pass against live containers (2026-09-14).*

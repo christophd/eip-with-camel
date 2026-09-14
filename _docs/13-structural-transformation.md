@@ -49,7 +49,7 @@ Camel's `aggregate()` EIP is one of the most powerful and configurable patterns 
 ```java
 // Aggregate order lifecycle events into a complete status
 from("kafka:eip.orders.status-updates?brokers=localhost:9092&groupId=order-aggregator")
-    .routeId("aggregator")
+    .routeId("order-aggregator")
     .unmarshal().json(Map.class)
     .aggregate(simple("${body[order_id]}"), new OrderLifecycleAggregation())
         .completionPredicate(simple("${body[stages_complete]} == true"))
@@ -207,7 +207,7 @@ The normalizer translates each source format into a canonical form. But what *is
 
 A **Canonical Data Model** is a formally defined, shared schema that all services agree on. It's the lingua franca of the integration platform. Every message that flows between services conforms to this model — regardless of what the original source used.
 
-In our shipping domain, the canonical model is defined as Avro schemas in the Apicurio Registry:
+In our shipping domain, the canonical model would be defined as Avro schemas in the Apicurio Registry — the registry is in the local stack for exactly this purpose, though the runnable examples keep the canonical model as the plain Java records in `examples/domain-model/` and move it over the wire as JSON:
 
 ```json
 {
@@ -282,7 +282,7 @@ A canonical model adds a translation layer at every system boundary. If two serv
 - [enterpriseintegrationpatterns.com — Aggregator](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Aggregator.html)
 - [enterpriseintegrationpatterns.com — Normalizer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Normalizer.html)
 - [enterpriseintegrationpatterns.com — Canonical Data Model](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CanonicalDataModel.html)
-- [Apache Camel — Aggregate EIP](https://camel.apache.org/components/4.20.x/eips/aggregate-eip.html)
+- [Apache Camel — Aggregate EIP](https://camel.apache.org/components/4.22.x/eips/aggregate-eip.html)
 - [Apicurio Registry — Schema Compatibility](https://www.apicur.io/registry/)
 
 ## What you learned
@@ -295,4 +295,4 @@ This completes Part 6 — Message Transformation (7 patterns across 2 chapters).
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 10 Citrus integration tests pass against live containers (2026-09-14).*

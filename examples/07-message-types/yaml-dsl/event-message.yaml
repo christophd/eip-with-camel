@@ -10,12 +10,12 @@
     id: event-message-producer
     from:
       uri: "direct:send-event"
-    steps:
-      - log: "Sending event → eip.events.orders: ${body}"
-      - to:
-          uri: "kafka:eip.events.orders"
-          parameters:
-            brokers: "{{kafka.brokers}}"
+      steps:
+        - log: "Sending event → eip.events.orders: ${body}"
+        - to:
+            uri: "kafka:eip.events.orders"
+            parameters:
+              brokers: "{{kafka.brokers}}"
 
 # Consumer: receive and log the event
 - route:
@@ -25,9 +25,9 @@
       parameters:
         brokers: "{{kafka.brokers}}"
         groupId: event-consumer
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Received event: type=${body[event_type]}, id=${body[event_id]}, time=${body[event_time]}, source=${body[source]}"
-      - log: "Event data: ${body[data]}"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Received event: type=${body[event_type]}, id=${body[event_id]}, time=${body[event_time]}, source=${body[source]}"
+        - log: "Event data: ${body[data]}"

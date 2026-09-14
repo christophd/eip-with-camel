@@ -1,0 +1,8 @@
+{
+  "order_id": ${id},
+  "customer_id": "CUST-00${id}",
+  "item_sku": "SKU-OT-${id}",
+  "quantity": 1,
+  "amount": ${amount},
+  "country": "${country}"
+}

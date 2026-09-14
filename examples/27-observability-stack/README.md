@@ -62,4 +62,4 @@ curl http://localhost:8087/health/routes
 
 ---
 
-*Verification status: unverified. Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: unverified. Spring Boot variant compiles against Spring Boot 4.1.1, Camel 4.22.0.*

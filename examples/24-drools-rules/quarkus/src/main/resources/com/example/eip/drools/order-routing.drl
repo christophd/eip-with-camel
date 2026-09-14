@@ -8,6 +8,7 @@ when
     $o: Order(containsHazmat == true, routingDecision == null)
 then
     $o.setRoutingDecision("hazmat");
+    update($o);
 end
 
 rule "Route high-value international to fraud review"
@@ -16,6 +17,7 @@ when
     $o: Order(amount >= 10000, destinationCountry != "US", routingDecision == null)
 then
     $o.setRoutingDecision("fraud-review");
+    update($o);
 end
 
 rule "Route express orders to priority queue"
@@ -24,6 +26,7 @@ when
     $o: Order(amount >= 500, routingDecision == null)
 then
     $o.setRoutingDecision("express");
+    update($o);
 end
 
 rule "Default routing"
@@ -32,4 +35,5 @@ when
     $o: Order(routingDecision == null)
 then
     $o.setRoutingDecision("standard");
+    update($o);
 end

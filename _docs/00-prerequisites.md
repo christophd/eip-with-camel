@@ -14,7 +14,17 @@ Every example in this tutorial runs on **Java 25** (the current long-term-suppor
 
 ### Installing with SDKMAN
 
-[SDKMAN](https://sdkman.io/) manages parallel JDK installations and makes switching between versions painless. If you don't already have it:
+[SDKMAN](https://sdkman.io/) manages parallel JDK installations and makes switching between versions painless. It needs `zip` and `unzip` present first — without them the installer stops with `Looking for unzip... Not found.`, which is easy to miss if you pipe it to `bash`:
+
+```bash
+# Fedora / RHEL
+sudo dnf install -y zip unzip
+
+# Debian / Ubuntu
+sudo apt-get install -y zip unzip
+```
+
+Then install SDKMAN itself:
 
 ```bash
 curl -s "https://get.sdkman.io" | bash
@@ -60,7 +70,7 @@ Verify:
 
 ```bash
 jbang --version
-# 0.123.x
+# 0.141.x
 ```
 
 ### Installing the Camel CLI
@@ -73,7 +83,7 @@ This installs the `camel` command globally. Verify:
 
 ```bash
 camel version
-# Apache Camel CLI (JBang) 4.20.0
+# Apache Camel CLI (JBang) 4.22.0
 ```
 
 ### What the Camel CLI gives you
@@ -144,12 +154,12 @@ No special `settings.xml` is needed. All dependencies come from Maven Central, a
 
 | Dependency | Version |
 |-----------|---------|
-| Apache Camel | 4.20.0 |
-| Camel Quarkus | 3.36.0 |
-| Quarkus | 3.37.0 |
-| Camel Spring Boot | 4.20.0 |
-| Spring Boot | 4.0.7 |
-| Camel CLI (JBang) | 4.20.0 |
+| Apache Camel | 4.22.0 |
+| Camel Quarkus | 3.39.0 |
+| Quarkus | 3.39.3 |
+| Camel Spring Boot | 4.22.0 |
+| Spring Boot | 4.1.1 |
+| Camel CLI (JBang) | 4.22.0 |
 | Drools | 10.2.0 |
 
 You'll see these in the `<dependencyManagement>` section of every `pom.xml`. When a new Camel release ships, upgrading is a BOM version bump in Maven and `camel version set 4.x.x` for the CLI.
@@ -359,6 +369,48 @@ podman-compose -f examples/_infra/compose.yaml \
 podman-compose -f examples/_infra/compose.yaml down -v
 ```
 
+## Turning off the demo data generators
+
+Most examples ship a timer-driven route that manufactures sample traffic, so
+that starting an example gives you something to watch without having to publish
+messages by hand. That is convenient when you are reading a chapter and
+unhelpful when you are running the integration tests, so each generator sits
+behind a configuration flag that defaults to `true`.
+
+Set the flag to `false` to start an example with its routes in place but no
+synthetic traffic flowing:
+
+{% include codetabs.html langs="Quarkus|Spring Boot" %}
+
+```bash
+# Quarkus
+mvn quarkus:dev -Deip.demo.data.generator.enabled=false
+```
+
+```bash
+# Spring Boot
+mvn spring-boot:run -Dspring-boot.run.arguments=--eip.demo.data.generator.enabled=false
+```
+
+The flags follow the route they control, so an example with more than one
+generator has more than one flag:
+
+| Flag | Controls |
+|------|----------|
+| `eip.demo.data.generator.enabled` | The general-purpose order generator, used by most examples |
+| `eip.pulsar.demo.data.generator.enabled` | The Pulsar order generator |
+| `eip.redis.demo.data.generator.enabled` | The Redis order generator |
+| `eip.pulsar.producer.enabled` | The Pulsar keyed and shared-subscription producers |
+| `eip.partitioned.producer.enabled` | The Kafka partitioned producer |
+| `eip.consumer.lag.monitor.enabled` | The Kafka consumer lag monitor |
+| `eip.distributed.lock.enabled` | The Redis distributed lock demo |
+| `eip.gateway.demo.enabled` | The messaging gateway demo timer |
+| `eip.test.message.injector.enabled` | The synthetic test-message injector |
+
+Every flag defaults to `true`, so the examples behave exactly as the chapters
+describe unless you turn something off. The Citrus integration tests set them to
+`false` themselves; you do not need to do it for them.
+
 ## What you learned
 
 - Java 25 via SDKMAN, Maven 3.9+, and how to ensure they're wired together.
@@ -372,5 +424,6 @@ Next, we'll meet the shipping domain that drives every example in this tutorial 
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — infrastructure stack verified against Podman, Quarkus 3.37.0, Camel 4.20.0 (2026-07-11).*
-Confirm: SDKMAN install commands work on a clean machine; `setup-stack.sh` brings all containers to healthy on Podman 5.x; PostgreSQL init-schemas.sql creates all five schemas; Apicurio health endpoint responds at 8081.*
+*Verification status: <span class="status status--verified">verified</span> — the SDKMAN chain was run on a clean `fedora:44` container: SDKMAN installs, then `sdk install java 25.0.2-tem`, `sdk install maven` and `sdk install jbang` all succeed, reporting OpenJDK 25.0.2, Maven 3.9.16 and JBang 0.141.0. Separately, `setup-stack.sh` brings Kafka 4.3.1, Pulsar 4.2.4, Redis 8.10.1, PostgreSQL 18.6 and Apicurio 3.3.3 to healthy on Podman 5.8.4, and `init-schemas.sql` creates all five domain schemas (2026-09-14).*
+
+*Not verified here: the SDKMAN install commands, which need a clean machine to test honestly.*

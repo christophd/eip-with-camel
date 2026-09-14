@@ -158,12 +158,12 @@ kafka-topics.sh --create \
 
 ## Monitoring Kafka with Camel
 
-Our stack includes Kafka UI at `http://localhost:8180`. For programmatic monitoring:
+Our stack includes Kafka UI at `http://localhost:8090`. For programmatic monitoring:
 
 ```java
 // Monitor consumer lag via JMX beans
 from("timer:kafka-lag-check?period=60000")
-    .routeId("kafka-lag-monitor")
+    .routeId("consumer-lag-monitor")
     .process(exchange -> {
         // Use Kafka AdminClient to check consumer group lag
         // Alert if lag exceeds threshold
@@ -181,4 +181,4 @@ Key metrics to watch:
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 4 Citrus integration tests pass against live containers (2026-09-14).*

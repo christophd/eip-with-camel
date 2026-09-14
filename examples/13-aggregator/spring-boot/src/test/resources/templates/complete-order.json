@@ -1,0 +1,7 @@
+{
+  "order_id": "ORD-${id}",
+  "customer_id": "CUST-${id}",
+  "line_items": "@ignore@",
+  "total_amount": "@ignore@",
+  "status": "ASSEMBLED"
+}

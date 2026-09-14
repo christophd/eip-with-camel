@@ -1,5 +1,7 @@
 package com.example.eip.advanced;
 
+import java.util.LinkedHashMap;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
 
@@ -24,6 +26,10 @@ public class WireTapRoute extends RouteBuilder {
 
         from("direct:audit")
             .routeId("wire-tap-audit")
+            .process(exchange -> {
+                var body = new LinkedHashMap<>(exchange.getIn().getBody(java.util.Map.class));
+                exchange.getIn().setBody(body);
+            })
             .log("AUDIT: Recording copy of order ${body[order_id]} for compliance")
             .process(exchange -> {
                 var body = exchange.getIn().getBody(java.util.Map.class);

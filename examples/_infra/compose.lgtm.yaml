@@ -1,7 +1,7 @@
 services:
   # ── Grafana ──────────────────────────────────────────────────────────────
   grafana:
-    image: docker.io/grafana/grafana:latest
+    image: docker.io/grafana/grafana:13.2.1
     container_name: eip-grafana
     ports:
       - "3000:3000"
@@ -31,7 +31,7 @@ services:
 
   # ── Loki (logs) ─────────────────────────────────────────────────────────
   loki:
-    image: docker.io/grafana/loki:latest
+    image: docker.io/grafana/loki:3.7.7
     container_name: eip-loki
     ports:
       - "3100:3100"
@@ -51,7 +51,7 @@ services:
 
   # ── Tempo (traces) ──────────────────────────────────────────────────────
   tempo:
-    image: docker.io/grafana/tempo:latest
+    image: docker.io/grafana/tempo:3.0.3
     container_name: eip-tempo
     ports:
       - "3200:3200"
@@ -71,7 +71,7 @@ services:
 
   # ── Mimir (metrics) ────────────────────────────────────────────────────
   mimir:
-    image: docker.io/grafana/mimir:latest
+    image: docker.io/grafana/mimir:3.2.1
     container_name: eip-mimir
     ports:
       - "9009:9009"
@@ -91,7 +91,7 @@ services:
 
   # ── OpenTelemetry Collector ─────────────────────────────────────────────
   otel-collector:
-    image: docker.io/otel/opentelemetry-collector-contrib:latest
+    image: docker.io/otel/opentelemetry-collector-contrib:0.160.0
     container_name: eip-otel-collector
     ports:
       - "4317:4317"

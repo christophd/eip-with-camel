@@ -1,0 +1,43 @@
+name: event-message-test
+description: Test verifying the Event Message pattern — an event notification published to and consumed from Kafka
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - waitFor:
+      timeout: "25000"
+      http:
+        url: http://localhost:8090
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "event-message"
+            file: "../event-message.yaml"
+            systemProperties:
+              file: "../application.properties"
+  - camel:
+      jbang:
+        verify:
+          integration: "event-message"
+          logMessage: "Routes startup"
+
+  # --- Send event message to Kafka ---
+  - send:
+      endpoint: >-
+        kafka:eip.events.orders?server=${kafka.broker}
+      message:
+        body:
+          resource:
+            file: "templates/event.json"
+  - camel:
+      jbang:
+        verify:
+          integration: "event-message"
+          logMessage: "Received event"

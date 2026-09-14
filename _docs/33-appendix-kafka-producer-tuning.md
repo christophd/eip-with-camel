@@ -92,7 +92,7 @@ For the shipping domain: set `linger.ms=5` for the order intake producer (low la
 
 ```java
 from("direct:order-analytics")
-    .routeId("batched-analytics-producer")
+    .routeId("batched-producer")
     .marshal().json()
     .to("kafka:eip.analytics.events"
         + "?brokers={{kafka.brokers}}"
@@ -224,7 +224,7 @@ from("direct:publish-order")
 
 ```java
 from("direct:publish-order")
-    .routeId("sync-producer")
+    .routeId("synchronous-producer")
     .marshal().json()
     .to("kafka:eip.orders.placed"
         + "?brokers={{kafka.brokers}}"
@@ -234,4 +234,4 @@ from("direct:publish-order")
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — the batched, compressed, idempotent and synchronous producers all run against live Kafka 4.3.1 and their verifier consumers receive the results, with zero errors (2026-09-14).*

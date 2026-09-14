@@ -4,9 +4,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class DemoDataGenerator extends RouteBuilder {
+
+    @ConfigProperty(name = "eip.demo.data.generator.enabled", defaultValue = "true")
+    boolean enabled;
 
     private final AtomicLong counter = new AtomicLong();
 
@@ -14,6 +18,7 @@ public class DemoDataGenerator extends RouteBuilder {
     public void configure() {
         from("timer:order-generator?period=5000")
             .routeId("demo-data-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long orderId = counter.incrementAndGet();
                 String order = String.format(

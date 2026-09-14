@@ -161,21 +161,21 @@ from("direct:publish-order")
 
 // Subscriber 1 — inventory (different consumer group)
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=inventory-service")
-    .routeId("pubsub-inventory")
+    .routeId("pubsub-subscriber-inventory")
     .unmarshal().json(Map.class)
     .log("Inventory: checking stock for order ${body[order_id]}")
     .to("direct:check-inventory");
 
 // Subscriber 2 — notification (different consumer group)
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=notification-service")
-    .routeId("pubsub-notification")
+    .routeId("pubsub-subscriber-notification")
     .unmarshal().json(Map.class)
     .log("Notification: sending confirmation for order ${body[order_id]}")
     .to("direct:send-confirmation");
 
 // Subscriber 3 — analytics (added later, zero changes to publisher)
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=analytics-service")
-    .routeId("pubsub-analytics")
+    .routeId("pubsub-subscriber-analytics")
     .unmarshal().json(Map.class)
     .log("Analytics: recording order ${body[order_id]}")
     .to("direct:record-analytics");
@@ -289,8 +289,8 @@ The `kafka.brokers` and `camel.component.pulsar.service-url` property placeholde
 - [enterpriseintegrationpatterns.com — Point-to-Point Channel](https://www.enterpriseintegrationpatterns.com/patterns/messaging/PointToPointChannel.html)
 - [enterpriseintegrationpatterns.com — Publish-Subscribe Channel](https://www.enterpriseintegrationpatterns.com/patterns/messaging/PublishSubscribeChannel.html)
 - [enterpriseintegrationpatterns.com — Datatype Channel](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DatatypeChannel.html)
-- [Apache Camel — Kafka Component](https://camel.apache.org/components/4.20.x/kafka-component.html)
-- [Apache Camel — Pulsar Component](https://camel.apache.org/components/4.20.x/pulsar-component.html)
+- [Apache Camel — Kafka Component](https://camel.apache.org/components/4.22.x/kafka-component.html)
+- [Apache Camel — Pulsar Component](https://camel.apache.org/components/4.22.x/pulsar-component.html)
 
 ## What you learned
 
@@ -303,4 +303,4 @@ Next, we tackle what happens when things go wrong — invalid messages, dead let
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. YAML DSL routes provided for Camel CLI.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 16 Citrus integration tests pass against live containers (2026-09-14).*

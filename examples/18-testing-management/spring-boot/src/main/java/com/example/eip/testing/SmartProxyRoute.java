@@ -19,7 +19,7 @@ public class SmartProxyRoute extends RouteBuilder {
     @Override
     public void configure() {
         // REST endpoint to submit payment requests
-        rest("/payments")
+        rest()
             .post("/process")
                 .to("direct:smart-proxy-entry");
 

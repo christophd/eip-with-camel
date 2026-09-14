@@ -68,7 +68,7 @@ Commands typically flow through **point-to-point channels** (a Kafka topic with 
 ```java
 // Sending a command
 from("direct:send-payment-command")
-    .routeId("command-message-sender")
+    .routeId("command-message-producer")
     .setHeader("messageType", constant("COMMAND"))
     .setHeader("commandName", constant("ProcessPayment"))
     .marshal().json()
@@ -76,7 +76,7 @@ from("direct:send-payment-command")
 
 // Receiving and executing the command
 from("kafka:eip.payments.commands?brokers=localhost:9092&groupId=payment-service")
-    .routeId("command-message-receiver")
+    .routeId("command-message-consumer")
     .unmarshal().json(Map.class)
     .log("Executing command: ${body[command]} for order ${body[order_id]}")
     .to("direct:execute-payment")
@@ -127,7 +127,7 @@ Document messages often involve data format transformation — the sender's inte
 ```java
 // Send a batch of order documents to the accounting channel
 from("timer:accounting-export?period=86400000")
-    .routeId("document-message")
+    .routeId("document-message-producer")
     .to("sql:SELECT * FROM orders.orders WHERE status IN ('SHIPPED','DELIVERED') "
         + "AND created_at > CURRENT_DATE - INTERVAL '1 day'"
         + "?dataSource=#orderDataSource")
@@ -173,7 +173,7 @@ The `OrderPlaced` event from Chapter 02 is the canonical example. Here it is wit
 
 ```java
 from("direct:emit-order-placed")
-    .routeId("event-message")
+    .routeId("event-message-producer")
     .process(exchange -> {
         Map<String, Object> order = exchange.getIn().getBody(Map.class);
         Map<String, Object> event = new java.util.LinkedHashMap<>();
@@ -246,4 +246,4 @@ Next, we look at the metadata that accompanies messages: request-reply, correlat
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. YAML DSL routes provided for Camel CLI.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 6 Citrus integration tests pass against live containers (2026-09-14).*

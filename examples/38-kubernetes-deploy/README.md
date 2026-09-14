@@ -85,4 +85,4 @@ kubectl apply -f k8s/
 
 ---
 
-*Verification status: unverified. Quarkus variant compiles against Quarkus 3.37.0, Camel 4.20.0. Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: unverified. Quarkus variant compiles against Quarkus 3.39.3, Camel 4.22.0. Spring Boot variant compiles against Spring Boot 4.1.1, Camel 4.22.0.*

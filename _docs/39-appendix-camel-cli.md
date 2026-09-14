@@ -10,11 +10,15 @@ Every YAML DSL example in this tutorial uses a single command to run: `camel run
 
 This appendix covers both roles in depth. By the end you will know how to prototype a route, debug it interactively, and export it into a production-ready Maven project — the complete lifecycle from idea to deployment.
 
+Camel 4.22 promoted the CLI, the TUI and the embedded MCP Server from Preview to **Stable**, so the commands below are no longer subject to the looser compatibility rules that apply to preview features.
+
 The code is in `examples/39-camel-cli/`.
 
 ```bash
-camel run *.yaml
+camel run *.yaml --port=8088
 ```
+
+The `--port` flag matters: the embedded HTTP server defaults to 8080, which the Pulsar admin console in the local stack already holds. It is a CLI flag rather than a property — setting `camel.server.port` in `application.properties` has no effect.
 
 {% include excalidraw.html file="39-camel-cli-workflow" alt="Camel CLI prototype-to-production workflow" caption="Figure U.1 — The Camel CLI lifecycle: prototype with camel run, inspect with camel trace, export to a production Maven project." %}
 
@@ -37,7 +41,7 @@ camel version
 ```
 
 ```
-Apache Camel CLI 4.20.0
+Apache Camel CLI 4.22.0
 ```
 
 The CLI ships as a single binary that delegates to JBang under the hood. When you run `camel run`, JBang resolves Camel dependencies, downloads them once, caches them locally, and starts the Camel runtime — no Maven, Gradle, or IDE required.
@@ -69,12 +73,12 @@ camel run --dev *.yaml
 
 ### How dependency resolution works
 
-When the CLI parses your route file, it detects which Camel components you reference — `kafka:`, `redis-lettuce:`, `rest:`, `json` marshalling — and resolves the corresponding Maven artifacts automatically. You never declare dependencies in a pom.xml. The CLI's dependency resolver handles:
+When the CLI parses your route file, it detects which Camel components you reference — `kafka:`, `spring-redis:`, `rest:`, `json` marshalling — and resolves the corresponding Maven artifacts automatically. You never declare dependencies in a pom.xml. The CLI's dependency resolver handles:
 
 | Component reference | Resolved artifact |
 |---------------------|-------------------|
 | `kafka:eip.orders.express` | `camel-kafka` |
-| `redis-lettuce:localhost:6379` | `camel-redis-lettuce` |
+| `spring-redis:localhost:6379` | `camel-spring-redis` |
 | `rest:` configuration | `camel-rest`, `camel-platform-http` |
 | `json` marshal/unmarshal | `camel-jackson` |
 
@@ -82,7 +86,9 @@ This is the key advantage for prototyping. Add a `to: "slack:#alerts"` step to y
 
 ### The example routes
 
-The example directory contains two routes that demonstrate a content-based router and an enricher — two patterns covered in Chapters 9 and 10 — wired together through Kafka.
+The example directory contains three routes: a content-based router and an enricher — two patterns covered in Chapters 9 and 10 — wired together through Kafka, plus a one-shot route that seeds the customer records the enricher looks up.
+
+The seeding goes through the same `spring-redis` component as the lookup. Writing those values with `redis-cli` instead would store plain strings, while `spring-redis` reads through its default JDK serializer, and the lookup would come back as something the `jsonpath` step cannot parse.
 
 **order-router.yaml** — A REST API that accepts POST requests on `/api/orders` and routes each order to a Kafka topic based on the `orderType` header:
 
@@ -93,42 +99,51 @@ The example directory contains two routes that demonstrate a content-based route
 - rest:
     path: /api/orders
     post:
-      - to: "direct:route-order"
       - consumes: application/json
         produces: application/json
+        to: "direct:route-order"
 
 - route:
     id: route-order
     from:
       uri: "direct:route-order"
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Order received: ${body[orderId]} — type: ${header.orderType}"
-      - choice:
-          when:
-            - simple: "${header.orderType} == 'EXPRESS'"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Order received: ${body[orderId]} — type: ${header.orderType}"
+        - choice:
+            when:
+              - simple: "${header.orderType} == 'EXPRESS'"
+                steps:
+                  - log: "EXPRESS order ${body[orderId]} → express topic"
+                  - marshal:
+                      json:
+                        library: Jackson
+                  - to:
+                      uri: "kafka:eip.orders.express"
+                      parameters:
+                        brokers: "{{camel.component.kafka.brokers}}"
+              - simple: "${header.orderType} == 'BULK'"
+                steps:
+                  - log: "BULK order ${body[orderId]} → bulk topic"
+                  - marshal:
+                      json:
+                        library: Jackson
+                  - to:
+                      uri: "kafka:eip.orders.bulk"
+                      parameters:
+                        brokers: "{{camel.component.kafka.brokers}}"
+            otherwise:
               steps:
-                - log: "EXPRESS order ${body[orderId]} → express topic"
+                - log: "STANDARD order ${body[orderId]} → standard topic"
+                - marshal:
+                    json:
+                      library: Jackson
                 - to:
-                    uri: "kafka:eip.orders.express"
+                    uri: "kafka:eip.orders.standard"
                     parameters:
                       brokers: "{{camel.component.kafka.brokers}}"
-            - simple: "${header.orderType} == 'BULK'"
-              steps:
-                - log: "BULK order ${body[orderId]} → bulk topic"
-                - to:
-                    uri: "kafka:eip.orders.bulk"
-                    parameters:
-                      brokers: "{{camel.component.kafka.brokers}}"
-          otherwise:
-            steps:
-              - log: "STANDARD order ${body[orderId]} → standard topic"
-              - to:
-                  uri: "kafka:eip.orders.standard"
-                  parameters:
-                    brokers: "{{camel.component.kafka.brokers}}"
 ```
 
 **order-enricher.yaml** — Consumes express orders from Kafka, looks up customer data in Redis, and publishes the enriched order downstream:
@@ -137,6 +152,10 @@ The example directory contains two routes that demonstrate a content-based route
 # Consumes express orders from Kafka, enriches each order with
 # customer data retrieved from Redis, and publishes the enriched
 # order to a downstream topic.
+#
+# The Redis GET replaces the body with the looked-up value, so the order is
+# stashed in an exchange property first and restored afterwards. Without that,
+# everything downstream sees the customer record instead of the order.
 - route:
     id: order-enricher
     from:
@@ -144,30 +163,37 @@ The example directory contains two routes that demonstrate a content-based route
       parameters:
         brokers: "{{camel.component.kafka.brokers}}"
         groupId: "{{camel.component.kafka.group-id}}"
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Enriching express order ${body[orderId]} for customer ${body[customerId]}"
-      - setHeader:
-          name: RedisKey
-          simple: "customer:${body[customerId]}"
-      - toD:
-          uri: "redis-lettuce:{{camel.component.redis-lettuce.host}}:{{camel.component.redis-lettuce.port}}?command=GET&key=${header.RedisKey}"
-      - setHeader:
-          name: customerName
-          jsonpath: "$.name"
-      - setHeader:
-          name: customerTier
-          jsonpath: "$.tier"
-      - log: "Enriched order ${body[orderId]} — customer: ${header.customerName}, tier: ${header.customerTier}"
-      - marshal:
-          json:
-            library: Jackson
-      - to:
-          uri: "kafka:eip.orders.enriched"
-          parameters:
-            brokers: "{{camel.component.kafka.brokers}}"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Enriching express order ${body[orderId]} for customer ${body[customerId]}"
+        - setProperty:
+            name: originalOrder
+            simple: "${body}"
+        - setHeader:
+            name: "CamelRedis.Key"
+            simple: "customer:${body[customerId]}"
+        - to:
+            uri: "spring-redis:{{redis.host}}:{{redis.port}}"
+            parameters:
+              command: "GET"
+        - setHeader:
+            name: customerName
+            jsonpath: "$.name"
+        - setHeader:
+            name: customerTier
+            jsonpath: "$.tier"
+        - setBody:
+            simple: "${exchangeProperty.originalOrder}"
+        - log: "Enriched order ${body[orderId]} — customer: ${header.customerName}, tier: ${header.customerTier}"
+        - marshal:
+            json:
+              library: Jackson
+        - to:
+            uri: "kafka:eip.orders.enriched"
+            parameters:
+              brokers: "{{camel.component.kafka.brokers}}"
 ```
 
 ### Configuration
@@ -180,11 +206,11 @@ camel.component.kafka.brokers=localhost:9092
 camel.component.kafka.group-id=eip-cli-demo
 
 # Redis
-camel.component.redis-lettuce.host=localhost
-camel.component.redis-lettuce.port=6379
+redis.host=localhost
+redis.port=6379
 
 # REST
-camel.rest.port=8088
+camel.server.port=8088
 camel.rest.binding-mode=json
 ```
 
@@ -204,15 +230,27 @@ You can also use the `camel dev` alias, which is equivalent to `camel run --dev`
 camel dev *.yaml
 ```
 
-### OpenAPI generation
+### OpenAPI
 
-If your route defines a REST DSL configuration, the CLI can generate an OpenAPI specification:
+Two different things share the OpenAPI name here, and it is worth keeping them apart.
+
+**Serving the spec your REST DSL already describes.** Camel 4.22 added `--openapi-ui`, accepted by `camel run`, `camel dev` and `camel debug`. It exposes Swagger UI for your REST DSL routes on the embedded HTTP server:
 
 ```bash
-camel run --open-api order-router.yaml
+camel run order-router.yaml --openapi-ui
 ```
 
-This starts the route and serves the generated OpenAPI document at `http://localhost:8088/api-docs`. Useful for sharing an API contract with frontend teams while the route is still a prototype.
+Swagger UI is served at `/q/openapi` and the raw document at `/q/openapi.json`. This is the one you want for sharing an API contract with frontend teams while the route is still a prototype.
+
+The flag is gated as developer-only (`insecure:dev`) through `camel.jbang.openapiUi` and `camel.management.openapiUiEnabled`, so it is not something you leave switched on in production. It also sets `camel.rest.component=platform-http` and `camel.rest.apiContextPath=/q/openapi.json` as override properties, which take precedence over anything in `application.properties`. If you pass `--port` without `--management-port`, the management server binds to the same port so the UI and the spec stay together.
+
+**Scaffolding routes from a spec someone gave you.** That is `--open-api`, which reads a JSON or YAML OpenAPI document and generates the REST DSL skeleton from it:
+
+```bash
+camel run --open-api orders-api.yaml
+```
+
+The direction is the opposite of `--openapi-ui`: the spec is the input, not the output.
 
 ## Developer console
 
@@ -315,8 +353,8 @@ camel ps
 
 ```
  PID   NAME            CAMEL    RUNTIME  UPTIME   ROUTES  STATUS
- 1234  order-router    4.20.0   cli      12m 30s  2       Running
- 5678  shipping-svc    4.20.0   quarkus  2h 15m   8       Running
+ 1234  order-router    4.22.0   cli      12m 30s  2       Running
+ 5678  shipping-svc    4.22.0   quarkus  2h 15m   8       Running
 ```
 
 ### Route status
@@ -375,7 +413,7 @@ camel get endpoint
  1234  kafka:eip.orders.express      InOut       47     0       12ms ago
  1234  kafka:eip.orders.standard     Out         32     0       45s ago
  1234  kafka:eip.orders.bulk         Out         15     0       2m ago
- 1234  redis-lettuce:localhost:6379  InOut       15     1       28ms ago
+ 1234  spring-redis:localhost:6379   InOut       15     1       28ms ago
  1234  kafka:eip.orders.enriched     Out         14     0       28ms ago
 ```
 
@@ -500,7 +538,7 @@ order-router-quarkus/
 The generated `pom.xml` includes:
 
 - Quarkus BOM at the correct version
-- `camel-quarkus-kafka`, `camel-quarkus-redis-lettuce`, `camel-quarkus-rest`, `camel-quarkus-jackson` — every component detected from your route files
+- `camel-quarkus-kafka`, `camel-quarkus-spring-redis`, `camel-quarkus-rest`, `camel-quarkus-jackson` — every component detected from your route files
 - `camel-quarkus-yaml-dsl` for YAML route loading
 - The Quarkus Maven plugin with `quarkus:dev` and native build profiles
 
@@ -550,11 +588,13 @@ The route logic does not change. The YAML files are byte-for-byte identical. Wha
 | `--runtime` | Target runtime: `quarkus`, `spring-boot`, `main` (standalone Camel Main) | `--runtime=quarkus` |
 | `--gav` | Maven group:artifact:version | `--gav=com.eipbook:order-router:1.0` |
 | `--directory` | Output directory (default: current directory) | `--directory=./exported` |
-| `--quarkus-version` | Override the Quarkus BOM version | `--quarkus-version=3.37.0` |
-| `--spring-boot-version` | Override the Spring Boot BOM version | `--spring-boot-version=4.0.7` |
-| `--camel-version` | Override the Camel version | `--camel-version=4.20.0` |
+| `--quarkus-version` | Override the Quarkus BOM version | `--quarkus-version=3.39.3` |
+| `--spring-boot-version` | Override the Spring Boot BOM version | `--spring-boot-version=4.1.1` |
+| `--camel-version` | Override the Camel version | `--camel-version=4.22.0` |
 | `--package-name` | Java package for generated classes | `--package-name=com.eipbook.router` |
 | `--fresh` | Delete existing target directory before export | `--fresh` |
+
+Since Camel 4.22 the CLI resolves the Quarkus version to use rather than falling back to a hardcoded one, so `--quarkus-version` is genuinely an override now rather than the only way to avoid a stale default.
 
 ## The update command
 
@@ -568,7 +608,7 @@ camel update list
 
 ```
  CHECK                    STATUS    DETAIL
- Camel version            UPDATE    4.19.0 → 4.20.0
+ Camel version            UPDATE    4.21.0 → 4.22.0
  Deprecated API usage     WARNING   toD() with simple language — use to() with dynamic URI
  Removed component        OK        No removed components in use
  Property migration       WARNING   camel.component.kafka.brokerList → camel.component.kafka.brokers
@@ -710,6 +750,32 @@ A complete reference of CLI commands, grouped by category.
 | `camel kubernetes logs <name>` | Stream logs from a deployed integration |
 | `camel kubernetes delete <name>` | Delete a deployed integration |
 
+## Diagrams and topology from source
+
+`camel cmd route-diagram` renders a route as a diagram in the terminal, and `camel cmd route-topology` shows how routes connect to one another.
+
+Both used to need a running integration to point at, which made them awkward for reviewing a route you had not started yet. Since Camel 4.22 they also accept route source files directly, and both take a set of files rather than one:
+
+```bash
+camel cmd route-diagram routes/*.yaml
+camel cmd route-topology routes/*.yaml
+```
+
+That makes them usable at design time — on a branch, in review, before any infrastructure is up.
+
+Under the covers these use `camel.main.dumpRoutes=json`, which also writes a `route-topology.json` alongside the per-route structure files when topology dumping is enabled, as it is by default. Camel 4.22 always writes that file, with empty `nodes` and `edges` arrays when there is nothing to connect, so its presence is a reliable signal that the dump finished. Earlier versions skipped it silently when there were no routes.
+
+## Configuration file
+
+The CLI keeps user preferences — including the TUI settings from [Appendix V]({{ '/docs/40-appendix-camel-tui/' | relative_url }}) — in a properties file. Camel 4.22 renamed it from `camel-jbang-user.properties` to `camel-cli.properties`:
+
+| Scope | Path |
+|-------|------|
+| Global | `~/.camel-cli.properties` |
+| Project override | `./camel-cli.properties` |
+
+The global file is a hidden dotfile and the local one is visible, which is the same convention as before. On first run the CLI renames a pre-existing file of the old name at either scope, and never overwrites a file that already exists under the new name.
+
 ## Prototype-to-production workflow
 
 This section ties together everything in the appendix. Walk through the complete lifecycle using the shipping domain routes from `examples/39-camel-cli/`.
@@ -820,10 +886,10 @@ The entire lifecycle — from a blank YAML file to a production Kubernetes deplo
 ## Further reading
 
 - [Camel CLI documentation](https://camel.apache.org/manual/camel-jbang.html)
-- [Camel YAML DSL reference](https://camel.apache.org/components/4.x/others/yaml-dsl.html)
+- [Camel YAML DSL reference](https://camel.apache.org/components/4.22.x/others/yaml-dsl.html)
 - [JBang](https://www.jbang.dev/) — the Java runner that powers the CLI
 - [OpenRewrite Camel recipes](https://docs.openrewrite.org/recipes/apache/camel)
 
 ---
 
-*Verification status: unverified. CLI commands reference Apache Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — the three routes run on Camel CLI 4.22.0 against the live stack: a POST to `/api/orders` is routed to Kafka, consumed by the enricher, and enriched from Redis with zero errors (2026-09-14).*

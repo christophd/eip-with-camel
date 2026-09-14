@@ -3,6 +3,7 @@ package com.example.eip.testing;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.camel.builder.RouteBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,6 +16,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class TestMessageRoute extends RouteBuilder {
 
+    @Value("${eip.test.message.injector.enabled:true}")
+    boolean injectorEnabled;
+
     private final AtomicLong counter = new AtomicLong();
 
     @Override
@@ -22,6 +26,7 @@ public class TestMessageRoute extends RouteBuilder {
         // --- Inject synthetic test orders every 30 seconds ---
         from("timer:test-message-injector?period=30000&delay=10000")
             .routeId("test-message-injector")
+            .autoStartup(injectorEnabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 long testId = -1 * id;   // negative IDs mark test messages

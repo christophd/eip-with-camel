@@ -54,7 +54,7 @@ Camel's `dynamicRouter()` EIP calls a method repeatedly. The method returns the 
 
 ```java
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=dynamic-routing")
-    .routeId("dynamic-router")
+    .routeId("dynamic-router-demo")
     .unmarshal().json(Map.class)
     .dynamicRouter(method(OrderRoutingBean.class, "route"));
 ```
@@ -159,7 +159,7 @@ Camel's `wireTap()` EIP sends a copy of the exchange to another endpoint in a se
 
 ```java
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=order-processor")
-    .routeId("wire-tap")
+    .routeId("wire-tap-main")
     .unmarshal().json(Map.class)
     // Wire tap: send a copy to the audit stream without blocking
     .wireTap("kafka:eip.audit.orders?brokers=localhost:9092")
@@ -231,7 +231,7 @@ Camel offers two resequencer modes:
 ```java
 // Batch resequencer: collect, sort, emit
 from("kafka:eip.orders.status-updates?brokers=localhost:9092&groupId=resequencer")
-    .routeId("resequencer-batch")
+    .routeId("batch-resequencer")
     .unmarshal().json(Map.class)
     .resequence(simple("${body[event_time]}"))
         .batch()
@@ -396,10 +396,10 @@ For Kafka-based workloads, let Kafka handle the distribution through consumer gr
 - [enterpriseintegrationpatterns.com — Wire Tap](https://www.enterpriseintegrationpatterns.com/patterns/messaging/WireTap.html)
 - [enterpriseintegrationpatterns.com — Resequencer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Resequencer.html)
 - [enterpriseintegrationpatterns.com — Composed Message Processor](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DistributionAggregate.html)
-- [Apache Camel — Dynamic Router EIP](https://camel.apache.org/components/4.20.x/eips/dynamicRouter-eip.html)
-- [Apache Camel — Wire Tap EIP](https://camel.apache.org/components/4.20.x/eips/wireTap-eip.html)
-- [Apache Camel — Resequencer EIP](https://camel.apache.org/components/4.20.x/eips/resequence-eip.html)
-- [Apache Camel — Load Balance EIP](https://camel.apache.org/components/4.20.x/eips/loadBalance-eip.html)
+- [Apache Camel — Dynamic Router EIP](https://camel.apache.org/components/4.22.x/eips/dynamicRouter-eip.html)
+- [Apache Camel — Wire Tap EIP](https://camel.apache.org/components/4.22.x/eips/wireTap-eip.html)
+- [Apache Camel — Resequencer EIP](https://camel.apache.org/components/4.22.x/eips/resequence-eip.html)
+- [Apache Camel — Load Balance EIP](https://camel.apache.org/components/4.22.x/eips/loadBalance-eip.html)
 
 ## What you learned
 
@@ -413,4 +413,4 @@ This completes Part 5 — Message Routing (12 patterns across 3 chapters). Next:
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. YAML DSL routes provided for Camel CLI.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 10 Citrus integration tests pass against live containers (2026-09-14).*

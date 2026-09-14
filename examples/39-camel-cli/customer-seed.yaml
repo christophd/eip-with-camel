@@ -1,0 +1,32 @@
+# Seeds the customer records that order-enricher.yaml looks up.
+#
+# The seeding goes through the same spring-redis component as the lookup on
+# purpose. Writing these values with redis-cli would store plain strings, while
+# spring-redis reads through its default JDK serializer, and the lookup would
+# come back with something the jsonpath step cannot parse.
+- route:
+    id: customer-seed
+    from:
+      uri: "timer:customer-seed?repeatCount=1&delay=2000"
+      steps:
+        - setHeader:
+            name: "CamelRedis.Key"
+            constant: "customer:C-500"
+        - setHeader:
+            name: "CamelRedis.Value"
+            constant: '{"name":"Acme Freight","tier":"GOLD"}'
+        - to:
+            uri: "spring-redis:{{redis.host}}:{{redis.port}}"
+            parameters:
+              command: "SET"
+        - setHeader:
+            name: "CamelRedis.Key"
+            constant: "customer:C-501"
+        - setHeader:
+            name: "CamelRedis.Value"
+            constant: '{"name":"Northwind Logistics","tier":"SILVER"}'
+        - to:
+            uri: "spring-redis:{{redis.host}}:{{redis.port}}"
+            parameters:
+              command: "SET"
+        - log: "Seeded customer:C-500 and customer:C-501 into Redis"

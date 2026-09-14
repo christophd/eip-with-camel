@@ -277,12 +277,12 @@ For high-throughput enrichment, cache frequently accessed data in Redis to avoid
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=cached-enricher")
     .routeId("content-enricher-cached")
     .unmarshal().json(Map.class)
-    .process(exchange -> {
-        String customerId = (String) exchange.getIn().getBody(Map.class).get("customer_id");
-        exchange.getIn().setHeader("customerCacheKey", "customer:" + customerId);
-    })
+    // The spring-redis component takes the key from the CamelRedis.Key header,
+    // not from the endpoint URI — the URI is a static template, so a ${...}
+    // expression written into it would never be evaluated per message.
+    .setHeader("CamelRedis.Key", simple("customer:${body[customer_id]}"))
     // Try Redis cache first
-    .enrich("redis:GET?redisClient=#redisClient&key=${header.customerCacheKey}",
+    .enrich("spring-redis:localhost:6379?command=GET",
         (oldExchange, newExchange) -> {
             String cached = newExchange.getIn().getBody(String.class);
             if (cached != null) {
@@ -425,7 +425,7 @@ The `kafka.brokers` property placeholder is shared — both runtimes resolve `{%
 - [enterpriseintegrationpatterns.com — Content Enricher](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DataEnricher.html)
 - [enterpriseintegrationpatterns.com — Content Filter](https://www.enterpriseintegrationpatterns.com/patterns/messaging/ContentFilter.html)
 - [Apache Camel — Data Formats](https://camel.apache.org/manual/data-format.html)
-- [Apache Camel — Content Enricher](https://camel.apache.org/components/4.20.x/eips/content-enricher.html)
+- [Apache Camel — Content Enricher](https://camel.apache.org/components/4.22.x/eips/content-enricher.html)
 
 ## What you learned
 
@@ -438,4 +438,4 @@ Next: structural transformation — Aggregator, Normalizer, and Canonical Data M
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 6 Citrus integration tests pass against live containers (2026-09-14).*

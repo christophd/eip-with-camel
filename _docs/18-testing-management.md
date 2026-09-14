@@ -203,7 +203,7 @@ A **Smart Proxy** sits between the caller and the target service. It can:
 ```java
 // Smart proxy: route to real or mock payment gateway
 from("direct:payment-gateway")
-    .routeId("smart-proxy")
+    .routeId("smart-proxy-router")
     .log("Payment request for ${body[order_id]}: $${body[amount]}")
     // Log the request (with PII redacted)
     .wireTap("direct:log-payment-request")
@@ -273,14 +273,14 @@ Managing channel adapters is about combining several patterns we've already cove
 ```java
 // Managed channel adapter: carrier API with circuit breaker, retries, and monitoring
 from("kafka:eip.shipping.scheduled?brokers=localhost:9092&groupId=carrier-adapter")
-    .routeId("managed-adapter-carrier")
+    .routeId("managed-adapter-circuit-breaker")
     .unmarshal().json(Map.class)
     .wireTap("direct:adapter-metrics")
     .circuitBreaker()
         .resilience4jConfiguration()
             .slidingWindowSize(10)
             .failureRateThreshold(50)
-            .waitDurationInOpenState(30)
+            .waitDurationInOpenState("30s")
         .end()
         .log("Calling carrier API for shipment ${body[shipment_id]}")
         .marshal().json()
@@ -322,7 +322,7 @@ from("direct:adapter-metrics")
 - [enterpriseintegrationpatterns.com — Detour](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Detour.html)
 - [enterpriseintegrationpatterns.com — Smart Proxy](https://www.enterpriseintegrationpatterns.com/patterns/messaging/SmartProxy.html)
 - [Apache Camel — Testing](https://camel.apache.org/manual/testing.html)
-- [Apache Camel — Circuit Breaker](https://camel.apache.org/components/4.20.x/eips/circuitBreaker-eip.html)
+- [Apache Camel — Circuit Breaker](https://camel.apache.org/components/4.22.x/eips/circuitBreaker-eip.html)
 - [Quarkus — Configuration Reference](https://quarkus.io/guides/config-reference)
 
 ## What you learned
@@ -336,4 +336,4 @@ This completes Part 8 — System Management (8 patterns across 2 chapters) — a
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 10 Citrus integration tests pass against live containers (2026-09-14).*

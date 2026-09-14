@@ -1,0 +1,9 @@
+{
+  "order_id": ${id},
+  "customer_id": "CUST-00${id}",
+  "item_sku": "SKU-SHIP-${id}",
+  "quantity": ${id}.00,
+  "amount": ${amount},
+  "status": "${status}",
+  "shipping_priority": "${priority}"
+}

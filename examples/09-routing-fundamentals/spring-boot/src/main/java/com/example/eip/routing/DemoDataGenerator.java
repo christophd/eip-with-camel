@@ -3,10 +3,14 @@ package com.example.eip.routing;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.camel.builder.RouteBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DemoDataGenerator extends RouteBuilder {
+
+    @Value("${eip.demo.data.generator.enabled:true}")
+    boolean enabled;
 
     private final AtomicLong counter = new AtomicLong();
 
@@ -14,6 +18,7 @@ public class DemoDataGenerator extends RouteBuilder {
     public void configure() {
         from("timer:demo-orders?period=5000&delay=3000")
             .routeId("demo-data-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 String[] countries = {"US", "CA", "GB", "DE", "JP"};

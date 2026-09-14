@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.7</version>
+        <version>4.1.1</version>
         <relativePath/>
     </parent>
 
@@ -20,7 +20,8 @@
 
     <properties>
         <java.version>25</java.version>
-        <camel.version>4.20.0</camel.version>
+        <camel.version>4.22.0</camel.version>
+        <citrus.version>5.0.1</citrus.version>
     </properties>
 
     <dependencyManagement>
@@ -66,11 +67,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.camel.springboot</groupId>
-            <artifactId>camel-rest-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.camel.springboot</groupId>
-            <artifactId>camel-servlet-starter</artifactId>
+            <artifactId>camel-platform-http-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.camel.springboot</groupId>
@@ -98,8 +95,56 @@
         </dependency>
         <dependency>
             <groupId>org.apache.camel</groupId>
+            <artifactId>camel-endpointdsl</artifactId>
+            <version>${camel.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.camel</groupId>
             <artifactId>camel-test-spring-junit5</artifactId>
             <version>${camel.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.citrusframework</groupId>
+            <artifactId>citrus-camel</artifactId>
+            <version>${citrus.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.citrusframework</groupId>
+            <artifactId>citrus-spring</artifactId>
+            <version>${citrus.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.citrusframework</groupId>
+            <artifactId>citrus-junit-jupiter</artifactId>
+            <version>${citrus.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.citrusframework</groupId>
+            <artifactId>citrus-http</artifactId>
+            <version>${citrus.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.citrusframework</groupId>
+            <artifactId>citrus-kafka</artifactId>
+            <version>${citrus.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.citrusframework</groupId>
+            <artifactId>citrus-testcontainers</artifactId>
+            <version>${citrus.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.citrusframework</groupId>
+            <artifactId>citrus-validation-json</artifactId>
+            <version>${citrus.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -109,6 +154,17 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

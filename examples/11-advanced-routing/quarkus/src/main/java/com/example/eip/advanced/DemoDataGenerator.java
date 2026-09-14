@@ -4,9 +4,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import org.apache.camel.builder.RouteBuilder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class DemoDataGenerator extends RouteBuilder {
+
+    @ConfigProperty(name = "eip.demo.data.generator.enabled", defaultValue = "true")
+    boolean enabled;
 
     private final AtomicLong counter = new AtomicLong();
 
@@ -15,6 +19,7 @@ public class DemoDataGenerator extends RouteBuilder {
         // Generate orders for Dynamic Router and Wire Tap demos
         from("timer:demo-orders?period=5000&delay=3000")
             .routeId("demo-data-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 String[] countries = {"US", "CA", "GB", "DE", "JP"};
@@ -49,6 +54,7 @@ public class DemoDataGenerator extends RouteBuilder {
         // Generate sequenced orders (deliberately out of order) for the Resequencer
         from("timer:demo-sequenced?period=3000&delay=5000")
             .routeId("demo-sequenced-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long seq = counter.incrementAndGet();
                 // Produce messages in scrambled order within batches of 10
@@ -75,6 +81,7 @@ public class DemoDataGenerator extends RouteBuilder {
         // Generate orders with line items for the Composed Message Processor
         from("timer:demo-composed?period=8000&delay=7000")
             .routeId("demo-composed-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 int itemCount = (int) (2 + id % 4);
@@ -103,6 +110,7 @@ public class DemoDataGenerator extends RouteBuilder {
         // Generate orders for the Load Balancer
         from("timer:demo-loadbalanced?period=2000&delay=6000")
             .routeId("demo-loadbalanced-generator")
+            .autoStartup(enabled)
             .process(exchange -> {
                 long id = counter.incrementAndGet();
                 String json = """

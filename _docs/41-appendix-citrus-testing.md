@@ -42,7 +42,7 @@ Test dependencies are declared in `jbang.properties` alongside your route files.
 
 ```properties
 # Citrus testing dependencies
-camel.jbang.dependencies=org.citrusframework:citrus-camel:4.4.0,org.citrusframework:citrus-kafka:4.4.0,org.citrusframework:citrus-http:4.4.0
+camel.jbang.dependencies=org.citrusframework:citrus-camel:5.0.1,org.citrusframework:citrus-kafka:5.0.1,org.citrusframework:citrus-http:5.0.1
 ```
 
 | Artifact | Purpose |
@@ -57,13 +57,75 @@ Additional connectors are available for databases (`citrus-sql`), JMS (`citrus-j
 
 Citrus uses Testcontainers to manage infrastructure. You need either Docker or Podman running on your machine. The first test run pulls container images (Kafka, etc.) — subsequent runs reuse cached images.
 
-If you are using Podman, ensure the Podman socket is enabled so Testcontainers can communicate with it:
+**Testcontainers picks its own container engine**, independently of the Podman stack the rest of this tutorial uses. Unless you tell it otherwise it looks for a Docker socket, so on a machine with both engines installed the tests quietly run on Docker while `setup-stack.sh` runs on Podman — two engines, two sets of containers, and no warning that you are not testing against what you think you are.
+
+Podman works fine; it just has to be pointed at:
 
 ```bash
 systemctl --user enable --now podman.socket
+
 export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
 export TESTCONTAINERS_RYUK_DISABLED=true
 ```
+
+`scripts/build-all-examples.sh` does this for you: if the Podman socket exists and `DOCKER_HOST` is unset, it exports both before running the tests and prints which engine it chose. Set `DOCKER_HOST` yourself to override it.
+
+To confirm which engine actually served a run, look for the containers while it is in progress:
+
+```bash
+podman ps    # test infrastructure here means Podman served the run
+docker ps    # here means Docker did
+```
+
+One caveat when the two engines share a machine: with `DOCKER_HOST` exported, the `docker` CLI talks to Podman too, so both commands list the same containers. Unset it in that shell if you need to tell them apart.
+
+### Stop the development stack first
+
+Each example's tests bring up their own infrastructure from
+`src/test/resources/_infra/compose.yaml`, on the same fixed host ports the
+development stack uses — 9092 for Kafka, 6379 for Redis, 5432 for PostgreSQL,
+6650 for Pulsar. The two cannot both be up.
+
+Leaving the development stack running gives you a failure that names the
+symptom rather than the cause:
+
+```
+ContainerLaunchException: Local Docker Compose exited abnormally with code 1
+  whilst running command: compose up -d
+```
+
+Further up the container engine's own output is the real reason —
+`failed to bind host port 0.0.0.0:9092/tcp: address already in use`. Take the
+development stack down before running the tests:
+
+```bash
+podman-compose -p eip -f examples/_infra/compose.yaml down
+```
+
+For the same reason the examples' tests must run one at a time rather than in
+parallel across modules; they would otherwise contend for the same ports.
+
+### JMX on the Quarkus test classpath
+
+`citrus-camel` depends on `camel-management`, and Camel switches JMX
+management on whenever it finds that jar. In Camel Quarkus the management name
+strategy is set up by the `camel-quarkus-management` extension at augmentation
+time, so an application that does not use that extension gets the JMX
+lifecycle strategy without its configuration and fails to boot:
+
+```
+NullPointerException: Cannot invoke ManagementNameStrategy.getName()
+  because CamelContext.getManagementNameStrategy() is null
+```
+
+Turn JMX off for the test run, in `src/test/resources/application.properties`:
+
+```properties
+camel.main.jmx-enabled=false
+```
+
+This affects Camel Quarkus only. Camel on Spring Boot configures the strategy
+regardless and needs no equivalent setting.
 
 ## Test structure
 
@@ -588,13 +650,13 @@ Key details of the exported project:
 <dependency>
     <groupId>org.citrusframework</groupId>
     <artifactId>citrus-camel</artifactId>
-    <version>4.4.0</version>
+    <version>5.0.1</version>
     <scope>test</scope>
 </dependency>
 <dependency>
     <groupId>org.citrusframework</groupId>
     <artifactId>citrus-kafka</artifactId>
-    <version>4.4.0</version>
+    <version>5.0.1</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -798,13 +860,13 @@ End-to-end smoke tests        —  5% of test suite  — run nightly or pre-rele
 
 ## Further reading
 
-- [Citrus Framework documentation](https://citrusframework.org/citrus/reference/4.4.0/html/index.html)
-- [Citrus Camel module](https://citrusframework.org/citrus/reference/4.4.0/html/index.html#camel)
-- [Apache Camel — Testing with the CLI](https://camel.apache.org/manual/camel-jbang-testing.html)
+- [Citrus Framework documentation](https://citrusframework.org/citrus/reference/5.0.1/html/index.html)
+- [Citrus Camel module](https://citrusframework.org/citrus/reference/5.0.1/html/index.html#camel)
+- [Apache Camel — Testing with the CLI](https://camel.apache.org/manual/camel-jbang.html)
 - [Testcontainers for Java](https://java.testcontainers.org/)
 - Appendix S — Testing Strategies for Camel Quarkus (Camel-native testing)
 - Appendix U — Camel CLI Deep Dive (CLI installation and commands)
 
 ---
 
-*Verification status: unverified. Citrus features reference Citrus 4.4.0 and Apache Camel 4.20.0.*
+*Verification status: <span class="status status--verified">verified</span> — the order-validation route runs on Camel CLI 4.22.0 and correctly routes a valid order to `eip.orders.validated` and one missing `orderId` to `eip.orders.rejected` (2026-09-14). Citrus 5.0.1 itself is exercised by the 44 integration tests across the other examples.*

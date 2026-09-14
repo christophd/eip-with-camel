@@ -1,0 +1,74 @@
+# deps: org.postgresql:postgresql:42.7.5
+name: sql-polling-consumer-test
+description: Test verifying the SQL Polling Consumer pattern — polls PostgreSQL rows and publishes to Kafka
+variables:
+  - name: kafka.broker
+    value: localhost:9092
+  - name: order.id
+    value: "citrus:randomNumber(4)"
+  - name: order.amount
+    value: 40
+configuration:
+  beans:
+    - name: dataSource
+      type: org.postgresql.ds.PGSimpleDataSource
+      properties:
+        url: "jdbc:postgresql://localhost:5432/eip"
+        user: "eip"
+        password: "eip"
+actions:
+  - testcontainers:
+      compose:
+        up:
+          file: "_infra/compose.yaml"
+  - waitFor:
+      timeout: "25000"
+      http:
+        url: http://localhost:8090
+  - camel:
+      jbang:
+        run:
+          integration:
+            name: "sql-polling-consumer"
+            file: "../sql-polling-consumer.yaml"
+            systemProperties:
+              file: "../application.properties"
+
+  - camel:
+      jbang:
+        verify:
+          integration: "sql-polling-consumer"
+          logMessage: "Routes startup"
+
+  # Insert a test order into PostgreSQL
+  - sql:
+      dataSource: "dataSource"
+      statements:
+        - statement: "INSERT INTO orders.orders (customer_id, item_sku, quantity, amount) VALUES ('CUST-00${order.id}', 'SKU-${order.id}', 1, ${order.amount})"
+
+  # Verify the route picks up the row and publishes to Kafka
+  - receive:
+      endpoint: >-
+        kafka:eip.orders.placed?server=${kafka.broker}&consumerGroup=citrus-placed-group
+      timeout: 60000
+      message:
+        body:
+          data: |
+            {
+              "id": "@variable(order.dbId)@",
+              "customer_id": "CUST-00${order.id}",
+              "status": "PLACED",
+              "amount": ${order.amount}.0,
+              "item_sku": "SKU-${order.id}",
+              "quantity": 1,
+              "created_at": "@ignore@"
+            }
+
+  # Verify the route's onConsume updated the status to PROCESSING
+  - sql:
+      dataSource: "dataSource"
+      statements:
+        - statement: "SELECT status FROM orders.orders WHERE id = '${order.dbId}'"
+      validate:
+        - column: "status"
+          value: "PROCESSING"

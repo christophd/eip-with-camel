@@ -1,0 +1,12 @@
+{
+  "order_id": ${id},
+  "customer_id": "CUST-00${id}",
+  "item_sku": "SKU-TEST-${id}",
+  "quantity": 1,
+  "amount": ${amount},
+  "destination_country": "${country}",
+  "shipping_priority": "${priority}",
+  "validated": true,
+  "inventory_checked": true,
+  "shipping_calculated": true
+}

@@ -1,6 +1,10 @@
 # Consumes express orders from Kafka, enriches each order with
 # customer data retrieved from Redis, and publishes the enriched
 # order to a downstream topic.
+#
+# The Redis GET replaces the body with the looked-up value, so the order is
+# stashed in an exchange property first and restored afterwards. Without that,
+# everything downstream sees the customer record instead of the order.
 - route:
     id: order-enricher
     from:
@@ -8,27 +12,34 @@
       parameters:
         brokers: "{{camel.component.kafka.brokers}}"
         groupId: "{{camel.component.kafka.group-id}}"
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Enriching express order ${body[orderId]} for customer ${body[customerId]}"
-      - setHeader:
-          name: RedisKey
-          simple: "customer:${body[customerId]}"
-      - toD:
-          uri: "redis-lettuce:{{camel.component.redis-lettuce.host}}:{{camel.component.redis-lettuce.port}}?command=GET&key=${header.RedisKey}"
-      - setHeader:
-          name: customerName
-          jsonpath: "$.name"
-      - setHeader:
-          name: customerTier
-          jsonpath: "$.tier"
-      - log: "Enriched order ${body[orderId]} — customer: ${header.customerName}, tier: ${header.customerTier}"
-      - marshal:
-          json:
-            library: Jackson
-      - to:
-          uri: "kafka:eip.orders.enriched"
-          parameters:
-            brokers: "{{camel.component.kafka.brokers}}"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Enriching express order ${body[orderId]} for customer ${body[customerId]}"
+        - setProperty:
+            name: originalOrder
+            simple: "${body}"
+        - setHeader:
+            name: "CamelRedis.Key"
+            simple: "customer:${body[customerId]}"
+        - to:
+            uri: "spring-redis:{{redis.host}}:{{redis.port}}"
+            parameters:
+              command: "GET"
+        - setHeader:
+            name: customerName
+            jsonpath: "$.name"
+        - setHeader:
+            name: customerTier
+            jsonpath: "$.tier"
+        - setBody:
+            simple: "${exchangeProperty.originalOrder}"
+        - log: "Enriched order ${body[orderId]} — customer: ${header.customerName}, tier: ${header.customerTier}"
+        - marshal:
+            json:
+              library: Jackson
+        - to:
+            uri: "kafka:eip.orders.enriched"
+            parameters:
+              brokers: "{{camel.component.kafka.brokers}}"

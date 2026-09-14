@@ -8,8 +8,8 @@
         brokers: "{{kafka.brokers}}"
         groupId: event-driven-consumer
         autoOffsetReset: earliest
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Event-driven consumer received: order ${body[order_id]}, type=${body[event_type]}, amount=${body[amount]}"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Event-driven consumer received: order ${body[order_id]}, type=${body[event_type]}, amount=${body[amount]}"

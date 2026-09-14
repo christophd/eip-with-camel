@@ -13,6 +13,7 @@ public class MessageFilterRoute extends RouteBuilder {
             .unmarshal().json()
             .filter(simple("${body[amount]} >= 100"))
                 .log("High-value order ${body[order_id]}: $${body[amount]}")
+                .marshal().json()
                 .to("kafka:eip.orders.high-value?brokers={{kafka.brokers}}")
             .end();
     }

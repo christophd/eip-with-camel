@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.7</version>
+        <version>4.1.1</version>
         <relativePath/>
     </parent>
 
@@ -20,7 +20,7 @@
 
     <properties>
         <java.version>25</java.version>
-        <camel.version>4.20.0</camel.version>
+        <camel.version>4.22.0</camel.version>
     </properties>
 
     <dependencyManagement>
@@ -51,11 +51,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.camel.springboot</groupId>
-            <artifactId>camel-rest-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.camel.springboot</groupId>
-            <artifactId>camel-servlet-starter</artifactId>
+            <artifactId>camel-platform-http-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.camel.springboot</groupId>
@@ -87,12 +83,6 @@
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-test-spring-junit5</artifactId>
-            <version>${camel.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.camel</groupId>
-            <artifactId>camel-mock</artifactId>
             <version>${camel.version}</version>
             <scope>test</scope>
         </dependency>

@@ -21,7 +21,9 @@ public class ChannelPurgerRoute extends RouteBuilder {
             .process(exchange -> {
                 long orderTimestamp = 0;
                 Object ts = exchange.getIn().getHeader("orderTimestamp");
-                if (ts != null) {
+                if (ts instanceof byte[]) {
+                    orderTimestamp = Long.parseLong(new String((byte[]) ts));
+                } else if (ts != null) {
                     orderTimestamp = Long.parseLong(ts.toString());
                 }
                 long age = System.currentTimeMillis() - orderTimestamp;

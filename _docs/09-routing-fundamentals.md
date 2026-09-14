@@ -294,7 +294,7 @@ Camel's `split()` EIP breaks a message based on an expression — a JSONPath, XP
 ```java
 // Split a bulk order into individual line items
 from("kafka:eip.orders.bulk?brokers=localhost:9092&groupId=order-splitter")
-    .routeId("splitter")
+    .routeId("order-splitter")
     .unmarshal().json(Map.class)
     .log("Received bulk order ${body[order_id]} with ${body[line_items].size()} items")
     .setHeader("originalOrderId", simple("${body[order_id]}"))
@@ -379,10 +379,10 @@ The `kafka.brokers` property placeholder is shared — both runtimes resolve `{%
 - [enterpriseintegrationpatterns.com — Message Filter](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Filter.html)
 - [enterpriseintegrationpatterns.com — Recipient List](https://www.enterpriseintegrationpatterns.com/patterns/messaging/RecipientList.html)
 - [enterpriseintegrationpatterns.com — Splitter](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Sequencer.html)
-- [Apache Camel — Choice EIP](https://camel.apache.org/components/4.20.x/eips/choice-eip.html)
-- [Apache Camel — Filter EIP](https://camel.apache.org/components/4.20.x/eips/filter-eip.html)
-- [Apache Camel — Recipient List EIP](https://camel.apache.org/components/4.20.x/eips/recipientList-eip.html)
-- [Apache Camel — Splitter EIP](https://camel.apache.org/components/4.20.x/eips/split-eip.html)
+- [Apache Camel — Choice EIP](https://camel.apache.org/components/4.22.x/eips/choice-eip.html)
+- [Apache Camel — Filter EIP](https://camel.apache.org/components/4.22.x/eips/filter-eip.html)
+- [Apache Camel — Recipient List EIP](https://camel.apache.org/components/4.22.x/eips/recipientList-eip.html)
+- [Apache Camel — Splitter EIP](https://camel.apache.org/components/4.22.x/eips/split-eip.html)
 
 ## What you learned
 
@@ -395,4 +395,4 @@ Next, we compose these primitives into multi-step routing patterns: the Routing 
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. YAML DSL routes provided for Camel CLI.*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 14 Citrus integration tests pass against live containers (2026-09-14).*
