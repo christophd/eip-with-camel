@@ -1,138 +1,85 @@
 # Resume point — Camel 4.22 upgrade
 
 **Date:** 2026-09-14
-**Branch:** `iteration/camel-4.22-upgrade`, 103 commits ahead of `main`, working tree clean, CI green.
-**Not merged to main.** That is the last step and needs the user's go-ahead.
+**Branch:** `iteration/camel-4.22-upgrade`. Working tree clean, CI green.
+**Not merged to main.** That is the only remaining step and needs the user's go-ahead.
 
-Read `upgrade-camel-4.22-PLAN.md` first — it has the full record. This file is
-only the short list of what is still open.
+Full record is in `upgrade-camel-4.22-PLAN.md`.
 
 ---
 
-## Done and proven
+## All three previously-open items are closed
+
+### 1. SDKMAN — done
+
+Verified on a clean `fedora:44` container. SDKMAN installs; `sdk install java
+25.0.2-tem`, `sdk install maven` and `sdk install jbang` all succeed and report
+OpenJDK 25.0.2, Maven 3.9.16, JBang 0.141.0 — matching what chapter 00 claims.
+
+Found and fixed: **SDKMAN requires `zip`/`unzip`** and stops with
+`Looking for unzip... Not found.` without them. Chapter 00 never said so; it
+now does, with the install command for dnf and apt. Its JBang version sample
+was also two releases stale.
+
+### 2. Testcontainers on Podman — done, and my earlier claim was wrong
+
+I had reported the Podman socket did not exist. **It does** — `setup-stack.sh`
+creates it, and my check ran before that. The tests used Docker only because
+`DOCKER_HOST` was unset and Docker's socket was found first.
+
+Confirmed by running 04-channel-types against the Podman socket: **8 of 8
+pass**. `scripts/build-all-examples.sh` now exports `DOCKER_HOST` and
+`TESTCONTAINERS_RYUK_DISABLED` when the socket exists and the caller has not
+chosen an engine, and prints which engine it picked. Appendix 41 is rewritten;
+its previous text described a failure mode that does not occur.
+
+### 3. Appendix 42 tool calling — done
+
+Two causes, both fixed:
+
+- **`llama3.2` does not call tools.** One round trip, empty `toolExecutions`,
+  and the assistant invents an answer. Examples now default to **`qwen2.5:3b`**
+  (1.9 GB), which calls tools reliably.
+- **On Quarkus that was not sufficient.** Injecting the `ChatModel` that
+  quarkus-langchain4j produces drives the classifier fine, but the agent never
+  offered the registered tools through it. Building the model directly in the
+  CDI producer — as the Spring Boot variant already did — fixes it. The Ollama
+  client timeout also had to rise from its 10s default, which expired once a
+  second round trip was involved.
+
+Verified on both runtimes: asking for ORD-002 logs
+`Tool call — looking up order: ORD-002` and the assistant answers from the
+tool's data, zero route errors.
+
+Ollama is at `~/.local/ollama/bin/ollama` (0.34.0), not on PATH by default.
+Models present: `qwen2.5:3b`, `llama3.2`.
+
+---
+
+## State
 
 | Check | Result |
 |---|---|
-| `./scripts/build-all-examples.sh --with-tests` | **56/56 pass** (final run 2026-09-14) |
-| `./scripts/verify-all-runtime.sh` | **54/54 artifacts boot** |
-| `./scripts/compile-chapter-snippets.sh` | **116/116 snippets compile** |
-| `./scripts/validate-content.py --links` | clean |
-| Chapter footers | 43/43 verified, each stating what was exercised |
-
-Stack: Camel 4.22.0 on all runtimes, Quarkus 3.39.3, Spring Boot 4.1.1
-(Spring 7.0.9), Citrus 5.0.1, JDK 25. Issues #12–#15 closed. All 21 Citrus PRs
-merged.
-
----
-
-## Open items, in the order they were being worked
-
-### 1. SDKMAN instructions — IN PROGRESS, nearly done
-
-Chapter 00's install steps were being verified in a clean `fedora:44` container.
-
-**Already established:**
-- `curl -s "https://get.sdkman.io" | bash` → works
-- `sdk install java 25.0.2-tem` → works; `java -version` prints exactly the
-  `openjdk version "25.0.2" 2026-01-20 LTS` the chapter claims
-- **SDKMAN requires `unzip`, which chapter 00 does not mention.** On a bare
-  Fedora the installer stops with "Looking for unzip... Not found." This needs
-  adding to the chapter as a prerequisite.
-
-**Still to confirm:** `sdk install maven` and `sdk install jbang` in the same
-clean container. A background run was doing this; re-run it with:
-
-```bash
-podman run --rm docker.io/library/fedora:44 bash -lc '
-  dnf install -y -q zip unzip >/dev/null 2>&1
-  curl -s "https://get.sdkman.io" | bash >/dev/null 2>&1
-  source "$HOME/.sdkman/bin/sdkman-init.sh"
-  sdk install java 25.0.2-tem </dev/null >/dev/null 2>&1 && echo "java OK"
-  sdk install maven </dev/null >/dev/null 2>&1 && echo "maven OK"
-  sdk install jbang </dev/null >/dev/null 2>&1 && echo "jbang OK"
-  source "$HOME/.sdkman/bin/sdkman-init.sh"
-  java -version 2>&1 | head -1; mvn -version 2>&1 | head -1; jbang --version 2>&1 | head -1'
-```
-
-Then: add the `unzip` prerequisite to `_docs/00-prerequisites.md`, and update
-that chapter's footer, which currently says the SDKMAN commands were **not**
-verified.
-
-### 2. Testcontainers on Podman — my earlier claim was wrong, fix it
-
-I reported that the podman socket "does not exist". **It does.**
-`/run/user/25963/podman/podman.sock` is present and answers:
-
-```bash
-curl --unix-socket /run/user/$(id -u)/podman/podman.sock http://d/v1.41/version
-```
-
-It was created by `setup-stack.sh` at 06:16, after the check that said it was
-missing. So the whole test suite ran on Docker only because `DOCKER_HOST` was
-unset and Docker's socket was found first — not because Podman was unavailable.
-
-**To do:** run the Citrus suite with Testcontainers pointed at Podman and see
-whether it passes:
-
-```bash
-export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
-export TESTCONTAINERS_RYUK_DISABLED=true
-podman-compose -p eip -f examples/_infra/compose.yaml down   # ports must be free
-./scripts/build-all-examples.sh --with-tests 04-channel-types
-```
-
-The open question is whether Testcontainers' `ComposeContainer`, which shells
-out to a compose binary, works against the podman socket. If it does, the
-project is finally consistent with its own documentation and appendix 41 should
-say so. If it does not, appendix 41's Podman section should say plainly that
-Docker is required for the Citrus tests.
-
-Either way the appendix 41 text added in this branch needs revising — it
-currently implies the socket may not exist, which is not the failure mode.
-
-### 3. Appendix 42 tool invocation — model is now available
-
-`llama3.2` does not reliably call tools, so `toolExecutions` came back empty and
-the chapter says so. **`qwen2.5:3b` has since been pulled** and does support
-tool calling.
-
-**To do:** point the example at it and see whether the `ai-tool` route actually
-fires.
-
-```bash
-export PATH="$HOME/.local/ollama/bin:$PATH"
-ollama serve &          # if not running
-# quarkus: quarkus.langchain4j.ollama.chat-model.model-id=qwen2.5:3b
-# spring:  ollama.model-name=qwen2.5:3b
-java -jar examples/42-ai-mcp/quarkus/target/quarkus-app/quarkus-run.jar
-curl -X POST http://localhost:8088/api/assistant/chat \
-  -H 'Content-Type: text/plain' -d 'What is the status of order ORD-001?'
-```
-
-Look for `Tool call — looking up order: ORD-001` in the log and a non-empty
-`toolExecutions`. If it fires, switch the example's default model to
-`qwen2.5:3b`, update the chapter's `ollama pull` line and the note about
-llama3.2, and re-verify the footer claim.
-
-Ollama is installed at `~/.local/ollama/bin/ollama` (0.34.0), not on PATH by
-default. Models present: `llama3.2`, `qwen2.5:3b`.
+| `build-all-examples.sh --with-tests` | 56/56 (last full run; a Podman-engine re-run was in flight) |
+| `verify-all-runtime.sh` | 54/54 artifacts boot |
+| `compile-chapter-snippets.sh` | 116/116 snippets compile |
+| `validate-content.py --links` | clean |
+| Chapter footers | 43/43 verified |
 
 ---
 
 ## Two traps that cost time — do not repeat
 
-- **Never `pkill -f <pattern>`** where the pattern appears in the command line
-  you are typing. It matches your own shell and kills the session. Kill by PID.
-- **Rootless podman containers are host java processes.** A blanket
-  `kill` over java PIDs takes down Kafka, Pulsar and Apicurio. That is what
-  caused the "Kafka unreachable" detour.
+- **Never `pkill -f <pattern>`** where the pattern appears in the command you
+  are typing; it matches your own shell and kills the session. Kill by PID.
+- **Rootless podman containers are host java processes.** A blanket `kill` over
+  java PIDs takes down Kafka, Pulsar and Apicurio.
 - The Citrus tests and the dev stack cannot both be up; both bind
-  9092/6379/5432/6650. Take the stack down before running tests.
+  9092/6379/5432/6650.
 
 ---
 
 ## Deliberately left
 
-- **431 chapter/example identifier divergences.** Triaged: chapters show
-  variants the examples implement once. The user chose to fix only true 1:1
-  renames, and 37 of those were fixed.
+- **431 chapter/example identifier divergences.** Chapters show variants the
+  examples implement once. Only true 1:1 renames were fixed (37 of them).
