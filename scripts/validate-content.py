@@ -102,7 +102,8 @@ def check_yaml_shape(findings):
 def check_stale_versions(findings):
     """Version strings that should have moved with the upgrade."""
     stale = {
-        r"components/4\.(?!22)\d+\.x/": "version-scoped Camel doc link is not 4.22.x",
+        # Matches both components/4.20.x/ and the unpinned components/4.x/ form.
+        r"components/4\.(?!22\.x)(?:\d+\.)?x/": "version-scoped Camel doc link is not 4.22.x",
         r"\b4\.20\.0\b": "stale Camel version 4.20.0",
         r"\b3\.37\.0\b": "stale Quarkus version 3.37.0",
         r"\b4\.0\.7\b": "stale Spring Boot version 4.0.7",
@@ -127,6 +128,9 @@ def check_links(findings):
         text = p.read_text(encoding="utf-8", errors="replace")
         for m in MD_LINK.finditer(text):
             url = m.group(1)
+            # Dashboard URLs the reader opens against their own stack, not links to resolve.
+            if re.match(r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)([:/]|$)", url):
+                continue
             line = text[: m.start()].count("\n") + 1
             if url not in seen:
                 req = urllib.request.Request(url, method="HEAD",

@@ -1034,8 +1034,8 @@ As AI agents become standard components in enterprise architectures, the integra
 
 ## References
 
-- [Camel LangChain4j Chat component](https://camel.apache.org/components/4.x/langchain4j-chat-component.html)
-- [Camel LangChain4j Tools component](https://camel.apache.org/components/4.x/langchain4j-tools-component.html)
+- [Camel LangChain4j Chat component](https://camel.apache.org/components/4.22.x/langchain4j-chat-component.html)
+- [Camel LangChain4j Tools component](https://camel.apache.org/components/4.22.x/langchain4j-tools-component.html)
 - [LangChain4j documentation](https://docs.langchain4j.dev/)
 - [Quarkus LangChain4j extension](https://docs.quarkiverse.io/quarkus-langchain4j/dev/index.html)
 - [Camel MCP Server](https://camel.apache.org/manual/camel-jbang.html#_mcp)

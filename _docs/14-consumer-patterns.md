@@ -303,7 +303,7 @@ The `toD()` (dynamic to) resolves the endpoint URI at runtime from the message b
 - [enterpriseintegrationpatterns.com — Event-Driven Consumer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/EventDrivenConsumer.html)
 - [enterpriseintegrationpatterns.com — Competing Consumers](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CompetingConsumers.html)
 - [enterpriseintegrationpatterns.com — Message Dispatcher](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageDispatcher.html)
-- [Apache Camel — Polling Consumer](https://camel.apache.org/manual/polling-consumer.html)
+- [Apache Camel — Polling Consumer](https://camel.apache.org/components/4.22.x/eips/polling-consumer.html)
 - [Apache Camel — Kafka Component](https://camel.apache.org/components/4.22.x/kafka-component.html)
 
 ## What you learned

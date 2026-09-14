@@ -353,7 +353,7 @@ Wire taps feed the metrics pillar. OpenTelemetry feeds traces. Structured loggin
 - [enterpriseintegrationpatterns.com — Message History](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageHistory.html)
 - [enterpriseintegrationpatterns.com — Wire Tap](https://www.enterpriseintegrationpatterns.com/patterns/messaging/WireTap.html)
 - [Apache Camel — Control Bus Component](https://camel.apache.org/components/4.22.x/controlbus-component.html)
-- [Apache Camel — Message History](https://camel.apache.org/manual/message-history.html)
+- [Apache Camel — Message History](https://camel.apache.org/components/4.22.x/eips/message-history.html)
 - [Apache Camel — OpenTelemetry](https://camel.apache.org/components/4.22.x/others/opentelemetry.html)
 
 ## What you learned

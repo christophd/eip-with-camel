@@ -823,7 +823,7 @@ The entire lifecycle — from a blank YAML file to a production Kubernetes deplo
 ## Further reading
 
 - [Camel CLI documentation](https://camel.apache.org/manual/camel-jbang.html)
-- [Camel YAML DSL reference](https://camel.apache.org/components/4.x/others/yaml-dsl.html)
+- [Camel YAML DSL reference](https://camel.apache.org/components/4.22.x/others/yaml-dsl.html)
 - [JBang](https://www.jbang.dev/) — the Java runner that powers the CLI
 - [OpenRewrite Camel recipes](https://docs.openrewrite.org/recipes/apache/camel)
 

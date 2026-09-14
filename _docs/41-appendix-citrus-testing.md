@@ -800,7 +800,7 @@ End-to-end smoke tests        —  5% of test suite  — run nightly or pre-rele
 
 - [Citrus Framework documentation](https://citrusframework.org/citrus/reference/5.0.1/html/index.html)
 - [Citrus Camel module](https://citrusframework.org/citrus/reference/5.0.1/html/index.html#camel)
-- [Apache Camel — Testing with the CLI](https://camel.apache.org/manual/camel-jbang-testing.html)
+- [Apache Camel — Testing with the CLI](https://camel.apache.org/manual/camel-jbang.html)
 - [Testcontainers for Java](https://java.testcontainers.org/)
 - Appendix S — Testing Strategies for Camel Quarkus (Camel-native testing)
 - Appendix U — Camel CLI Deep Dive (CLI installation and commands)

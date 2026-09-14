@@ -387,7 +387,7 @@ The goal isn't to use only messaging — it's to choose the right style for each
 ## References
 
 - Hohpe & Woolf, *Enterprise Integration Patterns*, Chapter 2: "Integration Styles"
-- [enterpriseintegrationpatterns.com — Integration Styles](https://www.enterpriseintegrationpatterns.com/patterns/messaging/IntegrationStyles.html)
+- [enterpriseintegrationpatterns.com — Integration Styles](https://www.enterpriseintegrationpatterns.com/patterns/messaging/IntegrationStylesIntro.html)
 - [Apache Camel — File Component](https://camel.apache.org/components/4.22.x/file-component.html)
 - [Apache Camel — SQL Component](https://camel.apache.org/components/4.22.x/sql-component.html)
 - [Apache Camel — HTTP Component](https://camel.apache.org/components/4.22.x/http-component.html)

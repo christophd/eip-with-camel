@@ -309,7 +309,7 @@ The service activator pattern keeps your business logic clean. `PaymentProcessor
 - [enterpriseintegrationpatterns.com — Transactional Client](https://www.enterpriseintegrationpatterns.com/patterns/messaging/TransactionalClient.html)
 - [enterpriseintegrationpatterns.com — Service Activator](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessagingAdapter.html)
 - [Apache Camel — Idempotent Consumer EIP](https://camel.apache.org/components/4.22.x/eips/idempotentConsumer-eip.html)
-- [Apache Camel — Transactional Client](https://camel.apache.org/manual/transactional-client.html)
+- [Apache Camel — Transactional Client](https://camel.apache.org/components/4.22.x/eips/transactional-client.html)
 
 ## What you learned
 
