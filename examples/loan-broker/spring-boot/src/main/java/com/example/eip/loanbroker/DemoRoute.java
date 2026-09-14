@@ -30,14 +30,21 @@ public class DemoRoute extends RouteBuilder {
 
                 String customerId = "CUST-%03d".formatted(id % 100);
 
+                // requestId is the correlation key for the whole Scatter-Gather:
+                // the enricher copies it to a header, the recipient list logs it,
+                // and the aggregator correlates bank replies on it. Omitting it
+                // makes every aggregation fail with "Invalid correlation key".
+                String requestId = "REQ-%05d".formatted(id);
+
                 String json = """
                     {
+                        "requestId": "%s",
                         "customerId": "%s",
                         "amount": %.2f,
                         "termMonths": %d,
                         "creditScore": %d
                     }
-                    """.formatted(customerId, amount, termMonths, creditScore);
+                    """.formatted(requestId, customerId, amount, termMonths, creditScore);
 
                 exchange.getIn().setBody(json);
                 exchange.getIn().setHeader("kafka.KEY", customerId);

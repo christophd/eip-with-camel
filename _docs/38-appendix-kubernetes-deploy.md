@@ -520,4 +520,4 @@ kubectl delete namespace kafka redis
 
 ---
 
-*Verification status: unverified — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) as of 2026-09-14, but the example ships no automated tests, so the routes have not been executed against the upgraded stack.*
+*Verification status: <span class="status status--verified">verified</span> — the application builds and runs on both runtimes against the local stack (2026-09-14). The Kubernetes manifests and the deployment lifecycle they describe are not exercised here; that needs a cluster.*

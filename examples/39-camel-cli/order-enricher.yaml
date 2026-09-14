@@ -1,6 +1,10 @@
 # Consumes express orders from Kafka, enriches each order with
 # customer data retrieved from Redis, and publishes the enriched
 # order to a downstream topic.
+#
+# The Redis GET replaces the body with the looked-up value, so the order is
+# stashed in an exchange property first and restored afterwards. Without that,
+# everything downstream sees the customer record instead of the order.
 - route:
     id: order-enricher
     from:
@@ -13,6 +17,9 @@
             json:
               library: Jackson
         - log: "Enriching express order ${body[orderId]} for customer ${body[customerId]}"
+        - setProperty:
+            name: originalOrder
+            simple: "${body}"
         - setHeader:
             name: "CamelRedis.Key"
             simple: "customer:${body[customerId]}"
@@ -26,6 +33,8 @@
         - setHeader:
             name: customerTier
             jsonpath: "$.tier"
+        - setBody:
+            simple: "${exchangeProperty.originalOrder}"
         - log: "Enriched order ${body[orderId]} — customer: ${header.customerName}, tier: ${header.customerTier}"
         - marshal:
             json:

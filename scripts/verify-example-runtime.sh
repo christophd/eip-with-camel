@@ -56,8 +56,10 @@ wait $PID 2>/dev/null
 trap - EXIT
 
 routes=$(grep -cE 'Routes startup|routes started' "$LOG")
-# Count application log lines emitted from inside routes, excluding framework noise.
-activity=$(grep -cE '\] (com\.example|route[0-9]|[a-z-]+) *: ' "$LOG")
+# Count log lines whose logger is a route id rather than a framework class.
+# Spring Boot renders these as "... route-id  : message"; Quarkus as
+# "INFO  [route-id] (thread) message". Match both.
+activity=$(grep -cE '\] +[a-z][a-z0-9-]+ +: |INFO +\[[a-z][a-z0-9-]+\] +\(' "$LOG")
 errors=$(grep -cE 'ERROR|Exception(?!Handler)' "$LOG")
 
 echo "  startup-lines=$routes  app-log-lines=$activity  error-lines=$errors"

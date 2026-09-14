@@ -15,8 +15,10 @@ Camel 4.22 promoted the CLI, the TUI and the embedded MCP Server from Preview to
 The code is in `examples/39-camel-cli/`.
 
 ```bash
-camel run *.yaml
+camel run *.yaml --port=8088
 ```
+
+The `--port` flag matters: the embedded HTTP server defaults to 8080, which the Pulsar admin console in the local stack already holds. It is a CLI flag rather than a property — setting `camel.server.port` in `application.properties` has no effect.
 
 {% include excalidraw.html file="39-camel-cli-workflow" alt="Camel CLI prototype-to-production workflow" caption="Figure U.1 — The Camel CLI lifecycle: prototype with camel run, inspect with camel trace, export to a production Maven project." %}
 
@@ -84,7 +86,9 @@ This is the key advantage for prototyping. Add a `to: "slack:#alerts"` step to y
 
 ### The example routes
 
-The example directory contains two routes that demonstrate a content-based router and an enricher — two patterns covered in Chapters 9 and 10 — wired together through Kafka.
+The example directory contains three routes: a content-based router and an enricher — two patterns covered in Chapters 9 and 10 — wired together through Kafka, plus a one-shot route that seeds the customer records the enricher looks up.
+
+The seeding goes through the same `spring-redis` component as the lookup. Writing those values with `redis-cli` instead would store plain strings, while `spring-redis` reads through its default JDK serializer, and the lookup would come back as something the `jsonpath` step cannot parse.
 
 **order-router.yaml** — A REST API that accepts POST requests on `/api/orders` and routes each order to a Kafka topic based on the `orderType` header:
 
@@ -95,8 +99,7 @@ The example directory contains two routes that demonstrate a content-based route
 - rest:
     path: /api/orders
     post:
-      - path: /
-        consumes: application/json
+      - consumes: application/json
         produces: application/json
         to: "direct:route-order"
 
@@ -114,6 +117,9 @@ The example directory contains two routes that demonstrate a content-based route
               - simple: "${header.orderType} == 'EXPRESS'"
                 steps:
                   - log: "EXPRESS order ${body[orderId]} → express topic"
+                  - marshal:
+                      json:
+                        library: Jackson
                   - to:
                       uri: "kafka:eip.orders.express"
                       parameters:
@@ -121,6 +127,9 @@ The example directory contains two routes that demonstrate a content-based route
               - simple: "${header.orderType} == 'BULK'"
                 steps:
                   - log: "BULK order ${body[orderId]} → bulk topic"
+                  - marshal:
+                      json:
+                        library: Jackson
                   - to:
                       uri: "kafka:eip.orders.bulk"
                       parameters:
@@ -128,6 +137,9 @@ The example directory contains two routes that demonstrate a content-based route
             otherwise:
               steps:
                 - log: "STANDARD order ${body[orderId]} → standard topic"
+                - marshal:
+                    json:
+                      library: Jackson
                 - to:
                     uri: "kafka:eip.orders.standard"
                     parameters:
@@ -140,6 +152,10 @@ The example directory contains two routes that demonstrate a content-based route
 # Consumes express orders from Kafka, enriches each order with
 # customer data retrieved from Redis, and publishes the enriched
 # order to a downstream topic.
+#
+# The Redis GET replaces the body with the looked-up value, so the order is
+# stashed in an exchange property first and restored afterwards. Without that,
+# everything downstream sees the customer record instead of the order.
 - route:
     id: order-enricher
     from:
@@ -152,6 +168,9 @@ The example directory contains two routes that demonstrate a content-based route
             json:
               library: Jackson
         - log: "Enriching express order ${body[orderId]} for customer ${body[customerId]}"
+        - setProperty:
+            name: originalOrder
+            simple: "${body}"
         - setHeader:
             name: "CamelRedis.Key"
             simple: "customer:${body[customerId]}"
@@ -165,6 +184,8 @@ The example directory contains two routes that demonstrate a content-based route
         - setHeader:
             name: customerTier
             jsonpath: "$.tier"
+        - setBody:
+            simple: "${exchangeProperty.originalOrder}"
         - log: "Enriched order ${body[orderId]} — customer: ${header.customerName}, tier: ${header.customerTier}"
         - marshal:
             json:
@@ -189,7 +210,7 @@ redis.host=localhost
 redis.port=6379
 
 # REST
-camel.rest.port=8088
+camel.server.port=8088
 camel.rest.binding-mode=json
 ```
 
@@ -871,4 +892,4 @@ The entire lifecycle — from a blank YAML file to a production Kubernetes deplo
 
 ---
 
-*Verification status: unverified. CLI commands reference Apache Camel 4.22.0.*
+*Verification status: <span class="status status--verified">verified</span> — the three routes run on Camel CLI 4.22.0 against the live stack: a POST to `/api/orders` is routed to Kafka, consumed by the enricher, and enriched from Redis with zero errors (2026-09-14).*

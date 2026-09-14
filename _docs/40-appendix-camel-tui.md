@@ -37,15 +37,17 @@ To explore the TUI with live data, start the demo routes in one terminal and ope
 
 ```bash
 cd examples/40-camel-tui
-camel run *.yaml
+camel run *.yaml --port=8088
 ```
+
+The `--port` flag matters: the embedded HTTP server defaults to 8080, which the Pulsar admin console in the local stack already holds. It is a CLI flag rather than a property — setting `camel.server.port` in `application.properties` has no effect.
 
 This starts two YAML DSL route files:
 
 1. **monitored-route.yaml** — a REST API that accepts orders, validates them, and publishes to Kafka topics
 2. **data-generator.yaml** — a timer-based route that generates sample orders every 3 seconds
 
-The data generator feeds the REST API with a rotating set of five orders (shipping containers, pallet jacks, cargo nets, dock bumpers, and freight scales), giving you a steady stream of exchanges to monitor in the TUI.
+The data generator feeds the REST API with one of five orders (shipping containers, pallet jacks, cargo nets, dock bumpers, and freight scales) picked at random each tick, giving you a steady stream of exchanges to monitor in the TUI.
 
 **Terminal 2 — open the dashboard:**
 
@@ -60,50 +62,69 @@ The TUI discovers the running integration and populates all tabs with live data.
 The REST API in `monitored-route.yaml` accepts JSON orders and validates that the required fields — `orderId`, `customerId`, and `item` — are present:
 
 ```yaml
+# REST API that accepts order submissions, validates each order,
+# and routes it to Kafka topics for downstream processing.
+# A second route consumes validated orders, transforms them,
+# and publishes to a processed-orders topic.
+
 - rest:
     path: /api/orders
     post:
-      - to: "direct:validate-order"
       - consumes: application/json
         produces: application/json
+        to: "direct:validate-order"
 
 - route:
     id: validate-order
     from:
       uri: "direct:validate-order"
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Order received: ${body}"
-      - choice:
-          when:
-            - simple: "${body[orderId]} != null && ${body[customerId]} != null && ${body[item]} != null"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Order received: ${body}"
+        - choice:
+            when:
+              - simple: "${body[orderId]} != null && ${body[customerId]} != null && ${body[item]} != null"
+                steps:
+                  - setHeader:
+                      name: receivedAt
+                      simple: "${date:now:yyyy-MM-dd'T'HH:mm:ss.SSSZ}"
+                  - setHeader:
+                      name: processingNode
+                      simple: "tui-demo-node-1"
+                  - log: "Order accepted: ${body[orderId]} — customer ${body[customerId]}, item: ${body[item]}"
+                  # Keep the id: after marshal the body is JSON text, so
+                  # ${body[orderId]} no longer resolves for the HTTP response.
+                  - setProperty:
+                      name: acceptedOrderId
+                      simple: "${body[orderId]}"
+                  - marshal:
+                      json:
+                        library: Jackson
+                  - to:
+                      uri: "kafka:eip.orders.validated"
+                      parameters:
+                        brokers: "{{camel.component.kafka.brokers}}"
+                  - setBody:
+                      simple: '{"status":"accepted","orderId":"${exchangeProperty.acceptedOrderId}"}'
+            otherwise:
               steps:
+                - log:
+                    message: "Order rejected — missing required fields"
+                    loggingLevel: WARN
                 - setHeader:
-                    name: receivedAt
-                    simple: "${date:now:yyyy-MM-dd'T'HH:mm:ss.SSSZ}"
-                - setHeader:
-                    name: processingNode
-                    simple: "tui-demo-node-1"
-                - log: "Order accepted: ${body[orderId]} — customer ${body[customerId]}, item: ${body[item]}"
+                    name: CamelHttpResponseCode
+                    constant: 400
                 - marshal:
                     json:
                       library: Jackson
                 - to:
-                    uri: "kafka:eip.orders.validated"
-          otherwise:
-            steps:
-              - log:
-                  message: "Order rejected — missing required fields"
-                  loggingLevel: WARN
-              - setHeader:
-                  name: CamelHttpResponseCode
-                  constant: 400
-              - to:
-                  uri: "kafka:eip.orders.rejected"
-              - setBody:
-                  simple: '{"status":"rejected","reason":"missing required fields"}'
+                    uri: "kafka:eip.orders.rejected"
+                    parameters:
+                      brokers: "{{camel.component.kafka.brokers}}"
+                - setBody:
+                    simple: '{"status":"rejected","reason":"missing required fields (orderId, customerId, item)"}'
 ```
 
 Valid orders flow to `eip.orders.validated`. A second route consumes from that topic, applies a 100ms processing delay, and publishes to `eip.orders.processed`:
@@ -113,64 +134,79 @@ Valid orders flow to `eip.orders.validated`. A second route consumes from that t
     id: process-validated-orders
     from:
       uri: "kafka:eip.orders.validated"
-    steps:
-      - unmarshal:
-          json:
-            library: Jackson
-      - log: "Processing validated order: ${body[orderId]}"
-      - delay:
-          constant: 100
-      - setHeader:
-          name: processingStatus
-          constant: "PROCESSING"
-      - log: "Order ${body[orderId]} status set to PROCESSING"
-      - marshal:
-          json:
-            library: Jackson
-      - to:
-          uri: "kafka:eip.orders.processed"
+      parameters:
+        brokers: "{{camel.component.kafka.brokers}}"
+        groupId: "{{camel.component.kafka.group-id}}"
+      steps:
+        - unmarshal:
+            json:
+              library: Jackson
+        - log: "Processing validated order: ${body[orderId]}"
+        - delay:
+            constant: 100
+        - setHeader:
+            name: processingStatus
+            constant: "PROCESSING"
+        - log: "Order ${body[orderId]} status set to PROCESSING"
+        - marshal:
+            json:
+              library: Jackson
+        - to:
+            uri: "kafka:eip.orders.processed"
+            parameters:
+              brokers: "{{camel.component.kafka.brokers}}"
 ```
 
 This multi-route, multi-topic setup gives the TUI plenty to display: three routes, three Kafka topics, choice-based branching, headers being set, delays introducing measurable latency, and a steady stream of exchanges flowing end-to-end.
 
 ### The data generator
 
-The `data-generator.yaml` route fires every 3 seconds and cycles through five sample orders:
+The `data-generator.yaml` route fires every 3 seconds and picks one of five sample orders:
 
 ```yaml
+# Timer-driven route that generates sample orders every 3 seconds
+# and submits them to the REST API for end-to-end TUI monitoring.
+#
+# The variant is chosen with ${random(1,6)} held in a header. Camel's Simple
+# language has no modulo operator, so cycling on the timer counter is not
+# available; rolling once into a header and branching on that is the closest
+# equivalent, and it keeps the traffic varied for the TUI to display.
 - route:
     id: order-generator
     from:
       uri: "timer:ordergen?period=3000"
-    steps:
-      - choice:
-          when:
-            - simple: "${exchangeProperty.CamelTimerCounter} == null || ${exchangeProperty.CamelTimerCounter} % 5 == 1"
+      steps:
+        - setHeader:
+            name: pick
+            simple: "${random(1,6)}"
+        - choice:
+            when:
+              - simple: "${header.pick} == 1"
+                steps:
+                  - setBody:
+                      constant: '{"orderId":"ORD-001","customerId":"C-101","item":"Shipping Container","quantity":2}'
+              - simple: "${header.pick} == 2"
+                steps:
+                  - setBody:
+                      constant: '{"orderId":"ORD-002","customerId":"C-102","item":"Pallet Jack","quantity":5}'
+              - simple: "${header.pick} == 3"
+                steps:
+                  - setBody:
+                      constant: '{"orderId":"ORD-003","customerId":"C-103","item":"Cargo Net","quantity":12}'
+              - simple: "${header.pick} == 4"
+                steps:
+                  - setBody:
+                      constant: '{"orderId":"ORD-004","customerId":"C-104","item":"Loading Dock Bumper","quantity":8}'
+            otherwise:
               steps:
                 - setBody:
-                    constant: '{"orderId":"ORD-001","customerId":"C-101","item":"Shipping Container","quantity":2}'
-            - simple: "${exchangeProperty.CamelTimerCounter} % 5 == 2"
-              steps:
-                - setBody:
-                    constant: '{"orderId":"ORD-002","customerId":"C-102","item":"Pallet Jack","quantity":5}'
-            - simple: "${exchangeProperty.CamelTimerCounter} % 5 == 3"
-              steps:
-                - setBody:
-                    constant: '{"orderId":"ORD-003","customerId":"C-103","item":"Cargo Net","quantity":12}'
-            - simple: "${exchangeProperty.CamelTimerCounter} % 5 == 4"
-              steps:
-                - setBody:
-                    constant: '{"orderId":"ORD-004","customerId":"C-104","item":"Loading Dock Bumper","quantity":8}'
-          otherwise:
-            steps:
-              - setBody:
-                  constant: '{"orderId":"ORD-005","customerId":"C-105","item":"Freight Scale","quantity":1}'
-      - log: "Sending order: ${body}"
-      - setHeader:
-          name: Content-Type
-          constant: application/json
-      - to:
-          uri: "http://localhost:8088/api/orders"
+                    constant: '{"orderId":"ORD-005","customerId":"C-105","item":"Freight Scale","quantity":1}'
+        - log: "Sending order: ${body}"
+        - setHeader:
+            name: Content-Type
+            constant: application/json
+        - to:
+            uri: "http://localhost:8088/api/orders"
 ```
 
 The rotating orders ensure that the TUI's Activity and Inspect tabs show varied data rather than the same exchange repeated.
@@ -627,4 +663,4 @@ For production monitoring with alerting, dashboards, and historical data, you st
 
 ---
 
-*Verification status: unverified. TUI features reference Apache Camel 4.22.0.*
+*Verification status: <span class="status status--verified">verified</span> — the demo routes run on Camel CLI 4.22.0 against the live stack, with the generator driving orders end to end through validation, Kafka and the processing route with zero errors (2026-09-14). The TUI screens themselves are described from use, not captured by an automated check.*

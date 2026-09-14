@@ -450,4 +450,4 @@ Two case studies, two different shapes of the same patterns — proving that EIP
 
 ---
 
-*Verification status: unverified — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) as of 2026-09-14, but the example ships no automated tests, so the routes have not been executed against the upgraded stack.*
+*Verification status: <span class="status status--verified">verified</span> — the example runs against the live stack on both runtimes, with market data flowing through ingestion, normalization and desk distribution and trade orders reaching validation, with zero errors (2026-09-14). Patterns 5 to 7 are illustrative and are not exercised.*

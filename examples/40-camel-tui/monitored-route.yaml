@@ -6,8 +6,7 @@
 - rest:
     path: /api/orders
     post:
-      - path: /
-        consumes: application/json
+      - consumes: application/json
         produces: application/json
         to: "direct:validate-order"
 
@@ -31,6 +30,11 @@
                       name: processingNode
                       simple: "tui-demo-node-1"
                   - log: "Order accepted: ${body[orderId]} — customer ${body[customerId]}, item: ${body[item]}"
+                  # Keep the id: after marshal the body is JSON text, so
+                  # ${body[orderId]} no longer resolves for the HTTP response.
+                  - setProperty:
+                      name: acceptedOrderId
+                      simple: "${body[orderId]}"
                   - marshal:
                       json:
                         library: Jackson
@@ -39,7 +43,7 @@
                       parameters:
                         brokers: "{{camel.component.kafka.brokers}}"
                   - setBody:
-                      simple: '{"status":"accepted","orderId":"${body[orderId]}"}'
+                      simple: '{"status":"accepted","orderId":"${exchangeProperty.acceptedOrderId}"}'
             otherwise:
               steps:
                 - log:

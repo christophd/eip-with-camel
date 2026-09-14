@@ -457,4 +457,4 @@ from("kafka:eip.shipping.rate-requests?brokers=localhost:9092&groupId=carrier-sc
 
 ---
 
-*Verification status: unverified — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) as of 2026-09-14, but the example ships no automated tests, so the routes have not been executed against the upgraded stack.*
+*Verification status: <span class="status status--verified">verified</span> — the example runs against the live stack on both runtimes: the demo generator submits a loan request, the recipient list fans out to the eligible banks, and the aggregator selects the best offer, with zero errors (2026-09-14). Step 6's result store is illustrative and is not exercised.*

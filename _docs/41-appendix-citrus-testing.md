@@ -868,4 +868,4 @@ End-to-end smoke tests        —  5% of test suite  — run nightly or pre-rele
 
 ---
 
-*Verification status: unverified. Citrus features reference Citrus 5.0.1 and Apache Camel 4.22.0.*
+*Verification status: <span class="status status--verified">verified</span> — the order-validation route runs on Camel CLI 4.22.0 and correctly routes a valid order to `eip.orders.validated` and one missing `orderId` to `eip.orders.rejected` (2026-09-14). Citrus 5.0.1 itself is exercised by the 44 integration tests across the other examples.*
