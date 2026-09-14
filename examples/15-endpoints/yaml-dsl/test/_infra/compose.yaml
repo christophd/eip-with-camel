@@ -1,6 +1,6 @@
 services:
   pulsar:
-    image: docker.io/apachepulsar/pulsar:latest
+    image: docker.io/apachepulsar/pulsar:4.2.4
     command: bin/pulsar standalone --advertised-address localhost
     ports:
       - "6650:6650"

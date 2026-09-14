@@ -1,7 +1,7 @@
 services:
   # ── Kafka (KRaft, single broker) ──────────────────────────────────────────
   kafka:
-    image: docker.io/apache/kafka:latest
+    image: docker.io/apache/kafka:4.3.1
     container_name: eip-kafka
     ports:
       - "9092:9092"
@@ -39,7 +39,7 @@ services:
       - eip-net
 
   kafka-ui:
-    image: docker.io/provectuslabs/kafka-ui:latest
+    image: docker.io/provectuslabs/kafka-ui:v0.7.2
     container_name: eip-kafka-ui
     ports:
       - "8090:8080"
@@ -55,7 +55,7 @@ services:
 
   # ── Pulsar (standalone) ──────────────────────────────────────────────────
   pulsar:
-    image: docker.io/apachepulsar/pulsar:latest
+    image: docker.io/apachepulsar/pulsar:4.2.4
     container_name: eip-pulsar
     command: bin/pulsar standalone --advertised-address localhost
     ports:
@@ -81,7 +81,7 @@ services:
 
   # ── Redis ────────────────────────────────────────────────────────────────
   redis:
-    image: docker.io/library/redis:7-alpine
+    image: docker.io/library/redis:8.10.1-alpine
     container_name: eip-redis
     ports:
       - "6379:6379"
@@ -99,7 +99,7 @@ services:
 
   # ── PostgreSQL ───────────────────────────────────────────────────────────
   postgres:
-    image: docker.io/library/postgres:16-alpine
+    image: docker.io/library/postgres:18.6-alpine
     container_name: eip-postgres
     ports:
       - "5432:5432"
@@ -131,7 +131,7 @@ services:
 
   # ── Apicurio Schema Registry ────────────────────────────────────────────
   apicurio:
-    image: docker.io/apicurio/apicurio-registry:latest
+    image: docker.io/apicurio/apicurio-registry:3.3.3
     container_name: eip-apicurio
     ports:
       - "8081:8080"
