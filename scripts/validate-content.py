@@ -119,6 +119,27 @@ def check_stale_versions(findings):
                 findings.append(("stale", f"{p.relative_to(ROOT)}:{line}", msg))
 
 
+CAMEL_COMPONENT_PROP = re.compile(r"^\s*(camel\.component\.([a-z0-9-]+))\.", re.M)
+
+
+def check_config_keys(schemes, findings):
+    """camel.component.<name>.* must name a component that exists."""
+    if schemes is None:
+        return
+    for p in iter_files("examples/**/*.properties", "_docs/*.md",
+                        "examples/**/*.yaml", "README.md", "GETTING-STARTED.md"):
+        text = p.read_text(encoding="utf-8", errors="replace")
+        for m in CAMEL_COMPONENT_PROP.finditer(text):
+            key, comp = m.group(1), m.group(2)
+            if comp in schemes:
+                continue
+            line = text[: m.start()].count("\n") + 1
+            findings.append(
+                ("config-key", f"{p.relative_to(ROOT)}:{line}",
+                 f"'{key}' names component '{comp}', which is not in the catalog")
+            )
+
+
 def check_links(findings):
     import urllib.error
     import urllib.request
@@ -164,6 +185,7 @@ def main():
     check_schemes(schemes, findings)
     check_yaml_shape(findings)
     check_stale_versions(findings)
+    check_config_keys(schemes, findings)
     if args.links:
         check_links(findings)
 

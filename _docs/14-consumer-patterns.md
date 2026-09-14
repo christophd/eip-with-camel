@@ -229,7 +229,7 @@ You can't have more active consumers than partitions. If a topic has 6 partition
 
 ### The problem
 
-A single Kafka consumer receives events from `eip.orders.status-updates`, but different event types need different handlers: `OrderPlaced` events go to the order creation handler, `OrderCancelled` events go to the cancellation handler, `OrderRefunded` events go to the refund handler. You could use a content-based router in every route that consumes from this topic, but that scatters the routing logic.
+A single Kafka consumer receives events from `eip.orders.status-updates`, but different event types need different handlers: `order_placed` events go to the order creation handler, `order_cancelled` events go to the cancellation handler, `order_refunded` events go to the refund handler. You could use a content-based router in every route that consumes from this topic, but that scatters the routing logic.
 
 ### The solution
 
@@ -246,17 +246,17 @@ from("kafka:eip.orders.status-updates?brokers=localhost:9092&groupId=order-dispa
     .toD("direct:handle-${body[event_type]}");
 
 // Handler routes — each handles one event type
-from("direct:handle-OrderPlaced")
+from("direct:handle-order_placed")
     .routeId("handler-order-placed")
     .log("Creating order ${body[order_id]}")
     .to("direct:create-order");
 
-from("direct:handle-OrderCancelled")
+from("direct:handle-order_cancelled")
     .routeId("handler-order-cancelled")
     .log("Cancelling order ${body[order_id]}")
     .to("direct:cancel-order");
 
-from("direct:handle-OrderRefunded")
+from("direct:handle-order_refunded")
     .routeId("handler-order-refunded")
     .log("Processing refund for order ${body[order_id]}")
     .to("direct:process-refund");
@@ -278,7 +278,7 @@ The `toD()` (dynamic to) resolves the endpoint URI at runtime from the message b
 ```java
 .process(exchange -> {
     String eventType = (String) exchange.getIn().getBody(Map.class).get("event_type");
-    Set<String> allowed = Set.of("OrderPlaced", "OrderCancelled", "OrderRefunded", "OrderUpdated");
+    Set<String> allowed = Set.of("order_placed", "order_cancelled", "order_refunded");
     if (!allowed.contains(eventType)) {
         throw new IllegalArgumentException("Unknown event type: " + eventType);
     }
