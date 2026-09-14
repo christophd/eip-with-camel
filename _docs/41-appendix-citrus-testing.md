@@ -57,13 +57,26 @@ Additional connectors are available for databases (`citrus-sql`), JMS (`citrus-j
 
 Citrus uses Testcontainers to manage infrastructure. You need either Docker or Podman running on your machine. The first test run pulls container images (Kafka, etc.) — subsequent runs reuse cached images.
 
-If you are using Podman, ensure the Podman socket is enabled so Testcontainers can communicate with it:
+**Testcontainers does not use the rest of this tutorial's Podman stack.** It picks its own container engine, and unless you tell it otherwise it looks for a Docker socket. On a machine that has both Docker and Podman installed, that means the tests quietly run on Docker while `setup-stack.sh` runs on Podman — two engines, two sets of containers, and no warning that you are not testing against what you think you are.
+
+Check which engine actually served your test run:
+
+```bash
+docker ps --filter name=testcontainers-ryuk   # Ryuk here means Docker served the tests
+podman ps --filter name=testcontainers-ryuk   # Ryuk here means Podman did
+```
+
+To make Testcontainers use Podman, the socket has to exist — enabling the systemd unit is not sufficient on its own, and `systemctl --user is-active podman.socket` will happily report `active` while no socket file has been created. Verify the path before relying on it:
 
 ```bash
 systemctl --user enable --now podman.socket
+ls -l /run/user/$(id -u)/podman/podman.sock    # must exist, or the export below is useless
+
 export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
 export TESTCONTAINERS_RYUK_DISABLED=true
 ```
+
+If that socket is missing and Docker is installed, Testcontainers will silently use Docker instead of failing.
 
 ### Stop the development stack first
 
