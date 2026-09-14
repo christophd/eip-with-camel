@@ -57,26 +57,27 @@ Additional connectors are available for databases (`citrus-sql`), JMS (`citrus-j
 
 Citrus uses Testcontainers to manage infrastructure. You need either Docker or Podman running on your machine. The first test run pulls container images (Kafka, etc.) — subsequent runs reuse cached images.
 
-**Testcontainers does not use the rest of this tutorial's Podman stack.** It picks its own container engine, and unless you tell it otherwise it looks for a Docker socket. On a machine that has both Docker and Podman installed, that means the tests quietly run on Docker while `setup-stack.sh` runs on Podman — two engines, two sets of containers, and no warning that you are not testing against what you think you are.
+**Testcontainers picks its own container engine**, independently of the Podman stack the rest of this tutorial uses. Unless you tell it otherwise it looks for a Docker socket, so on a machine with both engines installed the tests quietly run on Docker while `setup-stack.sh` runs on Podman — two engines, two sets of containers, and no warning that you are not testing against what you think you are.
 
-Check which engine actually served your test run:
-
-```bash
-docker ps --filter name=testcontainers-ryuk   # Ryuk here means Docker served the tests
-podman ps --filter name=testcontainers-ryuk   # Ryuk here means Podman did
-```
-
-To make Testcontainers use Podman, the socket has to exist — enabling the systemd unit is not sufficient on its own, and `systemctl --user is-active podman.socket` will happily report `active` while no socket file has been created. Verify the path before relying on it:
+Podman works fine; it just has to be pointed at:
 
 ```bash
 systemctl --user enable --now podman.socket
-ls -l /run/user/$(id -u)/podman/podman.sock    # must exist, or the export below is useless
 
 export DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock
 export TESTCONTAINERS_RYUK_DISABLED=true
 ```
 
-If that socket is missing and Docker is installed, Testcontainers will silently use Docker instead of failing.
+`scripts/build-all-examples.sh` does this for you: if the Podman socket exists and `DOCKER_HOST` is unset, it exports both before running the tests and prints which engine it chose. Set `DOCKER_HOST` yourself to override it.
+
+To confirm which engine actually served a run, look for the containers while it is in progress:
+
+```bash
+podman ps    # test infrastructure here means Podman served the run
+docker ps    # here means Docker did
+```
+
+One caveat when the two engines share a machine: with `DOCKER_HOST` exported, the `docker` CLI talks to Podman too, so both commands list the same containers. Unset it in that shell if you need to tell them apart.
 
 ### Stop the development stack first
 

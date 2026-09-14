@@ -14,7 +14,17 @@ Every example in this tutorial runs on **Java 25** (the current long-term-suppor
 
 ### Installing with SDKMAN
 
-[SDKMAN](https://sdkman.io/) manages parallel JDK installations and makes switching between versions painless. If you don't already have it:
+[SDKMAN](https://sdkman.io/) manages parallel JDK installations and makes switching between versions painless. It needs `zip` and `unzip` present first — without them the installer stops with `Looking for unzip... Not found.`, which is easy to miss if you pipe it to `bash`:
+
+```bash
+# Fedora / RHEL
+sudo dnf install -y zip unzip
+
+# Debian / Ubuntu
+sudo apt-get install -y zip unzip
+```
+
+Then install SDKMAN itself:
 
 ```bash
 curl -s "https://get.sdkman.io" | bash
@@ -60,7 +70,7 @@ Verify:
 
 ```bash
 jbang --version
-# 0.137.x
+# 0.141.x
 ```
 
 ### Installing the Camel CLI
@@ -414,6 +424,6 @@ Next, we'll meet the shipping domain that drives every example in this tutorial 
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — `setup-stack.sh` brings Kafka 4.3.1, Pulsar 4.2.4, Redis 8.10.1, PostgreSQL 18.6 and Apicurio 3.3.3 to healthy on Podman 5.8.4, and `init-schemas.sql` creates all five domain schemas (2026-09-14).*
+*Verification status: <span class="status status--verified">verified</span> — the SDKMAN chain was run on a clean `fedora:44` container: SDKMAN installs, then `sdk install java 25.0.2-tem`, `sdk install maven` and `sdk install jbang` all succeed, reporting OpenJDK 25.0.2, Maven 3.9.16 and JBang 0.141.0. Separately, `setup-stack.sh` brings Kafka 4.3.1, Pulsar 4.2.4, Redis 8.10.1, PostgreSQL 18.6 and Apicurio 3.3.3 to healthy on Podman 5.8.4, and `init-schemas.sql` creates all five domain schemas (2026-09-14).*
 
 *Not verified here: the SDKMAN install commands, which need a clean machine to test honestly.*

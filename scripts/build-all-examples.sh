@@ -28,6 +28,17 @@ done
 LOG_DIR="${TMPDIR:-/tmp}/eip-build-logs"
 mkdir -p "$LOG_DIR"
 
+# This project's stack is Podman, but Testcontainers looks for a Docker socket
+# and will silently use Docker if one is present -- so the tests would run on a
+# different engine than everything else, with no warning. Point it at Podman
+# when the socket is there, unless the caller has already chosen an engine.
+PODMAN_SOCK="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock"
+if [ -z "${DOCKER_HOST:-}" ] && [ -S "$PODMAN_SOCK" ]; then
+  export DOCKER_HOST="unix://$PODMAN_SOCK"
+  export TESTCONTAINERS_RYUK_DISABLED=true
+  echo "Testcontainers -> Podman ($PODMAN_SOCK)"
+fi
+
 matches_filter() {
   [ ${#FILTERS[@]} -eq 0 ] && return 0
   for f in "${FILTERS[@]}"; do

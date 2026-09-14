@@ -33,23 +33,22 @@ cd examples/42-ai-mcp/quarkus && mvn quarkus:dev
 cd examples/42-ai-mcp/spring-boot && mvn spring-boot:run
 ```
 
-Both runtimes require Ollama running locally with the `llama3.2` model:
+Both runtimes require Ollama running locally with the `qwen2.5:3b` model:
 
 ```bash
-ollama pull llama3.2
+ollama pull qwen2.5:3b
 ollama serve
 ```
 
-> **What `llama3.2` will and will not do.** Everything in this appendix was run
-> against `llama3.2`, and the plumbing works: routes start, the chat component
-> reaches the model, and the agent is invoked without error. The model itself is
-> the weak link. Asked to "return only the JSON", it usually returns a friendly
-> paragraph *about* the JSON, and it does not reliably call the `ai-tool` routes
-> offered to it — the agent comes back with an empty `toolExecutions` list. That
-> is a small-model limitation, not a Camel one. For tool calling that actually
-> fires, use a model trained for it (`llama3.1:8b`, `qwen2.5`, or a hosted model
-> via the OpenAI or Azure configuration below). The route definitions do not
-> change.
+> **Pick a model that can call tools.** The examples default to `qwen2.5:3b`
+> because tool calling is the whole point of the `ai-tool` sections below, and
+> not every small model does it. `llama3.2` was the earlier default and is a
+> poor fit: it answers in a single round trip and never invokes the registered
+> tools, so `toolExecutions` comes back empty and the assistant makes up an
+> answer. Asked to "return only the JSON", it also tends to return a friendly
+> paragraph *about* the JSON. `qwen2.5:3b` is a 1.9 GB download and calls tools
+> reliably; `llama3.1:8b` and the hosted OpenAI and Azure models below work too.
+> The route definitions do not change between them.
 
 {% include excalidraw.html file="42-ai-mcp-architecture" alt="Camel AI/MCP architecture" caption="Figure X.1 — Camel AI integration architecture: routes produce to LangChain4j agents, which call back to Camel route tools and external MCP servers." %}
 
@@ -461,20 +460,51 @@ This means a Camel agent can call tools served by any MCP-compatible application
 ```java
 package com.example.eip.aimcp;
 
+import java.time.Duration;
+
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.ollama.OllamaChatModel;
 import io.smallrye.common.annotation.Identifier;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
 import org.apache.camel.component.langchain4j.agent.api.Agent;
 import org.apache.camel.component.langchain4j.agent.api.AgentConfiguration;
 import org.apache.camel.component.langchain4j.agent.api.AgentWithoutMemory;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+/**
+ * Supplies the agent that {@code langchain4j-agent:} endpoints reference by name.
+ *
+ * <p>The chat model is built here rather than injecting the {@code ChatModel}
+ * that quarkus-langchain4j produces. That bean drives the
+ * {@code langchain4j-chat} classifier fine, but the agent never offered the
+ * registered {@code ai-tool} routes to the model through it — the model
+ * answered in a single round trip and {@code toolExecutions} came back empty.
+ * Building the model directly, exactly as the Spring Boot variant does, makes
+ * tool calling work on both runtimes.
+ *
+ * <p>{@link AgentWithoutMemory} treats every exchange as an independent
+ * conversation. For a multi-turn assistant, produce an {@code AgentWithMemory}
+ * and set a {@code ChatMemoryProvider} on the {@link AgentConfiguration}.
+ */
 @ApplicationScoped
 public class AgentProducers {
 
+    @ConfigProperty(name = "quarkus.langchain4j.ollama.base-url", defaultValue = "http://localhost:11434")
+    String baseUrl;
+
+    @ConfigProperty(name = "quarkus.langchain4j.ollama.chat-model.model-id", defaultValue = "qwen2.5:3b")
+    String modelName;
+
     @Produces
     @Identifier("assistantAgent")
-    Agent assistantAgent(ChatModel chatModel) {
+    Agent assistantAgent() {
+        ChatModel chatModel = OllamaChatModel.builder()
+            .baseUrl(baseUrl)
+            .modelName(modelName)
+            .timeout(Duration.ofSeconds(120))
+            .build();
+
         AgentConfiguration config = new AgentConfiguration()
             .withChatModel(chatModel);
 
@@ -487,15 +517,49 @@ public class AgentProducers {
 package com.example.eip.aimcp;
 
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.ollama.OllamaChatModel;
 import org.apache.camel.component.langchain4j.agent.api.Agent;
 import org.apache.camel.component.langchain4j.agent.api.AgentConfiguration;
 import org.apache.camel.component.langchain4j.agent.api.AgentWithoutMemory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Duration;
+
+/**
+ * Supplies the chat model and the agent that {@code langchain4j-agent:}
+ * endpoints reference by name.
+ *
+ * <p>The model is built here rather than through
+ * {@code langchain4j-ollama-spring-boot-starter}. That starter's
+ * auto-configuration builds its HTTP client against Spring Boot 3 classes which
+ * moved in Spring Boot 4, so it fails at startup with a
+ * {@code NoClassDefFoundError} on {@code ClientHttpRequestFactoryBuilder}.
+ * Constructing the model directly uses LangChain4j's default JDK HTTP client
+ * and avoids the Spring auto-configuration entirely.
+ */
 @Configuration
 public class AgentConfig {
 
+    @Bean
+    public ChatModel chatModel(
+            @Value("${ollama.base-url:http://localhost:11434}") String baseUrl,
+            @Value("${ollama.model-name:llama3.2}") String modelName) {
+        return OllamaChatModel.builder()
+            .baseUrl(baseUrl)
+            .modelName(modelName)
+            .timeout(Duration.ofSeconds(60))
+            .build();
+    }
+
+    /**
+     * The bean name is what {@code ?agent=#assistantAgent} resolves against.
+     *
+     * <p>{@link AgentWithoutMemory} treats every exchange as an independent
+     * conversation. For a multi-turn assistant, return an {@code AgentWithMemory}
+     * and set a {@code ChatMemoryProvider} on the {@link AgentConfiguration}.
+     */
     @Bean
     public Agent assistantAgent(ChatModel chatModel) {
         AgentConfiguration config = new AgentConfiguration()
@@ -1278,4 +1342,4 @@ As AI agents become standard components in enterprise architectures, the integra
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — both runtimes build against Camel 4.22.0 with `ai-tool`, `langchain4j-agent` and the embedded MCP server, and both run against a live Ollama 0.34.0 with `llama3.2`: the classifier and the assistant both return model responses with zero route errors (2026-09-14). Tool invocation itself was not observed — `llama3.2` does not reliably call tools, as noted at the top of the chapter.*
+*Verification status: <span class="status status--verified">verified</span> — both runtimes run against a live Ollama 0.34.0 with `qwen2.5:3b` (2026-09-14). The classifier returns a model response, and the assistant genuinely invokes the `ai-tool` route: asking for order ORD-002 logs `Tool call — looking up order: ORD-002` and answers from the tool's data, with zero route errors on either runtime. The embedded MCP server starts and publishes the tagged tool; it was not exercised from an external MCP client.*
