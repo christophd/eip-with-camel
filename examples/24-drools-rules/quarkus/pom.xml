@@ -15,9 +15,9 @@
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <quarkus.platform.version>3.37.0</quarkus.platform.version>
+        <quarkus.platform.version>3.39.3</quarkus.platform.version>
         <drools.version>10.2.0</drools.version>
-        <citrus.version>5.0.0</citrus.version>
+        <citrus.version>5.0.1</citrus.version>
         <surefire-plugin.version>3.5.6</surefire-plugin.version>
     </properties>
 

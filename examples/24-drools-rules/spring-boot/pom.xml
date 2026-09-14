@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.7</version>
+        <version>4.1.1</version>
         <relativePath/>
     </parent>
 
@@ -18,9 +18,9 @@
 
     <properties>
         <java.version>25</java.version>
-        <camel.version>4.20.0</camel.version>
+        <camel.version>4.22.0</camel.version>
         <drools.version>10.2.0</drools.version>
-        <citrus.version>5.0.0</citrus.version>
+        <citrus.version>5.0.1</citrus.version>
     </properties>
 
     <dependencyManagement>
