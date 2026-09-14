@@ -163,7 +163,7 @@ Our stack includes Kafka UI at `http://localhost:8180`. For programmatic monitor
 ```java
 // Monitor consumer lag via JMX beans
 from("timer:kafka-lag-check?period=60000")
-    .routeId("kafka-lag-monitor")
+    .routeId("consumer-lag-monitor")
     .process(exchange -> {
         // Use Kafka AdminClient to check consumer group lag
         // Alert if lag exceeds threshold

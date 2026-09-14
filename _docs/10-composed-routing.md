@@ -54,7 +54,7 @@ Camel's `routingSlip()` EIP reads a header containing a comma-separated list of 
 ```java
 // Step 1: Determine the routing slip based on order type
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=routing-slip")
-    .routeId("routing-slip-entry")
+    .routeId("order-routing-slip")
     .unmarshal().json(Map.class)
     .process(exchange -> {
         Map<String, Object> order = exchange.getIn().getBody(Map.class);

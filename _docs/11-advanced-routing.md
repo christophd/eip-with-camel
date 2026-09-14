@@ -231,7 +231,7 @@ Camel offers two resequencer modes:
 ```java
 // Batch resequencer: collect, sort, emit
 from("kafka:eip.orders.status-updates?brokers=localhost:9092&groupId=resequencer")
-    .routeId("resequencer-batch")
+    .routeId("batch-resequencer")
     .unmarshal().json(Map.class)
     .resequence(simple("${body[event_time]}"))
         .batch()
