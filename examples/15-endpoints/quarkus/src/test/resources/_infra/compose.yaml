@@ -84,7 +84,7 @@ services:
       - POSTGRES_PASSWORD=eippass
       - POSTGRES_INITDB_ARGS=--encoding=UTF8 --locale=C
     volumes:
-      - postgres-data:/var/lib/postgresql/data:Z
+      - postgres-data:/var/lib/postgresql:Z
       - ./postgres/init-schemas.sql:/docker-entrypoint-initdb.d/01-init-schemas.sql:Z
     devices:
       - "/dev/null:/dev/null:rwm"
