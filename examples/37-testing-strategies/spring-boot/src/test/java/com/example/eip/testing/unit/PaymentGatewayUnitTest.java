@@ -6,19 +6,18 @@ import org.apache.camel.builder.AdviceWith;
 import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.test.spring.junit5.CamelSpringBootTest;
 import org.apache.camel.test.spring.junit5.UseAdviceWith;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
 @CamelSpringBootTest
 @UseAdviceWith
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class PaymentGatewayUnitTest {
 
     @Autowired
@@ -27,8 +26,13 @@ class PaymentGatewayUnitTest {
     @Autowired
     ProducerTemplate producer;
 
-    @BeforeAll
-    void advice() throws Exception {
+    // @UseAdviceWith leaves the context stopped, and it is adviceWith that arms
+    // it to be started -- calling start() on its own does not hold. So the advice
+    // has to be reapplied per test method, which in turn needs a fresh Spring
+    // context each method: reusing the cached one would stack another mock send
+    // onto the same route and inflate the expected counts.
+    @BeforeEach
+    void resetMocks() throws Exception {
         AdviceWith.adviceWith(camelContext, "kafka-order-filter", route -> {
             route.replaceFromWith("direct:test-kafka-stub");
         });
@@ -36,10 +40,7 @@ class PaymentGatewayUnitTest {
             route.weaveAddLast().to("mock:gateway-output");
         });
         camelContext.start();
-    }
 
-    @BeforeEach
-    void resetMocks() {
         MockEndpoint.resetMocks(camelContext);
     }
 
