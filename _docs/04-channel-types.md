@@ -161,21 +161,21 @@ from("direct:publish-order")
 
 // Subscriber 1 — inventory (different consumer group)
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=inventory-service")
-    .routeId("pubsub-inventory")
+    .routeId("pubsub-subscriber-inventory")
     .unmarshal().json(Map.class)
     .log("Inventory: checking stock for order ${body[order_id]}")
     .to("direct:check-inventory");
 
 // Subscriber 2 — notification (different consumer group)
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=notification-service")
-    .routeId("pubsub-notification")
+    .routeId("pubsub-subscriber-notification")
     .unmarshal().json(Map.class)
     .log("Notification: sending confirmation for order ${body[order_id]}")
     .to("direct:send-confirmation");
 
 // Subscriber 3 — analytics (added later, zero changes to publisher)
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=analytics-service")
-    .routeId("pubsub-analytics")
+    .routeId("pubsub-subscriber-analytics")
     .unmarshal().json(Map.class)
     .log("Analytics: recording order ${body[order_id]}")
     .to("direct:record-analytics");

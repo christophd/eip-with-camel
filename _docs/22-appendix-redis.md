@@ -174,7 +174,7 @@ When running multiple instances of a service, some operations should run on only
 
 ```java
 from("quartz:orders/nightly-export?cron=0+0+2+*+*+?")
-    .routeId("distributed-lock-example")
+    .routeId("distributed-lock")
     .process(exchange -> {
         // Try to acquire a distributed lock
         var result = redis.set(List.of(

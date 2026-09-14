@@ -120,7 +120,7 @@ Camel's `errorHandler` with a `deadLetterChannel` is the standard approach:
 
 ```java
 from("kafka:eip.inventory.reserved?brokers=localhost:9092&groupId=payment-service")
-    .routeId("dead-letter-channel")
+    .routeId("dead-letter-channel-demo")
     .errorHandler(deadLetterChannel("kafka:eip.inventory.reserved.dlq?brokers=localhost:9092")
         .maximumRedeliveries(3)
         .redeliveryDelay(1000)

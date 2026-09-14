@@ -203,7 +203,7 @@ A **Smart Proxy** sits between the caller and the target service. It can:
 ```java
 // Smart proxy: route to real or mock payment gateway
 from("direct:payment-gateway")
-    .routeId("smart-proxy")
+    .routeId("smart-proxy-router")
     .log("Payment request for ${body[order_id]}: $${body[amount]}")
     // Log the request (with PII redacted)
     .wireTap("direct:log-payment-request")
@@ -273,7 +273,7 @@ Managing channel adapters is about combining several patterns we've already cove
 ```java
 // Managed channel adapter: carrier API with circuit breaker, retries, and monitoring
 from("kafka:eip.shipping.scheduled?brokers=localhost:9092&groupId=carrier-adapter")
-    .routeId("managed-adapter-carrier")
+    .routeId("managed-adapter-circuit-breaker")
     .unmarshal().json(Map.class)
     .wireTap("direct:adapter-metrics")
     .circuitBreaker()

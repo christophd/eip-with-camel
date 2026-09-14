@@ -128,7 +128,7 @@ Enrich the loan request with credit bureau data:
 
 ```java
 from("kafka:loan.requests?brokers=localhost:9092&groupId=loan-enricher")
-    .routeId("credit-bureau-enricher")
+    .routeId("credit-enricher")
     .unmarshal().json(LoanRequest.class)
     .enrich("direct:credit-bureau-lookup", (oldExchange, newExchange) -> {
         LoanRequest request = oldExchange.getIn().getBody(LoanRequest.class);

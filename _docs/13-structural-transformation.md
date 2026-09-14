@@ -49,7 +49,7 @@ Camel's `aggregate()` EIP is one of the most powerful and configurable patterns 
 ```java
 // Aggregate order lifecycle events into a complete status
 from("kafka:eip.orders.status-updates?brokers=localhost:9092&groupId=order-aggregator")
-    .routeId("aggregator")
+    .routeId("order-aggregator")
     .unmarshal().json(Map.class)
     .aggregate(simple("${body[order_id]}"), new OrderLifecycleAggregation())
         .completionPredicate(simple("${body[stages_complete]} == true"))

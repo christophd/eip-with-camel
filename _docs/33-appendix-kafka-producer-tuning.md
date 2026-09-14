@@ -92,7 +92,7 @@ For the shipping domain: set `linger.ms=5` for the order intake producer (low la
 
 ```java
 from("direct:order-analytics")
-    .routeId("batched-analytics-producer")
+    .routeId("batched-producer")
     .marshal().json()
     .to("kafka:eip.analytics.events"
         + "?brokers={{kafka.brokers}}"
@@ -224,7 +224,7 @@ from("direct:publish-order")
 
 ```java
 from("direct:publish-order")
-    .routeId("sync-producer")
+    .routeId("synchronous-producer")
     .marshal().json()
     .to("kafka:eip.orders.placed"
         + "?brokers={{kafka.brokers}}"

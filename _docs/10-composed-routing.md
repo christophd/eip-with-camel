@@ -256,7 +256,7 @@ Camel's `multicast()` with an `aggregationStrategy` is the natural implementatio
 
 ```java
 from("direct:get-shipping-estimates")
-    .routeId("scatter-gather")
+    .routeId("carrier-scatter-gather")
     .log("Requesting shipping estimates for order ${body[order_id]}")
     .multicast(new LowestPriceAggregation())
         .parallelProcessing()

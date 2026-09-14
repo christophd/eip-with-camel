@@ -247,17 +247,17 @@ from("kafka:eip.orders.status-updates?brokers=localhost:9092&groupId=order-dispa
 
 // Handler routes — each handles one event type
 from("direct:handle-order_placed")
-    .routeId("handler-order-placed")
+    .routeId("handle-order-placed")
     .log("Creating order ${body[order_id]}")
     .to("direct:create-order");
 
 from("direct:handle-order_cancelled")
-    .routeId("handler-order-cancelled")
+    .routeId("handle-order-cancelled")
     .log("Cancelling order ${body[order_id]}")
     .to("direct:cancel-order");
 
 from("direct:handle-order_refunded")
-    .routeId("handler-order-refunded")
+    .routeId("handle-order-refunded")
     .log("Processing refund for order ${body[order_id]}")
     .to("direct:process-refund");
 ```

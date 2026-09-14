@@ -190,7 +190,7 @@ When the same bond arrives from multiple feeds, select the best bid/ask:
 
 ```java
 from("kafka:bond.prices.canonical?brokers=localhost:9092&groupId=best-price-normalizer")
-    .routeId("best-price-normalizer")
+    .routeId("price-normalizer")
     .unmarshal().json(CanonicalPrice.class)
     .aggregate(simple("${body.isin}"), new BestPriceStrategy())
         .completionInterval(500)    // aggregate within 500ms windows
@@ -234,7 +234,7 @@ Route prices to trading desks based on their subscription profiles:
 
 ```java
 from("kafka:bond.prices.best?brokers=localhost:9092&groupId=desk-distributor")
-    .routeId("desk-price-distributor")
+    .routeId("desk-distributor")
     .unmarshal().json(CanonicalPrice.class)
     .multicast().parallelProcessing()
         .to("direct:filter-desk-a", "direct:filter-desk-b", "direct:filter-desk-c")
@@ -273,7 +273,7 @@ Validate incoming trade orders before execution:
 
 ```java
 from("kafka:bond.orders.new?brokers=localhost:9092&groupId=order-validator")
-    .routeId("trade-order-validator")
+    .routeId("trade-validator")
     .unmarshal().json(TradeOrder.class)
     // Idempotent check — reject duplicate order IDs
     .idempotentConsumer(simple("${body.orderId}"),

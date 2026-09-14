@@ -140,7 +140,7 @@ public class RuleBasedRouter {
 
 // Camel route that uses the rule engine
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=rule-router")
-    .routeId("drools-content-based-router")
+    .routeId("drools-content-router")
     .unmarshal().json(Map.class)
     .bean("ruleBasedRouter", "evaluate")
     .log("Rule engine decided: ${header.routingDecision}")

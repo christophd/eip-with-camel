@@ -294,7 +294,7 @@ Camel's `split()` EIP breaks a message based on an expression — a JSONPath, XP
 ```java
 // Split a bulk order into individual line items
 from("kafka:eip.orders.bulk?brokers=localhost:9092&groupId=order-splitter")
-    .routeId("splitter")
+    .routeId("order-splitter")
     .unmarshal().json(Map.class)
     .log("Received bulk order ${body[order_id]} with ${body[line_items].size()} items")
     .setHeader("originalOrderId", simple("${body[order_id]}"))

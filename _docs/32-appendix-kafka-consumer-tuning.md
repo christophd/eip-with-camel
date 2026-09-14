@@ -233,7 +233,7 @@ from("kafka:eip.orders.placed"
         + "&groupId=inventory-service"
         + "&groupInstanceId=inventory-${HOSTNAME}"
         + "&sessionTimeoutMs=60000")
-    .routeId("static-member-consumer")
+    .routeId("static-membership-consumer")
     .unmarshal().json(java.util.Map.class)
     .to("direct:check-inventory");
 ```

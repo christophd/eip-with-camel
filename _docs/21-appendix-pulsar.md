@@ -100,7 +100,7 @@ Key-shared subscriptions give you per-key ordering *without* partitions. Unlike 
 from("pulsar:persistent://public/default/eip.orders.placed"
         + "?subscriptionName=inventory-service"
         + "&subscriptionType=Key_Shared")
-    .routeId("pulsar-key-shared")
+    .routeId("pulsar-key-shared-consumer")
     .log("Processing order — key ensures per-order ordering")
     .to("direct:check-inventory");
 ```

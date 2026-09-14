@@ -54,7 +54,7 @@ Camel's `dynamicRouter()` EIP calls a method repeatedly. The method returns the 
 
 ```java
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=dynamic-routing")
-    .routeId("dynamic-router")
+    .routeId("dynamic-router-demo")
     .unmarshal().json(Map.class)
     .dynamicRouter(method(OrderRoutingBean.class, "route"));
 ```
@@ -159,7 +159,7 @@ Camel's `wireTap()` EIP sends a copy of the exchange to another endpoint in a se
 
 ```java
 from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=order-processor")
-    .routeId("wire-tap")
+    .routeId("wire-tap-main")
     .unmarshal().json(Map.class)
     // Wire tap: send a copy to the audit stream without blocking
     .wireTap("kafka:eip.audit.orders?brokers=localhost:9092")
