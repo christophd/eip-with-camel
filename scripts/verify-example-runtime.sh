@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Start a built example, drive it, and report whether its routes actually
+# processed messages.
+#
+# The Citrus tests cover most examples. This is for the ones that ship no tests,
+# where "it builds" was previously the only evidence anyone had.
+#
+#   ./scripts/verify-example-runtime.sh <example> <runtime> [seconds] [curl-url] [curl-data]
+#
+# Requires the base stack to be up (./scripts/setup-stack.sh) and the Citrus
+# tests NOT to be running: they contend for the same host ports.
+
+set -uo pipefail
+cd "$(dirname "$0")/.." || exit 1
+
+EXAMPLE="${1:?example directory name}"
+RUNTIME="${2:?quarkus or spring-boot}"
+WAIT="${3:-35}"
+URL="${4:-}"
+DATA="${5:-}"
+
+DIR="examples/$EXAMPLE/$RUNTIME"
+LOG="${TMPDIR:-/tmp}/verify-${EXAMPLE}-${RUNTIME}.log"
+
+if [ "$RUNTIME" = "quarkus" ]; then
+  JAR="$DIR/target/quarkus-app/quarkus-run.jar"
+else
+  JAR="$(ls "$DIR"/target/*.jar 2>/dev/null | grep -v -- '-sources\|-plain' | head -1)"
+fi
+[ -f "$JAR" ] || { echo "  no built jar for $EXAMPLE/$RUNTIME — run the build first"; exit 2; }
+
+java -jar "$JAR" > "$LOG" 2>&1 &
+PID=$!
+trap 'kill -TERM $PID 2>/dev/null; wait $PID 2>/dev/null' EXIT
+
+# Wait for startup.
+for _ in $(seq 1 "$WAIT"); do
+  grep -qE 'started in|Started .*Application|Apache Camel .* started' "$LOG" && break
+  kill -0 $PID 2>/dev/null || { echo "  process died during startup"; tail -15 "$LOG"; exit 1; }
+  sleep 1
+done
+
+# Drive it, if it needs driving.
+if [ -n "$URL" ]; then
+  sleep 3
+  code=$(curl -s -o /tmp/verify-resp.txt -w '%{http_code}' --max-time 20 \
+         -X POST "$URL" -H 'Content-Type: application/json' -d "$DATA")
+  echo "  POST $URL -> HTTP $code  $(head -c 120 /tmp/verify-resp.txt)"
+fi
+
+# Let timer-driven routes turn over.
+sleep 12
+
+kill -TERM $PID 2>/dev/null
+wait $PID 2>/dev/null
+trap - EXIT
+
+routes=$(grep -cE 'Routes startup|routes started' "$LOG")
+# Count application log lines emitted from inside routes, excluding framework noise.
+activity=$(grep -cE '\] (com\.example|route[0-9]|[a-z-]+) *: ' "$LOG")
+errors=$(grep -cE 'ERROR|Exception(?!Handler)' "$LOG")
+
+echo "  startup-lines=$routes  app-log-lines=$activity  error-lines=$errors"
+echo "  log: $LOG"
+[ "$activity" -gt 0 ] && echo "  RESULT: routes processed messages" || echo "  RESULT: NO route activity observed"
