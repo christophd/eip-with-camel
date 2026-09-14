@@ -313,3 +313,84 @@ All nine steps done, on branch `iteration/camel-4.22-upgrade`. CI green.
 - **Appendix 42 is unverified** — needs a running Ollama, and the multimodal
   example needs a vision-capable model.
 - **SDKMAN install instructions unverified** — needs a clean machine.
+
+
+---
+
+## Second pass — 2026-09-14
+
+The first close-out claimed 22 chapters verified on the strength of passing
+tests. That was wrong, and the user was right to push back. Passing tests did
+not mean working applications.
+
+### What booting the artifacts found
+
+`scripts/verify-all-runtime.sh` starts every built jar. On the first run **16 of
+54 failed to start**, including chapters already marked verified.
+
+1. **13 Quarkus examples: `NoSuchLanguageException: No language could be found
+   for: bean`.** Simple OGNL such as `${header[kafka.OFFSET]}` resolves through
+   the bean language, which on Camel Quarkus arrives with
+   `camel-quarkus-bean`. None declared it. The tests passed because
+   `citrus-camel` depends on `camel-bean`, putting it on the *test* classpath
+   only. 20-kafka-deep-dive is the clearest case: green tests, jar will not boot.
+2. **37-testing-strategies Spring Boot** declared `camel-mock` at test scope,
+   which downgraded the compile-scoped copy `camel-spring-boot-starter`
+   provides, breaking `camel-dataset-starter`'s auto-configuration.
+3. **42-ai-mcp, both runtimes.** Neither failure was Ollama: Quarkus bound a
+   chat model by a name with no `#` and then to a bean that does not exist;
+   Spring Boot's langchain4j Ollama starter is not Spring Boot 4 compatible at
+   any version.
+
+### What running the JBang appendices found
+
+39, 40 and 41 have no Maven project, so nothing had ever touched them. All three
+were broken: `camel.rest.port` is not honoured (`--port` is a flag),
+`camel.rest.binding-mode` caused double unmarshalling, chapter 39's REST path
+had a trailing slash and its enricher read fields off the wrong body, nothing
+seeded the Redis it looks up, and chapter 40's generator used `%` — which
+Camel's Simple language does not have — so it never started.
+
+`loan-broker`'s demo generator emitted no `requestId`, the correlation key for
+the entire Scatter-Gather, so its own traffic always failed in the aggregator.
+
+### What the prose audit found
+
+Chapter 01 claimed Avro/Apicurio wiring "in every Kafka-based example" — there
+is none. Chapters 06 and 13 made the same class of claim. Chapter 20 had the
+Kafka UI port wrong. Chapter 21 claimed Pulsar TTL that nothing configures.
+Chapter 02 had a snippet that does not compile. Nine more route ids did not
+match the example they pointed at.
+
+### Final state
+
+- **56/56** Maven projects build and pass their tests.
+- **54/54** built artifacts boot.
+- **116/116** chapter Java snippets compile.
+- **43/43** chapters verified, each stating what was actually exercised.
+- Content validator clean, including external links.
+
+### Checks added, so this is not left to noticing
+
+| Script | Finds |
+|---|---|
+| `verify-all-runtime.sh` | Artifacts that build and test but will not start |
+| `verify-example-runtime.sh` | Whether routes actually process messages |
+| `verify-jbang-example.sh` | The three appendices with no Maven project |
+| `compile-chapter-snippets.sh` | Chapter Java that does not compile |
+| `audit-prose-vs-code.py` | Numeric claims with no matching value in the code |
+| `audit-prose-identifiers.py` | Identifiers named in prose that do not exist |
+| `validate-content.py` | Endpoint schemes, YAML shape, config keys, stale versions, dead links |
+| `check-chapter-parity.py` | Chapter route ids against the example's |
+
+### Still outstanding
+
+- **Testcontainers runs on Docker, not Podman.** The podman socket does not
+  exist despite the systemd unit reporting active. Appendix 41 documents how to
+  check; reconciling the project onto one engine is not done.
+- **431 chapter/example identifier divergences remain**, deliberately: chapters
+  show variants the examples implement once.
+- **Tool invocation in appendix 42 was not observed.** `llama3.2` does not
+  reliably call tools; the chapter says so and names models that do.
+- **SDKMAN install instructions unverified** — needs a clean machine.
+- The branch is **not merged to main**.
