@@ -54,7 +54,10 @@ def load_schemes(catalog_path):
 def iter_files(*globs):
     for g in globs:
         for p in sorted(ROOT.glob(g)):
-            if "_site" in p.parts or "target" in p.parts:
+            # Skip build output and the runtime working directories the Camel
+            # CLI and Citrus create next to the examples.
+            if any(part == "_site" or part == "target" or part.startswith(".")
+                   for part in p.parts):
                 continue
             yield p
 
