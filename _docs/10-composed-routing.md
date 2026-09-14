@@ -252,7 +252,7 @@ A **Scatter-Gather** sends the same request to multiple recipients (scatter) and
 
 ### How Camel models it
 
-Camel's `multicast()` with an `aggregationStrategy` is the natural implementation:
+Camel's `multicast()` with an `aggregationStrategy` is the natural implementation. The snippet below adds DHL as a fourth carrier and calls the carriers over HTTP; the runnable example quotes three carriers off a Kafka rate-request topic, but the pattern and the timeout are the same:
 
 ```java
 from("direct:get-shipping-estimates")
@@ -260,7 +260,7 @@ from("direct:get-shipping-estimates")
     .log("Requesting shipping estimates for order ${body[order_id]}")
     .multicast(new LowestPriceAggregation())
         .parallelProcessing()
-        .timeout(10000)
+        .timeout(5000)
         .to("direct:quote-fedex", "direct:quote-ups", "direct:quote-dhl", "direct:quote-usps")
     .end()
     .log("Best shipping estimate: ${body[carrier]} at $${body[price]}");
@@ -325,7 +325,7 @@ Other common aggregation strategies:
 
 ### Handling partial results
 
-The `timeout(10000)` ensures the scatter-gather doesn't wait forever if a carrier is slow. If DHL doesn't respond within 10 seconds, the aggregation proceeds with the 3 responses it has. This is critical for user-facing flows — a customer waiting for a shipping estimate can't wait 60 seconds for a slow carrier.
+The `timeout(5000)` ensures the scatter-gather doesn't wait forever if a carrier is slow. If DHL doesn't respond within 5 seconds, the aggregation proceeds with the 3 responses it has. This is critical for user-facing flows — a customer waiting for a shipping estimate can't wait 60 seconds for a slow carrier.
 
 You can also set `stopOnException(false)` to continue aggregation even if one carrier throws an error (the failed carrier is excluded from the comparison).
 

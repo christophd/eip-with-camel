@@ -207,7 +207,7 @@ The normalizer translates each source format into a canonical form. But what *is
 
 A **Canonical Data Model** is a formally defined, shared schema that all services agree on. It's the lingua franca of the integration platform. Every message that flows between services conforms to this model — regardless of what the original source used.
 
-In our shipping domain, the canonical model is defined as Avro schemas in the Apicurio Registry:
+In our shipping domain, the canonical model would be defined as Avro schemas in the Apicurio Registry — the registry is in the local stack for exactly this purpose, though the runnable examples keep the canonical model as the plain Java records in `examples/domain-model/` and move it over the wire as JSON:
 
 ```json
 {

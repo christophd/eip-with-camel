@@ -146,7 +146,7 @@ Topics follow the pattern `eip.<domain>.<event>`:
 
 ### Schema evolution with Avro
 
-In a production system, event schemas evolve over time — fields get added, types change, old consumers need to keep working. We use **Apache Avro** schemas registered in **Apicurio Registry** to enforce compatibility. Each event has a `.avsc` schema file that defines its structure:
+In a production system, event schemas evolve over time — fields get added, types change, old consumers need to keep working. The usual answer is **Apache Avro** schemas registered in **Apicurio Registry**, which is why the registry is part of the local stack. An `OrderPlaced` schema would be defined like this:
 
 ```json
 {
@@ -169,7 +169,9 @@ In a production system, event schemas evolve over time — fields get added, typ
 
 Apicurio enforces **backward compatibility** by default: new schema versions can add fields with defaults but cannot remove or rename existing fields. This means a consumer built against schema v1 can still read messages produced with schema v2 — a critical property for zero-downtime deployments.
 
-Camel integrates with Apicurio through the `camel-kafka` component's serializer/deserializer configuration. You'll see this wiring in every Kafka-based example.
+Camel integrates with Apicurio through the `camel-kafka` component's serializer and deserializer configuration.
+
+**The examples in this tutorial do not use it.** Every route marshals and unmarshals **JSON** with `camel-jackson`, and no example registers or resolves a schema. That is a deliberate tradeoff: an Avro-plus-registry setup adds a schema file, a serializer configuration and a registry round-trip to every example, none of which is the pattern being taught. Where a chapter shows an Avro schema, read it as the production shape of the idea rather than as something you will find wired into `examples/`.
 
 {% include excalidraw.html file="01-stack-architecture" alt="Diagram showing the local infrastructure stack — Kafka, Pulsar, Redis, PostgreSQL, Apicurio, and the LGTM observability overlay" caption="Figure 1.2 — Local stack architecture" %}
 

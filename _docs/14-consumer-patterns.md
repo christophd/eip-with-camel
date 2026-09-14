@@ -219,7 +219,7 @@ You can scale competing consumers at two levels:
 
 {% include excalidraw.html file="14-consumer-scaling" alt="Two application instances each with two consumer threads, distributing 12 Kafka partitions evenly — 3 partitions per thread" caption="Figure 14.1 — Competing consumer scaling: 2 instances × 2 threads = 4 consumers, each assigned 3 of 12 partitions." %}
 
-Adding a third instance with `consumersCount=2` would trigger a rebalance, redistributing partitions to 2 per thread (12 partitions ÷ 6 threads).
+Adding a third instance, still at two threads each, would trigger a rebalance and redistribute to 2 partitions per thread (12 partitions ÷ 6 threads). The figure uses two threads per instance to keep the arithmetic legible; the route above sets `consumersCount=3`, which would give 9 threads across three instances and leave 3 of them idle against a 12-partition topic only once you reach four instances.
 
 ### The partition ceiling
 
@@ -294,7 +294,7 @@ The `toD()` (dynamic to) resolves the endpoint URI at runtime from the message b
 
 **Event-driven consumers without backpressure.** If the consumer processes slower than messages arrive, the internal buffer grows unbounded. Use `maxPollRecords` to limit batch size and let the Kafka client pause fetching until the current batch is processed.
 
-**Dispatchers without a fallback.** If `toD("direct:handle-${body[event_type]}")` encounters an unknown event type, the `direct:handle-UnknownType` endpoint doesn't exist and the route throws `NoSuchEndpointException`. Add a `doTry`/`doCatch` or validate the type before dispatching.
+**Dispatchers without a fallback.** If `toD("direct:handle-${body[event_type]}")` encounters an event type with no matching handler, the computed endpoint does not exist and the route throws `NoSuchEndpointException`. The runnable example avoids this the same way it closes the injection hole above: it checks `event_type` against an allow-list and sends anything unrecognised to `direct:handle-order_unknown` through an `otherwise` branch, so an unexpected value is logged rather than fatal.
 
 ## References
 

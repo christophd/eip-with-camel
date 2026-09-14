@@ -169,11 +169,19 @@ A **Message Bus** is a shared messaging infrastructure that provides a common, s
 In our shipping domain, the message bus is the combination of:
 
 1. **Kafka** — the broker (and Pulsar for specific use cases).
-2. **Apicurio Registry** — schema governance, ensuring all services agree on event formats.
-3. **Topic naming convention** — `eip.<domain>.<event>`, followed by every service.
-4. **Serialization standard** — Avro with Apicurio-backed serializers/deserializers.
-5. **Camel Quarkus** — the programming model, providing a consistent way to define routes.
-6. **Shared configuration** — Connection strings, serializer classes, consumer group naming conventions, all defined once in a parent POM or shared configuration.
+2. **Apicurio Registry** — schema governance, so all services agree on event formats.
+3. **Topic naming convention** — `eip.<domain>.<event>`.
+4. **Serialization standard** — one agreed format, applied everywhere.
+5. **Camel on a common runtime** — the programming model, providing a consistent way to define routes. This tutorial uses Quarkus and Spring Boot; what matters for the bus is that the routing model is the same on both.
+6. **Shared configuration** — Connection strings, serializer classes, consumer group naming conventions, all defined once rather than repeated per service.
+
+**What the examples in this tutorial actually do**, which is worth stating plainly because a bus is only as real as its conventions:
+
+- The pattern chapters follow `eip.<domain>.<event>` throughout. The two case studies do not — [Loan Broker]({{ '/docs/28-appendix-loan-broker/' | relative_url }}) uses `loan.*` and [Bond Trading]({{ '/docs/29-appendix-bond-trading/' | relative_url }}) uses `bond.*`, because each models a separate business domain rather than the shipping one.
+- Serialization is **JSON**, via `camel-jackson`, in every example. Avro with Apicurio-backed serializers is the stronger production choice — it gives you schema enforcement and compatibility checking rather than hoping producers and consumers agree — but JSON keeps the routes readable on the page, which matters more in a tutorial.
+- Apicurio runs in the local stack and is used by the integration tests' infrastructure, but no example route registers or resolves a schema through it.
+
+That gap between the described bus and the implemented one is itself the lesson: a message bus is conventions plus enforcement, and conventions nobody enforces drift. In production, the registry is what stops that.
 
 ### How Camel models it
 
