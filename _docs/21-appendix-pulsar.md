@@ -6,7 +6,7 @@ description: "Topics, subscriptions, schema registry, per-message TTL, and Pulsa
 duration: "30 minutes"
 ---
 
-Apache Pulsar appears in this tutorial wherever its features provide a better fit than Kafka: per-message TTL (Message Expiration), key-shared subscriptions (ordered competing consumers), and native schema enforcement. This appendix covers the Pulsar concepts that differentiate it from Kafka and how Camel integrates with them.
+Apache Pulsar appears in this tutorial wherever its features provide a better fit than Kafka: key-shared subscriptions (ordered competing consumers), shared subscriptions, and dead-letter topics. This appendix covers those, and also the Pulsar concepts that differentiate it from Kafka more broadly — per-message TTL, namespace retention policies and native schema enforcement. Those last three are explained rather than exercised: the runnable example implements the subscription types and the dead-letter topic, and does not configure TTL or a schema.
 
 The code is in `examples/21-pulsar-deep-dive/`.
 

@@ -158,7 +158,7 @@ kafka-topics.sh --create \
 
 ## Monitoring Kafka with Camel
 
-Our stack includes Kafka UI at `http://localhost:8180`. For programmatic monitoring:
+Our stack includes Kafka UI at `http://localhost:8090`. For programmatic monitoring:
 
 ```java
 // Monitor consumer lag via JMX beans

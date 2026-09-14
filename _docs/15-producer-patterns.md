@@ -160,6 +160,8 @@ from("kafka:eip.shipping.scheduled?brokers=localhost:9092&groupId=shipping-servi
 
 For our shipping domain, Redis is already in the stack — so `RedisIdempotentRepository` is the natural choice for production. The idempotent key is `event_id` from the event envelope (Chapter 07 / 12).
 
+The runnable Redis example in [Appendix G]({{ '/docs/22-appendix-redis/' | relative_url }}) does the deduplication by hand against Redis rather than through `RedisIdempotentRepository`, so the mechanics are visible on the page. Reach for the repository in real code: it handles the eviction, expiry and concurrent-claim edge cases that a hand-rolled check quietly skips.
+
 ### Why `event_id` matters
 
 This is why we put `event_id` in the event envelope from the beginning. Without a unique per-message ID, you'd have to use a combination of fields (`order_id` + `event_type` + timestamp) for deduplication — which is fragile. A UUID per event makes idempotent consumption straightforward.
