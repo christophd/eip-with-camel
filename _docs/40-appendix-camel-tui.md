@@ -506,13 +506,15 @@ This is useful for correlating Camel processing with upstream and downstream ser
 
 ## AI integration
 
-The TUI includes an experimental AI panel, activated with:
+The TUI includes an AI panel, reachable with `F8` and activated with:
 
 ```bash
 camel tui --mcp
 ```
 
 This starts an embedded MCP (Model Context Protocol) server that exposes the running integration's state — routes, exchanges, errors, configuration — to an AI assistant. The AI panel appears as an additional tab where you can interact using natural language and slash commands.
+
+Camel 4.22 promoted the embedded MCP Server from Preview to **Stable**, alongside the CLI and the TUI themselves.
 
 ### Slash commands
 
@@ -522,7 +524,19 @@ This starts an embedded MCP (Model Context Protocol) server that exposes the run
 | `/suggest` | Suggest improvements to route design, error handling, or performance |
 | `/debug` | Help debug a failed exchange — analyze the stack trace, exchange context, and route configuration |
 
-The AI panel connects to Claude, GPT, or local models via MCP. The MCP server provides the model with structured context about the running integration, so the AI's responses are grounded in the actual route definitions and runtime state rather than generic advice.
+The AI panel connects to Claude, GPT, Gemini, or local models via MCP. The MCP server provides the model with structured context about the running integration, so the AI's responses are grounded in the actual route definitions and runtime state rather than generic advice.
+
+### Choosing a provider
+
+The panel (and `camel ask` on the CLI) picks a provider from the environment, in this order:
+
+| Provider | Detected when | Notes |
+|----------|---------------|-------|
+| Azure OpenAI | `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` are set | Optionally `AZURE_OPENAI_DEPLOYMENT_NAME` and `AZURE_OPENAI_API_VERSION`. Authenticates with an `api-key` header rather than `Authorization: Bearer` |
+| Google Gemini | `GEMINI_API_KEY` is set | Uses the `generativelanguage.googleapis.com` API with function calling. With `--api-type=gemini`, `GOOGLE_API_KEY` is also accepted |
+| OpenAI | neither of the above | The fallback |
+
+Azure and Gemini detection are both new in Camel 4.22.
 
 ### Example interaction
 
@@ -532,7 +546,7 @@ Select a failed exchange in the Errors tab, switch to the AI panel, and type `/d
 
 ### Themes
 
-The TUI supports dark and light themes. Toggle between them from the Actions menu (`F2`) or set the default at launch:
+The TUI supports dark and light themes. Set the default at launch:
 
 ```bash
 camel tui --theme=light
@@ -540,6 +554,22 @@ camel tui --theme=dark
 ```
 
 The dark theme (default) uses a dark background with light text and color-coded status indicators. The light theme inverts the palette for terminals with light backgrounds.
+
+Since Camel 4.22 the themes are backed by CSS stylesheets and `F4` toggles between them at runtime, without restarting the TUI. The choice is persisted as `camel.tui.theme`, so the next session starts the way you left it. When `--theme` is omitted, that persisted value is what the TUI uses.
+
+### Settings
+
+The Actions menu (`F2`) has a **Settings…** entry for the three preferences worth making sticky:
+
+| Key | Setting |
+|-----|---------|
+| `camel.tui.theme` | Dark or light palette |
+| `camel.tui.startTab` | Which tab the TUI opens on |
+| `camel.tui.defaultFolder` | The folder the TUI runs routes from |
+
+These live in the Camel CLI configuration file, which Camel 4.22 renamed from `camel-jbang-user.properties` to `camel-cli.properties` — globally at `~/.camel-cli.properties`, or locally at `./camel-cli.properties` for a per-project override. The CLI renames a pre-existing file for you on first run and never overwrites an existing one.
+
+Each key is written back to whichever file it currently lives in, so a key you set locally stays a project override while everything else falls back to the global file.
 
 ### Recording
 
@@ -564,7 +594,8 @@ Screenshot export captures the current TUI state as a static file:
 | `1`-`0` | Switch to tab 1 through 10 |
 | `Tab` | Next tab |
 | `Shift+Tab` | Previous tab |
-| `F2` | Actions menu |
+| `F2` | Actions menu (includes Settings…) |
+| `F4` | Toggle between the dark and light theme |
 | `q` | Quit the TUI |
 | `/` | Search or filter within the current tab |
 | `Enter` | Select an item or drill down |

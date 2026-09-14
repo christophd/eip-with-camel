@@ -359,6 +359,48 @@ podman-compose -f examples/_infra/compose.yaml \
 podman-compose -f examples/_infra/compose.yaml down -v
 ```
 
+## Turning off the demo data generators
+
+Most examples ship a timer-driven route that manufactures sample traffic, so
+that starting an example gives you something to watch without having to publish
+messages by hand. That is convenient when you are reading a chapter and
+unhelpful when you are running the integration tests, so each generator sits
+behind a configuration flag that defaults to `true`.
+
+Set the flag to `false` to start an example with its routes in place but no
+synthetic traffic flowing:
+
+{% include codetabs.html langs="Quarkus|Spring Boot" %}
+
+```bash
+# Quarkus
+mvn quarkus:dev -Deip.demo.data.generator.enabled=false
+```
+
+```bash
+# Spring Boot
+mvn spring-boot:run -Dspring-boot.run.arguments=--eip.demo.data.generator.enabled=false
+```
+
+The flags follow the route they control, so an example with more than one
+generator has more than one flag:
+
+| Flag | Controls |
+|------|----------|
+| `eip.demo.data.generator.enabled` | The general-purpose order generator, used by most examples |
+| `eip.pulsar.demo.data.generator.enabled` | The Pulsar order generator |
+| `eip.redis.demo.data.generator.enabled` | The Redis order generator |
+| `eip.pulsar.producer.enabled` | The Pulsar keyed and shared-subscription producers |
+| `eip.partitioned.producer.enabled` | The Kafka partitioned producer |
+| `eip.consumer.lag.monitor.enabled` | The Kafka consumer lag monitor |
+| `eip.distributed.lock.enabled` | The Redis distributed lock demo |
+| `eip.gateway.demo.enabled` | The messaging gateway demo timer |
+| `eip.test.message.injector.enabled` | The synthetic test-message injector |
+
+Every flag defaults to `true`, so the examples behave exactly as the chapters
+describe unless you turn something off. The Citrus integration tests set them to
+`false` themselves; you do not need to do it for them.
+
 ## What you learned
 
 - Java 25 via SDKMAN, Maven 3.9+, and how to ensure they're wired together.
@@ -373,4 +415,5 @@ Next, we'll meet the shipping domain that drives every example in this tutorial 
 ---
 
 *Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Builds against Quarkus 3.39.3 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack.*
-Confirm: SDKMAN install commands work on a clean machine; `setup-stack.sh` brings all containers to healthy on Podman 5.x; PostgreSQL init-schemas.sql creates all five schemas; Apicurio health endpoint responds at 8081.*
+
+*To confirm on re-verification: SDKMAN install commands work on a clean machine; `setup-stack.sh` brings all containers to healthy on Podman 5.x; PostgreSQL init-schemas.sql creates all five schemas; Apicurio health endpoint responds at 8081.*

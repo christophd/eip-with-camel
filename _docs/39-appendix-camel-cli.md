@@ -10,6 +10,8 @@ Every YAML DSL example in this tutorial uses a single command to run: `camel run
 
 This appendix covers both roles in depth. By the end you will know how to prototype a route, debug it interactively, and export it into a production-ready Maven project — the complete lifecycle from idea to deployment.
 
+Camel 4.22 promoted the CLI, the TUI and the embedded MCP Server from Preview to **Stable**, so the commands below are no longer subject to the looser compatibility rules that apply to preview features.
+
 The code is in `examples/39-camel-cli/`.
 
 ```bash
@@ -207,15 +209,27 @@ You can also use the `camel dev` alias, which is equivalent to `camel run --dev`
 camel dev *.yaml
 ```
 
-### OpenAPI generation
+### OpenAPI
 
-If your route defines a REST DSL configuration, the CLI can generate an OpenAPI specification:
+Two different things share the OpenAPI name here, and it is worth keeping them apart.
+
+**Serving the spec your REST DSL already describes.** Camel 4.22 added `--openapi-ui`, accepted by `camel run`, `camel dev` and `camel debug`. It exposes Swagger UI for your REST DSL routes on the embedded HTTP server:
 
 ```bash
-camel run --open-api order-router.yaml
+camel run order-router.yaml --openapi-ui
 ```
 
-This starts the route and serves the generated OpenAPI document at `http://localhost:8088/api-docs`. Useful for sharing an API contract with frontend teams while the route is still a prototype.
+Swagger UI is served at `/q/openapi` and the raw document at `/q/openapi.json`. This is the one you want for sharing an API contract with frontend teams while the route is still a prototype.
+
+The flag is gated as developer-only (`insecure:dev`) through `camel.jbang.openapiUi` and `camel.management.openapiUiEnabled`, so it is not something you leave switched on in production. It also sets `camel.rest.component=platform-http` and `camel.rest.apiContextPath=/q/openapi.json` as override properties, which take precedence over anything in `application.properties`. If you pass `--port` without `--management-port`, the management server binds to the same port so the UI and the spec stay together.
+
+**Scaffolding routes from a spec someone gave you.** That is `--open-api`, which reads a JSON or YAML OpenAPI document and generates the REST DSL skeleton from it:
+
+```bash
+camel run --open-api orders-api.yaml
+```
+
+The direction is the opposite of `--openapi-ui`: the spec is the input, not the output.
 
 ## Developer console
 
@@ -559,6 +573,8 @@ The route logic does not change. The YAML files are byte-for-byte identical. Wha
 | `--package-name` | Java package for generated classes | `--package-name=com.eipbook.router` |
 | `--fresh` | Delete existing target directory before export | `--fresh` |
 
+Since Camel 4.22 the CLI resolves the Quarkus version to use rather than falling back to a hardcoded one, so `--quarkus-version` is genuinely an override now rather than the only way to avoid a stale default.
+
 ## The update command
 
 Camel evolves rapidly — new components, deprecated APIs, breaking changes between major versions. The `camel update` command helps you keep your routes current.
@@ -712,6 +728,32 @@ A complete reference of CLI commands, grouped by category.
 | `camel kubernetes run <files>` | Deploy routes to the current Kubernetes context |
 | `camel kubernetes logs <name>` | Stream logs from a deployed integration |
 | `camel kubernetes delete <name>` | Delete a deployed integration |
+
+## Diagrams and topology from source
+
+`camel cmd route-diagram` renders a route as a diagram in the terminal, and `camel cmd route-topology` shows how routes connect to one another.
+
+Both used to need a running integration to point at, which made them awkward for reviewing a route you had not started yet. Since Camel 4.22 they also accept route source files directly, and both take a set of files rather than one:
+
+```bash
+camel cmd route-diagram routes/*.yaml
+camel cmd route-topology routes/*.yaml
+```
+
+That makes them usable at design time — on a branch, in review, before any infrastructure is up.
+
+Under the covers these use `camel.main.dumpRoutes=json`, which also writes a `route-topology.json` alongside the per-route structure files when topology dumping is enabled, as it is by default. Camel 4.22 always writes that file, with empty `nodes` and `edges` arrays when there is nothing to connect, so its presence is a reliable signal that the dump finished. Earlier versions skipped it silently when there were no routes.
+
+## Configuration file
+
+The CLI keeps user preferences — including the TUI settings from [Appendix V]({{ '/docs/40-appendix-camel-tui/' | relative_url }}) — in a properties file. Camel 4.22 renamed it from `camel-jbang-user.properties` to `camel-cli.properties`:
+
+| Scope | Path |
+|-------|------|
+| Global | `~/.camel-cli.properties` |
+| Project override | `./camel-cli.properties` |
+
+The global file is a hidden dotfile and the local one is visible, which is the same convention as before. On first run the CLI renames a pre-existing file of the old name at either scope, and never overwrites a file that already exists under the new name.
 
 ## Prototype-to-production workflow
 
