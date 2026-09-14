@@ -425,7 +425,7 @@ The `kafka.brokers` property placeholder is shared — both runtimes resolve `{%
 - [enterpriseintegrationpatterns.com — Content Enricher](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DataEnricher.html)
 - [enterpriseintegrationpatterns.com — Content Filter](https://www.enterpriseintegrationpatterns.com/patterns/messaging/ContentFilter.html)
 - [Apache Camel — Data Formats](https://camel.apache.org/manual/data-format.html)
-- [Apache Camel — Content Enricher](https://camel.apache.org/components/4.20.x/eips/content-enricher.html)
+- [Apache Camel — Content Enricher](https://camel.apache.org/components/4.22.x/eips/content-enricher.html)
 
 ## What you learned
 
@@ -438,4 +438,4 @@ Next: structural transformation — Aggregator, Normalizer, and Canonical Data M
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Both runtime variants compile against Quarkus 3.39.3 / Camel 4.22.0 and Spring Boot 4.1.1 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack.*

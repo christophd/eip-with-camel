@@ -42,7 +42,7 @@ Test dependencies are declared in `jbang.properties` alongside your route files.
 
 ```properties
 # Citrus testing dependencies
-camel.jbang.dependencies=org.citrusframework:citrus-camel:4.4.0,org.citrusframework:citrus-kafka:4.4.0,org.citrusframework:citrus-http:4.4.0
+camel.jbang.dependencies=org.citrusframework:citrus-camel:5.0.1,org.citrusframework:citrus-kafka:5.0.1,org.citrusframework:citrus-http:5.0.1
 ```
 
 | Artifact | Purpose |
@@ -588,13 +588,13 @@ Key details of the exported project:
 <dependency>
     <groupId>org.citrusframework</groupId>
     <artifactId>citrus-camel</artifactId>
-    <version>4.4.0</version>
+    <version>5.0.1</version>
     <scope>test</scope>
 </dependency>
 <dependency>
     <groupId>org.citrusframework</groupId>
     <artifactId>citrus-kafka</artifactId>
-    <version>4.4.0</version>
+    <version>5.0.1</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -798,8 +798,8 @@ End-to-end smoke tests        —  5% of test suite  — run nightly or pre-rele
 
 ## Further reading
 
-- [Citrus Framework documentation](https://citrusframework.org/citrus/reference/4.4.0/html/index.html)
-- [Citrus Camel module](https://citrusframework.org/citrus/reference/4.4.0/html/index.html#camel)
+- [Citrus Framework documentation](https://citrusframework.org/citrus/reference/5.0.1/html/index.html)
+- [Citrus Camel module](https://citrusframework.org/citrus/reference/5.0.1/html/index.html#camel)
 - [Apache Camel — Testing with the CLI](https://camel.apache.org/manual/camel-jbang-testing.html)
 - [Testcontainers for Java](https://java.testcontainers.org/)
 - Appendix S — Testing Strategies for Camel Quarkus (Camel-native testing)
@@ -807,4 +807,4 @@ End-to-end smoke tests        —  5% of test suite  — run nightly or pre-rele
 
 ---
 
-*Verification status: unverified. Citrus features reference Citrus 4.4.0 and Apache Camel 4.20.0.*
+*Verification status: unverified. Citrus features reference Citrus 5.0.1 and Apache Camel 4.22.0.*

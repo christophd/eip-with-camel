@@ -430,8 +430,8 @@ Each pattern solves one specific problem. Together, they make asynchronous conve
 - [enterpriseintegrationpatterns.com — Message Sequence](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageSequence.html)
 - [enterpriseintegrationpatterns.com — Message Expiration](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageExpiration.html)
 - [enterpriseintegrationpatterns.com — Format Indicator](https://www.enterpriseintegrationpatterns.com/patterns/messaging/FormatIndicator.html)
-- [Apache Camel — Splitter EIP](https://camel.apache.org/components/4.20.x/eips/split-eip.html)
-- [Apache Camel — Aggregator EIP](https://camel.apache.org/components/4.20.x/eips/aggregate-eip.html)
+- [Apache Camel — Splitter EIP](https://camel.apache.org/components/4.22.x/eips/split-eip.html)
+- [Apache Camel — Aggregator EIP](https://camel.apache.org/components/4.22.x/eips/aggregate-eip.html)
 
 ## What you learned
 
@@ -446,4 +446,4 @@ This completes Part 4 — Message Construction. Next: Part 5 — Message Routing
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. YAML DSL routes provided for Camel CLI.*
+*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Both runtime variants compile against Quarkus 3.39.3 / Camel 4.22.0 and Spring Boot 4.1.1 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack. YAML DSL routes provided for Camel CLI.*

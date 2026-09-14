@@ -73,7 +73,7 @@ This installs the `camel` command globally. Verify:
 
 ```bash
 camel version
-# Apache Camel CLI (JBang) 4.20.0
+# Apache Camel CLI (JBang) 4.22.0
 ```
 
 ### What the Camel CLI gives you
@@ -144,12 +144,12 @@ No special `settings.xml` is needed. All dependencies come from Maven Central, a
 
 | Dependency | Version |
 |-----------|---------|
-| Apache Camel | 4.20.0 |
+| Apache Camel | 4.22.0 |
 | Camel Quarkus | 3.36.0 |
-| Quarkus | 3.37.0 |
-| Camel Spring Boot | 4.20.0 |
-| Spring Boot | 4.0.7 |
-| Camel CLI (JBang) | 4.20.0 |
+| Quarkus | 3.39.3 |
+| Camel Spring Boot | 4.22.0 |
+| Spring Boot | 4.1.1 |
+| Camel CLI (JBang) | 4.22.0 |
 | Drools | 10.2.0 |
 
 You'll see these in the `<dependencyManagement>` section of every `pom.xml`. When a new Camel release ships, upgrading is a BOM version bump in Maven and `camel version set 4.x.x` for the CLI.
@@ -372,5 +372,5 @@ Next, we'll meet the shipping domain that drives every example in this tutorial 
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — infrastructure stack verified against Podman, Quarkus 3.37.0, Camel 4.20.0 (2026-07-11).*
+*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Builds against Quarkus 3.39.3 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack.*
 Confirm: SDKMAN install commands work on a clean machine; `setup-stack.sh` brings all containers to healthy on Podman 5.x; PostgreSQL init-schemas.sql creates all five schemas; Apicurio health endpoint responds at 8081.*

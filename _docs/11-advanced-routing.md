@@ -396,10 +396,10 @@ For Kafka-based workloads, let Kafka handle the distribution through consumer gr
 - [enterpriseintegrationpatterns.com — Wire Tap](https://www.enterpriseintegrationpatterns.com/patterns/messaging/WireTap.html)
 - [enterpriseintegrationpatterns.com — Resequencer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Resequencer.html)
 - [enterpriseintegrationpatterns.com — Composed Message Processor](https://www.enterpriseintegrationpatterns.com/patterns/messaging/DistributionAggregate.html)
-- [Apache Camel — Dynamic Router EIP](https://camel.apache.org/components/4.20.x/eips/dynamicRouter-eip.html)
-- [Apache Camel — Wire Tap EIP](https://camel.apache.org/components/4.20.x/eips/wireTap-eip.html)
-- [Apache Camel — Resequencer EIP](https://camel.apache.org/components/4.20.x/eips/resequence-eip.html)
-- [Apache Camel — Load Balance EIP](https://camel.apache.org/components/4.20.x/eips/loadBalance-eip.html)
+- [Apache Camel — Dynamic Router EIP](https://camel.apache.org/components/4.22.x/eips/dynamicRouter-eip.html)
+- [Apache Camel — Wire Tap EIP](https://camel.apache.org/components/4.22.x/eips/wireTap-eip.html)
+- [Apache Camel — Resequencer EIP](https://camel.apache.org/components/4.22.x/eips/resequence-eip.html)
+- [Apache Camel — Load Balance EIP](https://camel.apache.org/components/4.22.x/eips/loadBalance-eip.html)
 
 ## What you learned
 
@@ -413,4 +413,4 @@ This completes Part 5 — Message Routing (12 patterns across 3 chapters). Next:
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. YAML DSL routes provided for Camel CLI.*
+*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Both runtime variants compile against Quarkus 3.39.3 / Camel 4.22.0 and Spring Boot 4.1.1 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack. YAML DSL routes provided for Camel CLI.*

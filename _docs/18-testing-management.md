@@ -280,7 +280,7 @@ from("kafka:eip.shipping.scheduled?brokers=localhost:9092&groupId=carrier-adapte
         .resilience4jConfiguration()
             .slidingWindowSize(10)
             .failureRateThreshold(50)
-            .waitDurationInOpenState(30)
+            .waitDurationInOpenState("30s")
         .end()
         .log("Calling carrier API for shipment ${body[shipment_id]}")
         .marshal().json()
@@ -322,7 +322,7 @@ from("direct:adapter-metrics")
 - [enterpriseintegrationpatterns.com — Detour](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Detour.html)
 - [enterpriseintegrationpatterns.com — Smart Proxy](https://www.enterpriseintegrationpatterns.com/patterns/messaging/SmartProxy.html)
 - [Apache Camel — Testing](https://camel.apache.org/manual/testing.html)
-- [Apache Camel — Circuit Breaker](https://camel.apache.org/components/4.20.x/eips/circuitBreaker-eip.html)
+- [Apache Camel — Circuit Breaker](https://camel.apache.org/components/4.22.x/eips/circuitBreaker-eip.html)
 - [Quarkus — Configuration Reference](https://quarkus.io/guides/config-reference)
 
 ## What you learned
@@ -336,4 +336,4 @@ This completes Part 8 — System Management (8 patterns across 2 chapters) — a
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Both runtime variants compile against Quarkus 3.39.3 / Camel 4.22.0 and Spring Boot 4.1.1 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack.*

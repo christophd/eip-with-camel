@@ -352,9 +352,9 @@ Wire taps feed the metrics pillar. OpenTelemetry feeds traces. Structured loggin
 - [enterpriseintegrationpatterns.com — Message Store](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageStore.html)
 - [enterpriseintegrationpatterns.com — Message History](https://www.enterpriseintegrationpatterns.com/patterns/messaging/MessageHistory.html)
 - [enterpriseintegrationpatterns.com — Wire Tap](https://www.enterpriseintegrationpatterns.com/patterns/messaging/WireTap.html)
-- [Apache Camel — Control Bus Component](https://camel.apache.org/components/4.20.x/controlbus-component.html)
+- [Apache Camel — Control Bus Component](https://camel.apache.org/components/4.22.x/controlbus-component.html)
 - [Apache Camel — Message History](https://camel.apache.org/manual/message-history.html)
-- [Apache Camel — OpenTelemetry](https://camel.apache.org/components/4.20.x/others/opentelemetry.html)
+- [Apache Camel — OpenTelemetry](https://camel.apache.org/components/4.22.x/others/opentelemetry.html)
 
 ## What you learned
 
@@ -367,4 +367,4 @@ Next: testing and management patterns — Test Message, Detour, Smart Proxy, and
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. YAML DSL routes provided for Camel CLI.*
+*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Both runtime variants compile against Quarkus 3.39.3 / Camel 4.22.0 and Spring Boot 4.1.1 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack. YAML DSL routes provided for Camel CLI.*

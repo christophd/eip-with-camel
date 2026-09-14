@@ -379,10 +379,10 @@ The `kafka.brokers` property placeholder is shared — both runtimes resolve `{%
 - [enterpriseintegrationpatterns.com — Message Filter](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Filter.html)
 - [enterpriseintegrationpatterns.com — Recipient List](https://www.enterpriseintegrationpatterns.com/patterns/messaging/RecipientList.html)
 - [enterpriseintegrationpatterns.com — Splitter](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Sequencer.html)
-- [Apache Camel — Choice EIP](https://camel.apache.org/components/4.20.x/eips/choice-eip.html)
-- [Apache Camel — Filter EIP](https://camel.apache.org/components/4.20.x/eips/filter-eip.html)
-- [Apache Camel — Recipient List EIP](https://camel.apache.org/components/4.20.x/eips/recipientList-eip.html)
-- [Apache Camel — Splitter EIP](https://camel.apache.org/components/4.20.x/eips/split-eip.html)
+- [Apache Camel — Choice EIP](https://camel.apache.org/components/4.22.x/eips/choice-eip.html)
+- [Apache Camel — Filter EIP](https://camel.apache.org/components/4.22.x/eips/filter-eip.html)
+- [Apache Camel — Recipient List EIP](https://camel.apache.org/components/4.22.x/eips/recipientList-eip.html)
+- [Apache Camel — Splitter EIP](https://camel.apache.org/components/4.22.x/eips/split-eip.html)
 
 ## What you learned
 
@@ -395,4 +395,4 @@ Next, we compose these primitives into multi-step routing patterns: the Routing 
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. YAML DSL routes provided for Camel CLI.*
+*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Both runtime variants compile against Quarkus 3.39.3 / Camel 4.22.0 and Spring Boot 4.1.1 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack. YAML DSL routes provided for Camel CLI.*

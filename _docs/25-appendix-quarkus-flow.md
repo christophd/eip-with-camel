@@ -205,5 +205,5 @@ public class InventoryChecker {
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> on Quarkus 3.37 / Camel 4.20 / Java 25.
+*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Builds against Quarkus 3.39.3 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack.*
 Example `25-quarkus-flow` compiles and runs against the Podman stack.*

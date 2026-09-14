@@ -199,7 +199,7 @@ The Overview tab is the landing page. It displays all running Camel integrations
 | **PID** | Operating system process ID |
 | **Status** | `Started`, `Stopped`, `Suspended` |
 | **Uptime** | How long the integration has been running |
-| **Version** | Camel version (e.g., 4.20.0) |
+| **Version** | Camel version (e.g., 4.22.0) |
 | **Runtime** | The runtime type: `camel-jbang`, `quarkus`, `spring-boot`, or `camel-main` |
 
 With the demo routes running, you will see a single entry for the `camel-jbang` integration with status `Started`. If you were also running a Quarkus or Spring Boot application, each would appear as a separate row.
@@ -596,4 +596,4 @@ For production monitoring with alerting, dashboards, and historical data, you st
 
 ---
 
-*Verification status: unverified. TUI features reference Apache Camel 4.20.0.*
+*Verification status: unverified. TUI features reference Apache Camel 4.22.0.*

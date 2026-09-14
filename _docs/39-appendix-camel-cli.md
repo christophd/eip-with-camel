@@ -37,7 +37,7 @@ camel version
 ```
 
 ```
-Apache Camel CLI 4.20.0
+Apache Camel CLI 4.22.0
 ```
 
 The CLI ships as a single binary that delegates to JBang under the hood. When you run `camel run`, JBang resolves Camel dependencies, downloads them once, caches them locally, and starts the Camel runtime — no Maven, Gradle, or IDE required.
@@ -315,8 +315,8 @@ camel ps
 
 ```
  PID   NAME            CAMEL    RUNTIME  UPTIME   ROUTES  STATUS
- 1234  order-router    4.20.0   cli      12m 30s  2       Running
- 5678  shipping-svc    4.20.0   quarkus  2h 15m   8       Running
+ 1234  order-router    4.22.0   cli      12m 30s  2       Running
+ 5678  shipping-svc    4.22.0   quarkus  2h 15m   8       Running
 ```
 
 ### Route status
@@ -550,9 +550,9 @@ The route logic does not change. The YAML files are byte-for-byte identical. Wha
 | `--runtime` | Target runtime: `quarkus`, `spring-boot`, `main` (standalone Camel Main) | `--runtime=quarkus` |
 | `--gav` | Maven group:artifact:version | `--gav=com.eipbook:order-router:1.0` |
 | `--directory` | Output directory (default: current directory) | `--directory=./exported` |
-| `--quarkus-version` | Override the Quarkus BOM version | `--quarkus-version=3.37.0` |
-| `--spring-boot-version` | Override the Spring Boot BOM version | `--spring-boot-version=4.0.7` |
-| `--camel-version` | Override the Camel version | `--camel-version=4.20.0` |
+| `--quarkus-version` | Override the Quarkus BOM version | `--quarkus-version=3.39.3` |
+| `--spring-boot-version` | Override the Spring Boot BOM version | `--spring-boot-version=4.1.1` |
+| `--camel-version` | Override the Camel version | `--camel-version=4.22.0` |
 | `--package-name` | Java package for generated classes | `--package-name=com.eipbook.router` |
 | `--fresh` | Delete existing target directory before export | `--fresh` |
 
@@ -568,7 +568,7 @@ camel update list
 
 ```
  CHECK                    STATUS    DETAIL
- Camel version            UPDATE    4.19.0 → 4.20.0
+ Camel version            UPDATE    4.21.0 → 4.22.0
  Deprecated API usage     WARNING   toD() with simple language — use to() with dynamic URI
  Removed component        OK        No removed components in use
  Property migration       WARNING   camel.component.kafka.brokerList → camel.component.kafka.brokers
@@ -826,4 +826,4 @@ The entire lifecycle — from a blank YAML file to a production Kubernetes deplo
 
 ---
 
-*Verification status: unverified. CLI commands reference Apache Camel 4.20.0.*
+*Verification status: unverified. CLI commands reference Apache Camel 4.22.0.*

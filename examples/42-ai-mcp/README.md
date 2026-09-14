@@ -57,4 +57,4 @@ curl -X POST http://localhost:8088/api/assistant/chat \
 
 ---
 
-*Verification status: unverified. LangChain4j features reference Apache Camel 4.20.0 and LangChain4j 1.0.*
+*Verification status: unverified. LangChain4j features reference Apache Camel 4.22.0 and LangChain4j 1.0.*

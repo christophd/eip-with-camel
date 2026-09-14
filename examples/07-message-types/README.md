@@ -56,4 +56,4 @@ There are no REST endpoints. All three routes are timer-driven and begin produci
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: Quarkus variant verified against Quarkus 3.39.3, Camel 4.22.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.1.1, Camel 4.22.0.*

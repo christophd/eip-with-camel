@@ -358,9 +358,9 @@ Watch the Camel logs to see the message flow through the pipeline — each `log(
 
 - Hohpe & Woolf, *Enterprise Integration Patterns*, Chapter 3: "Messaging Systems"
 - [enterpriseintegrationpatterns.com — Messaging](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Messaging.html)
-- [Apache Camel — Component Reference](https://camel.apache.org/components/4.20.x/)
-- [Apache Camel — EIP Reference](https://camel.apache.org/components/4.20.x/eips/enterprise-integration-patterns.html)
-- [Apache Camel — Simple Expression Language](https://camel.apache.org/components/4.20.x/languages/simple-language.html)
+- [Apache Camel — Component Reference](https://camel.apache.org/components/4.22.x/)
+- [Apache Camel — EIP Reference](https://camel.apache.org/components/4.22.x/eips/enterprise-integration-patterns.html)
+- [Apache Camel — Simple Expression Language](https://camel.apache.org/components/4.22.x/languages/simple-language.html)
 
 ## What you learned
 
@@ -375,5 +375,5 @@ These six building blocks are the vocabulary for the rest of this tutorial. Next
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — messaging patterns verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11).*
-Confirm: all Camel route examples compile and run with `camel run` against Camel 4.20; Kafka component header names (kafka.KEY, kafka.PARTITION, kafka.OFFSET) match actual Camel Kafka component behavior; Simple expression syntax for map access (`${body[field]}`) works as shown.*
+*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Builds against Quarkus 3.39.3 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack.*
+Confirm: all Camel route examples compile and run with `camel run` against Camel 4.22; Kafka component header names (kafka.KEY, kafka.PARTITION, kafka.OFFSET) match actual Camel Kafka component behavior; Simple expression syntax for map access (`${body[field]}`) works as shown.*

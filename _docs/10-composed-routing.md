@@ -345,9 +345,9 @@ You can also set `stopOnException(false)` to continue aggregation even if one ca
 - [enterpriseintegrationpatterns.com — Routing Slip](https://www.enterpriseintegrationpatterns.com/patterns/messaging/RoutingTable.html)
 - [enterpriseintegrationpatterns.com — Process Manager](https://www.enterpriseintegrationpatterns.com/patterns/messaging/ProcessManager.html)
 - [enterpriseintegrationpatterns.com — Scatter-Gather](https://www.enterpriseintegrationpatterns.com/patterns/messaging/BroadcastAggregate.html)
-- [Apache Camel — Routing Slip EIP](https://camel.apache.org/components/4.20.x/eips/routingSlip-eip.html)
-- [Apache Camel — Saga EIP](https://camel.apache.org/components/4.20.x/eips/saga-eip.html)
-- [Apache Camel — Multicast EIP](https://camel.apache.org/components/4.20.x/eips/multicast-eip.html)
+- [Apache Camel — Routing Slip EIP](https://camel.apache.org/components/4.22.x/eips/routingSlip-eip.html)
+- [Apache Camel — Saga EIP](https://camel.apache.org/components/4.22.x/eips/saga-eip.html)
+- [Apache Camel — Multicast EIP](https://camel.apache.org/components/4.22.x/eips/multicast-eip.html)
 
 ## What you learned
 
@@ -360,4 +360,4 @@ Next: Advanced Routing — Dynamic Router, Wire Tap, Resequencer, Composed Messa
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Both runtime variants compile against Quarkus 3.39.3 / Camel 4.22.0 and Spring Boot 4.1.1 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack.*

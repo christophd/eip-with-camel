@@ -282,7 +282,7 @@ A canonical model adds a translation layer at every system boundary. If two serv
 - [enterpriseintegrationpatterns.com — Aggregator](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Aggregator.html)
 - [enterpriseintegrationpatterns.com — Normalizer](https://www.enterpriseintegrationpatterns.com/patterns/messaging/Normalizer.html)
 - [enterpriseintegrationpatterns.com — Canonical Data Model](https://www.enterpriseintegrationpatterns.com/patterns/messaging/CanonicalDataModel.html)
-- [Apache Camel — Aggregate EIP](https://camel.apache.org/components/4.20.x/eips/aggregate-eip.html)
+- [Apache Camel — Aggregate EIP](https://camel.apache.org/components/4.22.x/eips/aggregate-eip.html)
 - [Apicurio Registry — Schema Compatibility](https://www.apicur.io/registry/)
 
 ## What you learned
@@ -295,4 +295,4 @@ This completes Part 6 — Message Transformation (7 patterns across 2 chapters).
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.37.0, Camel 4.20.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0.*
+*Verification status: unverified — not yet re-run since the Camel 4.22 upgrade. Both runtime variants compile against Quarkus 3.39.3 / Camel 4.22.0 and Spring Boot 4.1.1 / Camel 4.22.0, but the routes have not been executed on Podman against the upgraded stack.*

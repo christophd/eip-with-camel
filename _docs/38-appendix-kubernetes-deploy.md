@@ -520,4 +520,4 @@ kubectl delete namespace kafka redis
 
 ---
 
-*Verification status: unverified. Spring Boot variant compiles against Spring Boot 4.0.7, Camel 4.20.0. Quarkus variant compiles against Quarkus 3.37.0, Camel 4.20.0.*
+*Verification status: unverified. Spring Boot variant compiles against Spring Boot 4.1.1, Camel 4.22.0. Quarkus variant compiles against Quarkus 3.39.3, Camel 4.22.0.*
