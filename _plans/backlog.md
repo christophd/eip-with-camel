@@ -28,36 +28,51 @@ Everything below is what that pass did *not* close.
 
 ---
 
-## 1. LGTM stack — never started  ☐
+## 1. LGTM stack — infrastructure fixed, chapter still to reconcile  ◐
 
-The biggest real gap. Workstream 2 of the upgrade named LGTM explicitly and
-never got to it.
+**Stack side: done 2026-09-15.** `./scripts/setup-stack.sh --lgtm` now brings up
+all five services and all three signals were observed landing. Starting it for
+the first time surfaced four defects, all fixed:
 
-All five images in `examples/_infra/compose.lgtm.yaml` are pinned and every tag
-was confirmed to resolve in the registry — Grafana 13.2.1, Loki 3.7.7,
-Mimir 3.2.1, Tempo 3.0.3, OTel collector 0.160.0. But **no LGTM container has
-ever been created**, so `./scripts/setup-stack.sh --lgtm` is untested and
-chapter 27's claims about dashboards and traces rest on nothing.
+- Tempo would not start at all — `metrics_generator.traces_storage` is not a
+  field in Tempo 3.0.3, so it exited on a config parse error
+- Loki, Mimir and the collector ship **distroless** images, so their
+  `wget`-based healthchecks could never run; they sat permanently unhealthy and
+  Grafana and the collector, both waiting on `condition: service_healthy`, were
+  never created. Healthchecks removed where impossible; readiness now polled
+  from the host by `wait_ready()` in `setup-stack.sh`
+- The collector exported traces to `tempo:3200`, the query port, not the OTLP
+  receiver on 4318 — a silent no-op
+- Only traces ever left the application. The example carried the Prometheus
+  registry alone, so its 93 `camel_*` meters were exposed for a scrape nobody
+  performed, and logs went to the console. The Quarkus
+  `micrometer-opentelemetry` bridge now puts metrics and logs on the same OTLP
+  exporter as traces
 
-**Passing Citrus tests do not close this item.** Chapter 27's *routes* pass
-their Citrus tests, and its footer currently claims verification on that basis
-alone. That is the wrong evidence: the tests exercise route logic, not the
-observability overlay. The stack has to come up and telemetry has to be
-observed landing in Grafana, Mimir, Loki and Tempo before anything here is
-called verified.
+Verified with five orders through `eip.orders.placed`: traces queryable in
+Tempo, `camel_exchanges_total{routeId=...}` in Mimir, route log lines in Loki.
 
-```bash
-./scripts/setup-stack.sh --lgtm          # expect all services healthy
-# then run 27-observability-stack and confirm telemetry actually lands:
-./scripts/verify-example-runtime.sh 27-observability-stack quarkus 60
-curl -s localhost:3000/api/health        # grafana
-curl -s localhost:9009/ready             # mimir
-curl -s localhost:3100/ready             # loki
-curl -s localhost:3200/ready             # tempo
-```
+**Still open:**
 
-Then reconcile chapter 27 with what is actually observable, and rewrite its
-footer to say what was seen, not what was inferred.
+- The **Spring Boot variant** has the same gap and has not been touched. It
+  carries `micrometer-registry-prometheus` only, and its `otel.exporter.otlp.*`
+  properties have no OTel SDK behind them — it likely emits nothing at all.
+  Needs the equivalent wiring, then the same end-to-end check
+- **Chapter 27 does not match reality.** Its PromQL uses
+  `camel_exchanges_failed_total` and
+  `camel_exchanges_processing_time_seconds_bucket`; the real names via the OTLP
+  bridge are `camel_exchanges_succeeded_total` / `camel_exchanges_total` and
+  `camel_route_policy_milliseconds_bucket`. Note the bridge reports
+  **milliseconds** where the Prometheus endpoint reports **seconds** — worth
+  calling out, it is a genuine trap. Its LogQL uses `{service="order-service"}`;
+  the real label is `service_name`, alongside `bridge_name` (the route id),
+  `deployment_environment` and `detected_level`. Its Loki section teaches
+  `quarkus.log.console.json=true`, which writes JSON to stdout and ships it
+  nowhere. Its ports table claims Tempo on 4317, which is not published to the
+  host. And per item 7a, its "what gets traced automatically" list is now wrong
+  for 4.21+
+- The **footer** still claims verification on the strength of Citrus tests
+  alone. Rewrite it to say what was actually observed
 
 ## 2. Presentation deck references Camel 3.0.0  ☐
 
@@ -151,7 +166,92 @@ at Podman via `DOCKER_HOST` and a rootful socket actually works here. If it
 does, document that as the preferred path and keep Docker as the fallback. If
 it does not, say so plainly so the next person does not spend an hour on it.
 
-## 7. Close-out document review  ☐
+## 7. Camel 4.21 / 4.22 content gap  ☐
+
+Researched 2026-09-15. The upgrade was mechanical — version bumps and fixing
+what broke — so nobody looked at what 4.21 and 4.22 actually *shipped*. The
+tooling appendices (39, 40, 42) already absorbed a lot of it incidentally. The
+gap is in the core pattern chapters 02–18, which nobody revisited.
+
+Sources: the [4.21](https://camel.apache.org/manual/camel-4x-upgrade-guide-4_21.html)
+and [4.22](https://camel.apache.org/manual/camel-4x-upgrade-guide-4_22.html)
+upgrade guides and the two what's-new blogs. Note 4.22 is **LTS**; supported
+lines are now 4.18.x and 4.22.x.
+
+### 7a. Stale — chapters teaching something 4.21/4.22 changed
+
+Higher priority than the additions: these are wrong today.
+
+| Ch | Problem | Effort |
+|---|---|---|
+| 14 | `_docs/14-consumer-patterns.md:274` teaches a hand-rolled allow-list before `toD()` as the answer to URI injection. 4.22 shipped `allowedSchemes` on `toD`/`enrich` as the framework answer. The manual check is still needed for the endpoint-value problem — reframe it as the second layer, do not delete it | Small + 1 line in the example |
+| 27 | "What gets traced automatically" (line 75) is now factually wrong. 4.21 removed the redundant processor span wrapping endpoint spans (`EndpointSending`), added `disableCoreProcessors` to `camel-telemetry`, dropped ThreadLocal/Scope wrapping in `camel-opentelemetry2` and added `includePatterns`, and made `traceCustomIdOnly` filter at route level. A reader comparing the chapter to a real trace sees a different shape | Small |
+| 05, 15, 32 | All three teach `allowManualCommit=true` and assert at-least-once. True only from 4.22: before it, the framework auto-committed every processed record even when the route never called `commit()`. The code is unchanged and correct — the *guarantee* is new. Good teaching moment | Small, one paragraph in 32, cross-ref from 05 |
+| 10 | The Saga example's runtime behaviour changed — `InMemorySagaCoordinator` now returns the real finalization future, so the exchange waits for compensation and propagates failure instead of logging a warning. Better pedagogically, but undocumented. Re-run the example to confirm the log ordering in the prose still holds | Small–medium |
+| 13 | Recommends `JdbcAggregationRepository` for production. 4.22 fixed a real correctness bug there (`INSERT … ON CONFLICT` was missing the `version` column), added schema-qualified table names, and made `remove()` throw on stale delete. 4.21 separately fixed `RedisAggregationRepository` to use per-key locks — relevant to ch 22 | Small |
+| 39 | Installation/Upgrading teach `jbang app install camel@apache/camel`. 4.22 made the canonical path a web installer (`curl -fsSL https://camel.apache.org/install.sh \| sh`) and added `camel self-update` and a `camel doctor` that reports conflicting installs. Note `camel update` (OpenRewrite) is a *different* command the chapter already covers | Small |
+
+Verified as **not** affected, so do not spend time re-checking: removed
+components (stomp, aws-xray, guava-eventbus, grape, elytron, github), the newly
+deprecated list, the Resilience4j duration-string change, ch 31's virtual-thread
+property, the `toD`/`enrich` placeholder-expansion change, JMS `ObjectMessage`,
+FTP path containment, and the 30+ component header-constant renames. None appear
+in `_docs/`.
+
+### 7b. Additions worth making
+
+Ranked. The first four are the ones to actually do.
+
+1. **Splitter error thresholds and chunking — ch 09, medium, highest value.**
+   The only core EIP that gained real capability in this range. 4.22 added
+   `errorThreshold` (fractional), `maxFailedRecords` (absolute, preferred with
+   `parallelProcessing` because parallel completion makes the ratio
+   non-deterministic), `group` for chunking, and `resumeStrategy` /
+   `watermarkKey` / `watermarkExpression` for resume-from-position. Until now
+   the Splitter's only failure knob was the binary `stopOnException`, and "what
+   happens when 3 of 500 line items are bad?" is the commonest real Splitter
+   question. `examples/09-routing-fundamentals/` already splits
+   `jsonpath("$.line_items")` — a partial-failure variant is a natural
+   extension. **Unconfirmed:** the release blog calls the chunking option
+   `chunkSize`, the 4.22.0 route model exposes it as `group`; verify the Java
+   DSL method name before writing.
+2. **`allowedSchemes` — ch 14, small.** Same item as 7a but it is an addition
+   too. Cross-reference ch 11's Dynamic Router, which gained the same option;
+   4.22.1 further requires `allowPredicateFromMessage=true` before control
+   messages may supply a predicate.
+3. **Telemetry span shape and cardinality knobs — ch 27, small.** Beyond fixing
+   7a, `includePatterns` and `disableCoreProcessors` give real control over
+   trace cardinality, which the observability appendix skips. Fold in the 4.21
+   `camel-micrometer` change: `MicrometerExchangeEventNotifier` now *always*
+   emits `routeId`, empty string when absent — dashboards must handle
+   `routeId=""`.
+4. **`camel infra run observability` and `camel run --observe` — ch 27 or 39,
+   medium.** A zero-config bundled stack (Prometheus, VictoriaTraces,
+   VictoriaLogs, Perses). Present it as the five-second dev-loop option, *not*
+   as a replacement for the LGTM appendix — it is a different stack.
+
+Lower value, do opportunistically: Camel CLI installers plus the now-working
+`camel run --jfr` (ch 39/31/35 — the flag was silently ignored before 4.22);
+group-scoped variables (ch 08, only if there is already a variables section);
+`camel-ai-tool` completions for ch 42, including that tool errors now go back
+to the LLM rather than propagating to the route, which breaks `onException()`
+around tool calls, and that `camel-spring-ai-tools` was *removed*; `camel-a2a`
+as prose only, Preview, no example; the Spring Boot `spring.kafka.*` property
+bridge (ch 20/32); p50/p95/p99 on the base counters from JMX (ch 17/18); and
+canonical YAML DSL plus the new Java DSL model writer, which completes
+round-trip DSL conversion (ch 19 — the most ch-19-relevant item in the range).
+
+**One deliberate maybe:** a short security appendix. "Secure out of the box"
+was the headline theme across both releases — JEP-290 deserialization filters,
+Jackson polymorphic-type blocking, header filtering at transport boundaries,
+dynamic URI allow-lists, Zip/Tar Slip prevention, credential masking,
+`oauthProfile` on the HTTP consumers. The site has no security chapter. This is
+worth writing **only as one argument** — that Camel's posture moved from "safe
+if you configure it" to "safe by default" — not as a list of fifteen
+mitigations. If it cannot be written that way, cut it and keep only the
+`allowedSchemes` work.
+
+## 8. Close-out document review  ☐
 
 The final gate. A full read-through of every document in the repo, checking
 both content and the links between documents.
