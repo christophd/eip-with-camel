@@ -156,6 +156,45 @@ kafka-topics.sh --create \
 | `min.insync.replicas` | With `acks=all`, ensures N replicas acknowledged (Guaranteed Delivery) |
 | `max.message.bytes` | Limits message size (affects Message Sequence threshold) |
 
+## Configuring the client: `spring.kafka.*` on Spring Boot
+
+Every Kafka example in this tutorial configures the component the Camel way, on
+both runtimes:
+
+```properties
+camel.component.kafka.brokers=localhost:9092
+```
+
+On Spring Boot there is a second, more idiomatic option as of Camel 4.21. With
+`camel-kafka-starter` on the classpath, the standard `spring.kafka.*` properties
+are bridged to the Camel Kafka component automatically:
+
+```properties
+spring.kafka.bootstrap-servers=localhost:9092
+spring.kafka.security.protocol=SASL_SSL
+spring.kafka.consumer.group-id=inventory-service
+spring.kafka.ssl.trust-store-location=classpath:kafka.truststore.jks
+```
+
+This matters more than it first appears. A Spring Boot application that already
+talks to Kafka — through Spring Kafka, or through Spring Cloud Stream — has all
+of this configured already, frequently including the fiddly parts: SASL
+mechanisms, TLS trust stores, client IDs. Bridging means Camel picks those up
+rather than making you restate them under a second prefix and keep the two in
+sync.
+
+Explicit `camel.component.kafka.*` properties still win where both are set, so
+you can bridge the common configuration and override one thing. To turn the
+bridge off entirely:
+
+```properties
+camel.component.kafka.bridge-spring-kafka-properties=false
+```
+
+There is no Quarkus equivalent, and there does not need to be — Quarkus
+applications configure the Camel component directly, which is what the examples
+here do.
+
 ## Monitoring Kafka with Camel
 
 Our stack includes Kafka UI at `http://localhost:8090`. For programmatic monitoring:

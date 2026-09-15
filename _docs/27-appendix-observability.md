@@ -66,6 +66,35 @@ curl -s localhost:9009/ready        # mimir
 curl -s localhost:13133/            # otel collector
 ```
 
+## The five-second version
+
+Everything below wires a Maven project into a compose stack you run yourself.
+That is what you want for something you are going to deploy. It is a lot of
+ceremony when the question is just "what is this route doing right now".
+
+Camel 4.22 added a zero-configuration alternative. `camel infra` ships a bundled
+observability stack, and `camel run --observe` points a prototype at it with no
+configuration at all:
+
+```bash
+camel infra run observability      # Prometheus, VictoriaTraces, VictoriaLogs, Perses
+camel run MyRoute.java --observe   # health, metrics, dev console, Camel tracing
+```
+
+Metrics get scraped, traces and logs get exported, and none of it needs a
+property file.
+
+Two things to be clear about. It is a **different stack** — Prometheus,
+VictoriaTraces, VictoriaLogs and Perses, not Loki, Tempo, Mimir and Grafana —
+so dashboards and queries are not portable between the two. And it is aimed at
+the dev loop, not at the thing you ship. Use it while you are working out what
+your routes do; use the rest of this appendix for what runs in production.
+
+If you want auto-instrumentation of the libraries around Camel — JDBC, HTTP
+clients, Kafka clients, gRPC — there is also `--open-telemetry-agent`, which
+attaches the OpenTelemetry Java Agent and feeds the TUI's Spans tab. See
+[Appendix U]({% link _docs/39-appendix-camel-cli.md %}).
+
 ## OpenTelemetry instrumentation
 
 ### Dependencies

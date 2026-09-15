@@ -503,6 +503,62 @@ camel infra run kafka redis
 
 This is the fastest path from zero to a working prototype. Write a route, run `camel infra run kafka`, and `camel run --dev *.yaml` — three commands to a live integration with real infrastructure.
 
+### The observability set
+
+One of the available sets is worth calling out, because it replaces a lot of
+manual wiring. Camel 4.22 bundles an observability stack — Prometheus,
+VictoriaTraces, VictoriaLogs and Perses:
+
+```bash
+camel infra run observability
+camel run MyRoute.java --observe
+```
+
+`--observe` turns on health checks, metrics, the dev console, and lightweight
+Camel-only tracing in the [TUI]({% link _docs/40-appendix-camel-tui.md %})
+Spans tab. Together the two commands need no configuration: metrics are scraped
+and traces and logs exported without a property file.
+
+Note this is a *different* stack from the LGTM overlay in [Appendix
+I]({% link _docs/27-appendix-observability.md %}) — different components,
+different query languages, nothing portable between them. This one is for the
+dev loop.
+
+For auto-instrumentation of the libraries around Camel rather than Camel
+itself — JDBC, HTTP clients, Kafka clients, gRPC — attach the OpenTelemetry
+Java Agent instead:
+
+```bash
+camel run MyRoute.java --open-telemetry-agent
+camel run MyRoute.java --open-telemetry-agent --open-telemetry-agent-export=otlp
+```
+
+The export target accepts `observability` and `otlp`. (`jaeger` is still
+accepted as an alias for `otlp`, but it is deprecated.)
+
+### Profiling with JFR
+
+```bash
+camel run MyRoute.java --jfr
+camel run MyRoute.java --jfr --jfr-profile=profile
+```
+
+This writes a `<name>.jfr` recording on exit and pulls in the JFR dependency
+automatically. Worth knowing if you tried this before 4.22: the flag was
+accepted and silently ignored, so anyone who profiled a CLI-run route on an
+earlier release got nothing. It starts a real recording now.
+
+The same release let `camel-jfr` emit events *during* message routing rather
+than only at startup:
+
+```properties
+camel.main.startup-recorder-runtime-enabled=true
+```
+
+That is the setting that makes JFR useful for the profiling work described in
+[Appendix K]({% link _docs/31-appendix-virtual-threads.md %}) and
+[Appendix Q]({% link _docs/35-appendix-kafka-diagnostics.md %}).
+
 ### How it relates to the Podman stack
 
 The `camel infra` containers are ephemeral — data is lost when you stop them. For persistent development environments, use the Podman stack (`./scripts/setup-stack.sh`) described in Chapter 0. The CLI containers are best for quick experiments and throwaway prototypes.
