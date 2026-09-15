@@ -321,6 +321,97 @@ from("kafka:eip.orders.bulk?brokers=localhost:9092&groupId=order-splitter")
 - **`stopOnException()`** — Stop splitting on the first error. Without this, all items are attempted.
 - **`aggregationStrategy()`** — Collect the results of all split items and reassemble them. This is the Splitter-Aggregator pattern, covered in Chapter 12 (Message Transformation).
 
+### Partial failure: what happens when 3 of 500 items are bad
+
+This is the question every real Splitter runs into, and until Camel 4.22 the DSL
+had only a blunt answer for it. `stopOnException()` aborts on the first bad
+item; leaving it off processes everything and tells you nothing about how much
+failed. Neither is what a bulk order wants. One malformed line item in fifty
+should not abandon the other forty-nine — but twenty-five bad items means the
+upstream system is broken and you should stop rather than half-fulfil an order.
+
+4.22 added two options that express exactly that threshold:
+
+| Option | Meaning |
+|---|---|
+| `errorThreshold` | Abort when the *fraction* of failed items exceeds this (0.0–1.0) |
+| `maxFailedRecords` | Abort when the *absolute count* of failed items exceeds this |
+
+Either one throws `CamelExchangeException` when tripped. Both are mutually
+exclusive with `stopOnException` — you are choosing a tolerance instead of a
+hair trigger. They can be combined with each other, in which case whichever
+trips first wins.
+
+```java
+.split(jsonpath("$.line_items"))
+    .maxFailedRecords(5)
+    .log("Processing SKU ${body[item_sku]}")
+    .to("direct:fulfil-line-item")
+.end()
+```
+
+With `maxFailedRecords(5)`, the split aborts **on** the fifth failing item — a
+batch of ten with three bad items runs to completion, one with eight bad items
+stops at the fifth and throws.
+
+**Prefer `maxFailedRecords` when you also use `parallelProcessing`.** With
+parallel splits, items complete in non-deterministic order, so the running
+failure *ratio* differs between runs and `errorThreshold` can trip at different
+points on identical input. An absolute count does not have that problem.
+
+> **A caught exception is not a failure.** This is the trap, and it is quiet.
+> Wrapping the per-item work in `doTry`/`doCatch` — which is the natural thing
+> to reach for when you want to divert bad items to a rejects topic — makes the
+> sub-exchange *succeed*. The splitter then counts zero failures and
+> `maxFailedRecords` never fires, no matter how many items were bad. The same
+> applies to an `onException(...).handled(true)` covering the split body.
+>
+> So choose. Either let items fail and let the threshold do its job, or handle
+> them per-item and give up the batch-level abort. If you genuinely want both,
+> the handler has to rethrow after diverting the item.
+
+### Processing items in chunks
+
+`group(n)` collects N split messages into a single exchange whose body is a
+`List`, so the route downstream sees batches rather than individual items:
+
+```java
+.split(jsonpath("$.line_items")).group(25)
+    .log("Processing a batch of ${body.size()} line items")
+    .to("direct:bulk-reserve-stock")
+.end()
+```
+
+This is the right shape when the per-item cost is dominated by a round trip —
+a database write or an HTTP call — and the downstream accepts batches. Splitting
+500 items into 500 inserts is slow for reasons that have nothing to do with
+Camel; 20 batches of 25 is the same work with a fraction of the overhead.
+
+The final group is whatever is left over: 60 items at `group(25)` produces
+batches of 25, 25 and 10, not three padded batches. Your downstream has to cope
+with a short last chunk.
+
+### Resuming a split after a crash
+
+If a route dies 400 items into a 500-item split, restarting it reprocesses all
+500. For an idempotent consumer that is merely wasteful; for anything else it
+is a correctness problem. 4.22 added watermarking to address it:
+
+| Option | Purpose |
+|---|---|
+| `resumeStrategy` | The `ResumeStrategy` that persists progress |
+| `watermarkKey` | The key that progress is stored under |
+| `watermarkExpression` | A Simple expression evaluated per completed sub-exchange, for value-based rather than index-based resumption |
+
+Index-based resumption is the simpler model — remember you reached item 400 and
+start there. `watermarkExpression` covers the case where the index is not stable
+across runs, letting you record a business value instead, such as
+`${body[line_number]}`.
+
+These carry real operational weight and a matching amount of setup; treat them
+as the answer when "just reprocess it" is genuinely unacceptable, not as a
+default.
+
 ### Split headers
 
 Every split exchange gets metadata headers:
@@ -395,4 +486,4 @@ Next, we compose these primitives into multi-step routing patterns: the Routing 
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 14 Citrus integration tests pass against live containers (2026-09-14).*
+*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 14 Citrus integration tests pass against live containers (2026-09-14). The 4.22 splitter options added here were run against the live stack on 2026-09-15: `maxFailedRecords(5)` completes a 10-item batch with 3 bad items and aborts one with 8 bad items at the fifth failure, and `group(25)` splits 60 items into batches of 25, 25 and 10.*
