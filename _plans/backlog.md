@@ -142,36 +142,39 @@ chapter if there is deliberately no Maven module.
 
 ---
 
-## 6. Document the Testcontainers/Docker requirement  ☐
+## 6. Testcontainers and the container socket  ☑ done 2026-09-15
 
-The project documents Podman everywhere and never mentions that **the Citrus
-integration tests need Docker**. Testcontainers does not talk to the Podman
-socket on this machine — `/run/user/<uid>/podman/podman.sock` does not exist
-even though `systemctl --user is-active podman.socket` reports active — so the
-44 projects with integration tests silently depend on a Docker daemon that no
-document tells the reader to install.
+**The premise was wrong, and the earlier note in memory with it.** Testcontainers
+does *not* require Docker here. The Podman socket exists at
+`/run/user/<uid>/podman/podman.sock`, serves a Docker-compatible API at v1.44,
+and Testcontainers works against it. Verified by running
+`examples/07-message-types/quarkus` with `DOCKER_HOST` pointed at it: BUILD
+SUCCESS, 3 tests, 0 failures. **Ryuk works too** — no need for
+`TESTCONTAINERS_RYUK_DISABLED`, and disabling it leaks containers on
+interrupted runs, so `build-all-examples.sh` no longer sets it.
 
-Chapter 00 makes this worse: it has a "Why Podman over Docker?" section that
-reads as though Docker is never needed.
+What was actually true: a real Docker Engine is installed on this machine at
+`/var/run/docker.sock`, and Testcontainers defaults to it, so the tests had been
+running on a *different engine* than everything else — silently, because they
+pass either way.
 
-- **Chapter 00** — add Docker to the prerequisites list alongside Podman, scoped
-  to "only if you intend to run the integration tests". Amend the "Why Podman
-  over Docker?" section so it does not contradict this. Add a version check to
-  the verification block
-- **Root `README.md`, `GETTING-STARTED.md`, `CONTRIBUTING.md`** — same addition
-  wherever prerequisites are listed
-- **Chapter 41 (Citrus Testing)** and the `37-testing-strategies` chapter and
-  README — state the dependency at the point the reader runs the tests
-- **`examples/_infra/README.md`** and `scripts/build-all-examples.sh` header —
-  note that `--with-tests` requires Docker, and how to check
-  (`docker ps --filter name=testcontainers-ryuk`)
-- Also document the port contention: the Citrus tests and the dev stack cannot
-  both be up — both bind 9092/6379/5432/6650
+So the documentation says "point Testcontainers at Podman", not "install
+Docker". Landed in chapter 00 (a new "Testcontainers and the container socket"
+section, plus a pointer from "Why Podman over Docker?" so that section no longer
+misleads), `README.md`, `GETTING-STARTED.md`, `CONTRIBUTING.md`, chapter 37,
+chapter 41, and `examples/_infra/README.md`. All of them also state the port
+contention with the dev stack.
 
-Worth investigating once while writing this up: whether pointing Testcontainers
-at Podman via `DOCKER_HOST` and a rootful socket actually works here. If it
-does, document that as the preferred path and keep Docker as the fallback. If
-it does not, say so plainly so the next person does not spend an hour on it.
+Two bugs fixed in passing:
+
+- `GETTING-STARTED.md` told readers to run every example with a loop over
+  `examples/*/pom.xml`. Those poms moved into `quarkus/` and `spring-boot/`
+  subdirectories in the multi-language work, so the loop had silently matched
+  nothing for months. Replaced with `build-all-examples.sh`, including the
+  ~2 hour cost of `--with-tests` and the filter argument
+- `examples/_infra/README.md` documented the LGTM services without readiness
+  checks and implied all of them have healthchecks. Now records which are
+  distroless and why only Grafana has one
 
 ## 7. Camel 4.21 / 4.22 content gap  ☐
 

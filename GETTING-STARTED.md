@@ -13,6 +13,20 @@ Quick-start guide for running the EIP tutorial examples locally.
 | Podman | 4.x+ | [podman.io](https://podman.io/) |
 | Podman Compose | 1.x+ | `pip install podman-compose` |
 
+Docker is **not** required — not even for the integration tests. But if you
+intend to run them, point Testcontainers at Podman's socket, or it will go
+looking for a Docker one:
+
+```bash
+systemctl --user enable --now podman.socket
+export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
+```
+
+Without this, the tests either fail with "Could not find a valid Docker
+environment" or — if you happen to have Docker installed — silently run on
+Docker while everything else runs on Podman. `scripts/build-all-examples.sh`
+sets it for you; `mvn verify` on its own does not.
+
 For detailed installation instructions, see [Chapter 0 — Prerequisites & Setup](https://patterncatalyst.github.io/enterprise-integration-patterns-with-camel/docs/00-prerequisites/).
 
 ## 1. Clone the repo
@@ -56,12 +70,26 @@ Quarkus Dev Mode starts with live reload — edit a route and the changes take e
 
 ## 4. Run all examples
 
-The CI workflow builds every example with `mvn verify`. To do the same locally:
+Use the build script. It walks the per-runtime subdirectories, points
+Testcontainers at Podman, and summarises what passed and failed:
 
 ```bash
-for dir in examples/*/; do
-  [ -f "$dir/pom.xml" ] && (cd "$dir" && mvn verify -q) && echo "✓ $dir"
-done
+./scripts/build-all-examples.sh              # compile only
+./scripts/build-all-examples.sh --with-tests # also run the integration tests
+```
+
+`--with-tests` takes roughly two hours — it is about two minutes per project and
+strictly sequential — and needs the dev stack **down**, since the tests bind the
+same ports:
+
+```bash
+podman-compose -p eip -f examples/_infra/compose.yaml down
+```
+
+To build a single example, pass a filter:
+
+```bash
+./scripts/build-all-examples.sh 09-routing
 ```
 
 ## Available examples

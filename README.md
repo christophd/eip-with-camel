@@ -34,6 +34,18 @@ mvn spring-boot:run
 ./scripts/setup-stack.sh --lgtm
 ```
 
+Running the integration tests? Point Testcontainers at Podman first — it looks
+for a Docker socket by default, and Docker is not a dependency of this project:
+
+```bash
+systemctl --user enable --now podman.socket
+export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
+
+# Tests bind the same ports as the dev stack, so stop it first
+podman-compose -p eip -f examples/_infra/compose.yaml down
+./scripts/build-all-examples.sh --with-tests
+```
+
 See [Prerequisites & Setup](https://patterncatalyst.github.io/enterprise-integration-patterns-with-camel/docs/00-prerequisites/) for full environment setup.
 
 ## Runnable examples

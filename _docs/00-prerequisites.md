@@ -172,6 +172,8 @@ The local infrastructure — Kafka, Pulsar, Redis, PostgreSQL, Apicurio, and the
 
 Podman runs containers without a root daemon, which means no `sudo`, no Docker socket to secure, and a smaller attack surface on your workstation. Every `docker` command you know has a `podman` equivalent. The compose files in this tutorial use standard Compose syntax and work with both engines — but we'll reference `podman` and `podman-compose` throughout.
 
+You do **not** need Docker for this tutorial, including for the integration tests. But the tests need one extra setting to stay on Podman — see [Testcontainers and the container socket](#testcontainers-and-the-container-socket) below, because the failure mode there is confusing rather than loud.
+
 ### Installing Podman
 
 **Fedora / RHEL / CentOS Stream:**
@@ -206,6 +208,60 @@ podman --version
 
 podman-compose --version
 # podman-compose version 1.x.x
+```
+
+### Testcontainers and the container socket
+
+The Citrus integration tests — the ones behind `mvn verify` in most examples —
+start their own throwaway containers through **Testcontainers**. Testcontainers
+does not know about Podman. It looks for a Docker socket, and if it finds one it
+uses it without comment.
+
+That produces two failure modes, neither of which announces itself:
+
+- **Docker is installed.** The tests quietly run on Docker while every other
+  thing in this tutorial runs on Podman. Everything passes, so nothing looks
+  wrong — you just have two container engines in play and containers appearing
+  somewhere you are not looking for them.
+- **Docker is not installed.** The tests fail with "Could not find a valid
+  Docker environment", which reads like a missing dependency and sends people
+  off to install Docker they do not need.
+
+The fix is one environment variable. Podman's socket speaks the Docker API, so
+pointing Testcontainers at it is all that is required:
+
+```bash
+systemctl --user enable --now podman.socket
+export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
+```
+
+Confirm the socket is live and answering:
+
+```bash
+curl -s --unix-socket "${XDG_RUNTIME_DIR}/podman/podman.sock" \
+  http://d/v1.41/version
+```
+
+You should get JSON back naming `Podman Engine` and an `ApiVersion` of 1.41 or
+higher — that API compatibility is the whole reason this works.
+
+`scripts/build-all-examples.sh` does this for you — it exports `DOCKER_HOST`
+automatically whenever the Podman socket exists and you have not already chosen
+an engine. Running `mvn verify` yourself in a single example directory does
+not, so export it in your shell.
+
+Ryuk, the sidecar Testcontainers uses to reap leftover containers, works fine
+against rootless Podman. You may see advice to set
+`TESTCONTAINERS_RYUK_DISABLED=true`; you do not need it here, and turning Ryuk
+off means interrupted runs leave containers behind.
+
+One more thing that will bite you: **the integration tests and the dev stack
+cannot both be running.** Both bind 9092, 6379, 5432 and 6650. The symptom is a
+container failing to start with something unhelpful like "Local Docker Compose
+exited abnormally". Shut the stack down first:
+
+```bash
+podman-compose -p eip -f examples/_infra/compose.yaml down
 ```
 
 ### Rootless containers and resource limits
@@ -416,7 +472,8 @@ describe unless you turn something off. The Citrus integration tests set them to
 - Java 25 via SDKMAN, Maven 3.9+, and how to ensure they're wired together.
 - JBang and the Camel CLI — the fastest way to run, inspect, and prototype Camel routes from single files.
 - The tutorial workflow: prototype with `camel run --dev`, inspect with `camel get` / `camel trace`, promote with `camel export --runtime=quarkus` (or `--runtime=spring-boot`).
-- Podman and podman-compose for rootless container management.
+- Podman and podman-compose for rootless container management, and why the
+  integration tests need `DOCKER_HOST` pointed at the Podman socket.
 - The two-tier local stack: base infrastructure and optional LGTM observability.
 - How to verify that every service is healthy and ready.
 

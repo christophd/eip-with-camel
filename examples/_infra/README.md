@@ -4,6 +4,13 @@ Podman compose files for the Enterprise Integration Patterns tutorial.
 Two composable layers: the **base stack** (messaging + data) and an optional
 **LGTM overlay** (observability).
 
+> **This stack and the integration tests cannot run at the same time.** The
+> Citrus tests start their own Kafka, Redis, PostgreSQL and Pulsar through
+> Testcontainers, on the same host ports (9092, 6379, 5432, 6650). Bring this
+> stack down before running them, and note that Testcontainers needs
+> `DOCKER_HOST` pointed at the Podman socket — see
+> [CONTRIBUTING.md](../../CONTRIBUTING.md#running-the-tests).
+
 ## Quick start
 
 ```bash
@@ -36,13 +43,24 @@ scripts/setup-stack.sh --lgtm   # base + observability
 
 ### LGTM overlay (`compose.lgtm.yaml`)
 
-| Service | Port(s) | URL |
+| Service | Port(s) | Readiness check |
 |---------|---------|-----|
-| Grafana | 3000 | http://localhost:3000 |
-| Loki | 3100 | — |
-| Tempo | 3200 | — |
-| Mimir | 9009 | — |
-| OTel Collector | 4317 (gRPC), 4318 (HTTP) | — |
+| Grafana | 3000 | `curl -s localhost:3000/api/health` |
+| Loki | 3100 | `curl -s localhost:3100/ready` |
+| Tempo | 3200 (query API) | `curl -s localhost:3200/ready` |
+| Mimir | 9009 | `curl -s localhost:9009/ready` |
+| OTel Collector | 4317 (gRPC), 4318 (HTTP), 13133 (health) | `curl -s localhost:13133/` |
+
+Only Grafana defines a container healthcheck. Loki, Mimir and the collector
+ship **distroless** images — no shell, no `wget`, no `curl` — so an
+in-container probe cannot run in them at all, and `depends_on` with
+`condition: service_healthy` against those services would block forever.
+`setup-stack.sh` polls the HTTP endpoints above from the host instead.
+
+Applications send everything to the collector, which fans out to the other
+three. Tempo runs its own OTLP receiver, but only on the container network,
+where the collector reaches it at `tempo:4318`. Exporting to Tempo's 3200 from
+a host application looks plausible, returns no error, and discards the data.
 
 ## Application telemetry endpoint
 
