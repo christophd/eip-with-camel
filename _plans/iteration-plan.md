@@ -4,6 +4,9 @@ description: "Build roadmap for the Enterprise Integration Patterns with Apache 
 render_with_liquid: false
 ---
 
+> **This is the historical record of what shipped.** For work that is still
+> open, see [`backlog.md`](backlog.md). Last reconciled 2026-09-15.
+
 ## Iteration 1 — Site Scaffold & Foundations
 
 **Status:** Complete
@@ -129,7 +132,7 @@ upgraded dependencies, and added presentation decks.
 
 ## Iteration 7 — Verification Against Live Infrastructure
 
-**Status:** Planned
+**Status:** Complete, except LGTM verification — see backlog item 1
 
 Run every example against the real Podman infrastructure stack and verify all
 claims made in the tutorial chapters.
@@ -144,13 +147,13 @@ claims made in the tutorial chapters.
 | Infrastructure audit | Ports, topic names, schema/table names in chapters match `compose.yaml` and `init-schemas.sql` |
 | Diagram accuracy | Architecture diagrams match the actual code topology |
 | Chapter footer update | Replace "unverified" status footers with "verified" and verification date |
-| LGTM stack verification | Confirm observability stack starts, traces flow through, dashboards render |
+| LGTM stack verification | **NOT DONE** — no LGTM container has ever been created; carried to backlog item 1 |
 | Reconciliation plan | Complete the reconciliation checklist in `_plans/reconciliation-plan.md` |
 
 
 ## Iteration 8 — Visual Overhaul & New Appendices
 
-**Status:** Planned
+**Status:** Complete
 
 Restyle all diagrams with EIP stencil icons (canonical Hohpe/Woolf visual
 vocabulary), improve slide visual ratio, and add Kafka operational appendices
@@ -168,3 +171,37 @@ sourced from Strimzi blog posts.
 | Chapter 33 | Appendix O — Kafka Share Groups (KIP-932): queue semantics via share groups, KafkaShareConsumer API, delivery states ([source](https://strimzi.io/blog/2025/08/20/queues-for-kafka/)) |
 | Chapter 34 | Appendix P — Kafka Diagnostics on Kubernetes: thread/heap dumps, additional volumes in Strimzi, flame graphs ([source](https://strimzi.io/blog/2025/03/20/collecting-diagnostic-data/)) |
 | Chapter 35 | Appendix Q — Managing Kafka Connect Offsets: list/alter/reset offsets via Strimzi CRDs, MirrorMaker 2 support ([source](https://strimzi.io/blog/2024/11/04/managing-connector-offsets/)) |
+
+The five Strimzi appendices shipped one chapter number later than planned here
+— as chapters 32–36, Appendices N–R — because chapter 31 (Virtual Threads) was
+inserted ahead of them.
+
+
+## Subsequent work
+
+Everything after Iteration 8 shipped without a numbered iteration heading in
+this file. Recorded here in the order it landed. Note that
+`_plans/upgrade-camel-4.22-PLAN.md` and the session memory number some of these
+differently; the names below are authoritative, the numbers are not.
+
+| Work | Status | Detail |
+|---|---|---|
+| Appendix runnable examples | Complete 2026-07-11 | 5 new example projects — `20-kafka-deep-dive`, `21-pulsar-deep-dive`, `22-redis-integration`, `24-drools-rules`, `27-observability-stack` |
+| Smoke tests, site fixes, 3 new examples | Complete 2026-07-11 | Corrected stale site counts and prerequisites; smoke-tested 5 examples against live Podman; added `32-kafka-consumer-tuning`, `33-kafka-producer-tuning`, `25-quarkus-flow`. Fixed Pulsar service URL, Drools extension incompatibility, and BookKeeper volume recovery in `setup-stack.sh` |
+| Testing Strategies appendix | Complete 2026-07-12 | Chapter 37 + `examples/37-testing-strategies/` — three-tier suite (MockEndpoint/AdviceWith unit, REST Assured integration, Newman/Postman), 14 tests |
+| Multi-language expansion, Phase 1 | Complete | Codetabs infrastructure + Spring Boot proof of concept for chapters 04, 09, 12 |
+| Multi-language expansion, Phase 2 | Complete 2026-07-17 | Spring Boot for core chapters 05–08, 10–11, 13–18; 12 examples restructured into `quarkus/` + `spring-boot/` |
+| Multi-language expansion, Phase 3 | Complete 2026-07-17 | YAML DSL for 10 core examples (04, 06–09, 11, 14–17); 23 standalone route files. Skipped 05, 10, 12, 13, 18 as Java-heavy |
+| Multi-language expansion, Phase 4 | Complete 2026-07-17 | Spring Boot for appendix examples and both case studies. Skipped `25-quarkus-flow` — Quarkus-specific by design |
+| Kubernetes Deployment appendix | Complete 2026-07-17 | Chapter 38 + `examples/38-kubernetes-deploy/` — Jib/quarkus-kubernetes and Buildpacks, Strimzi + Redis on minikube, `scripts/setup-minikube-stack.sh`. Replaced the originally planned Camel K appendix |
+| Research appendices | Complete 2026-07-18 | Chapters 39–42 + examples — Camel CLI, Camel TUI, Citrus testing, AI/MCP with LangChain4j |
+| Camel 4.22 upgrade | Complete 2026-09-14, merged | Camel 4.22.0 on all three runtimes, Quarkus 3.39.3, Spring Boot 4.1.1, Citrus 5.0.1, JDK 25. 56/56 projects build, 44 run integration tests, 54/54 boot, 43/43 chapters verified. Added `scripts/validate-content.py` and `scripts/check-chapter-parity.py`. Full write-up in `upgrade-camel-4.22-PLAN.md` |
+
+
+## Open work
+
+Tracked in [`backlog.md`](backlog.md), not here: the LGTM stack verification
+carried over from Iteration 7, the Camel 3.0.0 reference in the legacy deck,
+the chapter/example identifier divergences, runnable examples for the six
+appendices that lack them (19, 23, 26, 34, 35, 36), and the close-out document
+review.
