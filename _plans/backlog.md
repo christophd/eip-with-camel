@@ -9,14 +9,23 @@ historical record of what shipped; this file is what is still open. Work the
 sections in order and commit each item separately.
 
 **Last reviewed:** 2026-09-15
-**Branch:** `iteration/post-upgrade-cleanup` off `main` @ `d72dee7`
+**Branch:** `iteration/post-upgrade-cleanup`, pushed, clean tree
+
+**Resume here:** items 1, 2, 3, 4 and 6 are closed. Item 5 is 3 of 6 done —
+next is deciding the shape of the three Kafka operational examples (34, 35,
+36), which may be scripts rather than Maven projects. Item 7a (stale chapters)
+is done and 7b is done except the optional security appendix. Item 8, the
+close-out review, is last and not started.
+
+Known stale and waiting for item 8: `README.md` still says 41 chapters and 31
+examples; both are now 43 and 35.
 
 ---
 
 ## Where the project stands
 
-Feature-complete. 43 chapters covering all 65 EIP patterns, 33 example projects,
-67 diagrams, 3 presentation decks.
+Feature-complete. 43 chapters covering all 65 EIP patterns, 35 example projects
+(three added 2026-09-15), 67 diagrams, 3 presentation decks.
 
 The Camel 4.22 upgrade is merged to `main`: Camel **4.22.0** on all three
 runtimes, Quarkus platform **3.39.3**, Spring Boot **4.1.1** (Spring 7.0.9),
@@ -154,7 +163,47 @@ chapter-only count: 37-testing-strategies (16), 27-observability (14),
 
 ---
 
-## 5. Runnable examples for appendix gaps  ☐
+## 5. Runnable examples for appendix gaps  ◐ 3 of 6 done
+
+**Done and verified 2026-09-15:**
+
+- **26 — Feature Flags.** `examples/26-feature-flags/`, both runtimes, flagd in
+  the base stack. Pin flagd **v0.16.3**: v0.13.1 cannot serve the Java provider
+  0.14.2 event stream, and the failure is silent — every flag returns its
+  default while curl against the RPC works fine
+- **23 — Quarkus Dev Mode.** `examples/23-quarkus-dev/`, Quarkus-only by
+  design. The one example meant to be edited while it runs, and the only one
+  that leaves Dev Services on
+- **19 — Runtime Comparison.** `examples/19-dsl-comparison/`, all three
+  runtimes. The two Java classes differ by four lines; the README opens by
+  telling you to diff them
+
+**Still to build — 34, 35, 36.** All three are Kafka *operational* topics
+rather than route-level ones, and the open question from the original triage
+still stands: they may be better served by scripts and manifests than by Maven
+projects. Decide per chapter, and if a chapter deliberately gets no Maven
+module, say so in the chapter.
+
+| Ch | Topic | Notes before starting |
+|---|---|---|
+| 34 | Kafka Share Groups (KIP-932) | **Check Camel support first.** The stack runs Kafka 4.3.1 so the broker side is there, but Camel's Kafka component may have no share-consumer support, in which case this is a CLI/`kafka-console-share-consumer` script, not a route |
+| 35 | Kafka Diagnostics | Thread and heap dumps, JMX, flame graphs — almost certainly a script rather than a project |
+| 36 | Kafka Connect Offsets | Strimzi CRDs, so it needs the minikube stack from ch 38 rather than the Podman one. Manifests plus a script |
+
+**Two Quarkus gotchas that recurred across both new Quarkus examples** — expect
+them again in any new one:
+
+- A `simple` expression using a map accessor (`${body[amount]}`) resolves
+  through the bean language, so the project needs `camel-quarkus-bean` or the
+  route fails at startup with `No language could be found for: bean`
+- `setHeader(String, Supplier)` needs the same extension
+
+And on Spring Boot: the run-controller property is `camel.main.run-controller`.
+`camel.springboot.main-run-controller` is accepted silently and does nothing, so
+an app with no web starter exits seconds after its routes start. Two examples
+had the wrong key.
+
+## 5b. Original framing (kept for context)
 
 Six appendix chapters have no example project behind them. Chapters 30
 (Glossary) and 31 (Virtual Threads) are excluded by design — they do not need
@@ -212,7 +261,34 @@ Two bugs fixed in passing:
   checks and implied all of them have healthchecks. Now records which are
   distroless and why only Grafana has one
 
-## 7. Camel 4.21 / 4.22 content gap  ☐
+## 7. Camel 4.21 / 4.22 content gap  ◐ mostly done
+
+**7a, stale chapters: done 2026-09-15.** All six corrected — ch 14
+(`allowedSchemes`, with both example variants updated), ch 05/15/32 (the Kafka
+manual-commit guarantee only became true in 4.22), ch 10 (saga coordinator),
+ch 13 (JDBC aggregation repository), ch 39 (CLI install path, `self-update`,
+`doctor`). Ch 11 gained the Dynamic Router cross-reference.
+
+**7b, additions: done except one.** Landed the Splitter's `errorThreshold` /
+`maxFailedRecords` / `group` / watermark options in ch 09 with runnable routes
+on both runtimes, the zero-config observability CLI in ch 27 and 39, `--jfr`
+and the runtime JFR events in ch 39, the tool-calling safety rails in ch 42,
+the `spring.kafka.*` bridge in ch 20, and JMX percentiles in ch 17.
+
+Deliberately skipped, with reasons: group-scoped variables (ch 08 has no
+variables section to extend) and the canonical YAML DSL work (ch 19 compares
+runtimes, not DSLs, despite its title).
+
+**Still open — the optional security appendix.** "Secure out of the box" was
+the headline theme across both releases and the site has no security chapter.
+Write it **only as one argument** — that Camel's posture moved from "safe if
+you configure it" to "safe by default" — covering JEP-290 deserialization
+filters, Jackson polymorphic-type blocking, header filtering at transport
+boundaries, dynamic URI allow-lists, Zip/Tar Slip prevention, credential
+masking and `oauthProfile`. If it cannot be written that way, cut it; the
+`allowedSchemes` work in ch 14 already carries the part that matters most.
+
+## 7c. Research detail (kept for reference)
 
 Researched 2026-09-15. The upgrade was mechanical — version bumps and fixing
 what broke — so nobody looked at what 4.21 and 4.22 actually *shipped*. The
