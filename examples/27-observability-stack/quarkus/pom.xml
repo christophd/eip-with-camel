@@ -88,6 +88,16 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-opentelemetry</artifactId>
         </dependency>
+        <!-- Bridges Micrometer metrics (including Camel's camel_* meters) and
+             application logs onto the OTLP exporter, so all three signals reach
+             the collector. Without this, only traces leave the application and
+             the Mimir/Loki halves of the stack stay empty. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-micrometer-opentelemetry</artifactId>
+        </dependency>
+        <!-- Keeps the Prometheus scrape endpoint at /q/metrics as well, so you
+             can see the raw meters without going through the collector. -->
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-micrometer-registry-prometheus</artifactId>

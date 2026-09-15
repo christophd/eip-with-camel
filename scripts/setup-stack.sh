@@ -53,6 +53,33 @@ wait_healthy() {
   echo "healthy"
 }
 
+# The LGTM images (Loki, Tempo, Mimir, OTel Collector) are distroless — they
+# carry no shell, wget or curl, so a container healthcheck cannot run inside
+# them. Poll their HTTP readiness endpoints from the host instead.
+wait_ready() {
+  local svc=$1
+  local url=$2
+  local svc_timeout=${3:-120}
+  printf "    %-20s " "$svc"
+  while ! curl -sf -m 3 -o /dev/null "$url"; do
+    if ! podman inspect --format='{{.State.Status}}' "$svc" 2>/dev/null | grep -q running; then
+      echo "EXITED"
+      echo "ERROR: $svc is not running. Logs:"
+      podman logs --tail 20 "$svc" 2>&1 | sed 's/^/      /'
+      exit 1
+    fi
+    sleep 2
+    svc_timeout=$((svc_timeout - 2))
+    if [[ $svc_timeout -le 0 ]]; then
+      echo "TIMEOUT"
+      echo "ERROR: $svc did not become ready within the timeout"
+      podman logs --tail 20 "$svc" 2>&1 | sed 's/^/      /'
+      exit 1
+    fi
+  done
+  echo "ready"
+}
+
 wait_healthy eip-kafka    120
 wait_healthy eip-redis    120
 wait_healthy eip-postgres 120
@@ -72,12 +99,17 @@ if $LGTM; then
   podman-compose -p eip -f "$INFRA_DIR/compose.yaml" -f "$INFRA_DIR/compose.lgtm.yaml" up -d
 
   echo "==> Waiting for LGTM services..."
-  for svc in eip-loki eip-tempo eip-mimir eip-otel-collector eip-grafana; do
-    wait_healthy "$svc" 120
-  done
+  wait_ready eip-loki           http://localhost:3100/ready        120
+  wait_ready eip-tempo          http://localhost:3200/ready        120
+  wait_ready eip-mimir          http://localhost:9009/ready        150
+  wait_ready eip-otel-collector http://localhost:13133/            60
+  wait_healthy eip-grafana      120
 
   echo "==> LGTM stack ready."
   echo "    Grafana:        http://localhost:3000"
+  echo "    Loki:           http://localhost:3100"
+  echo "    Tempo:          http://localhost:3200"
+  echo "    Mimir:          http://localhost:9009"
   echo "    OTel Collector: localhost:4317 (gRPC) / localhost:4318 (HTTP)"
 fi
 

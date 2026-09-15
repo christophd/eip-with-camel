@@ -120,7 +120,38 @@ chapter if there is deliberately no Maven module.
 
 ---
 
-## 6. Close-out document review  ☐
+## 6. Document the Testcontainers/Docker requirement  ☐
+
+The project documents Podman everywhere and never mentions that **the Citrus
+integration tests need Docker**. Testcontainers does not talk to the Podman
+socket on this machine — `/run/user/<uid>/podman/podman.sock` does not exist
+even though `systemctl --user is-active podman.socket` reports active — so the
+44 projects with integration tests silently depend on a Docker daemon that no
+document tells the reader to install.
+
+Chapter 00 makes this worse: it has a "Why Podman over Docker?" section that
+reads as though Docker is never needed.
+
+- **Chapter 00** — add Docker to the prerequisites list alongside Podman, scoped
+  to "only if you intend to run the integration tests". Amend the "Why Podman
+  over Docker?" section so it does not contradict this. Add a version check to
+  the verification block
+- **Root `README.md`, `GETTING-STARTED.md`, `CONTRIBUTING.md`** — same addition
+  wherever prerequisites are listed
+- **Chapter 41 (Citrus Testing)** and the `37-testing-strategies` chapter and
+  README — state the dependency at the point the reader runs the tests
+- **`examples/_infra/README.md`** and `scripts/build-all-examples.sh` header —
+  note that `--with-tests` requires Docker, and how to check
+  (`docker ps --filter name=testcontainers-ryuk`)
+- Also document the port contention: the Citrus tests and the dev stack cannot
+  both be up — both bind 9092/6379/5432/6650
+
+Worth investigating once while writing this up: whether pointing Testcontainers
+at Podman via `DOCKER_HOST` and a rootful socket actually works here. If it
+does, document that as the preferred path and keep Docker as the fallback. If
+it does not, say so plainly so the next person does not spend an hour on it.
+
+## 7. Close-out document review  ☐
 
 The final gate. A full read-through of every document in the repo, checking
 both content and the links between documents.
@@ -138,6 +169,8 @@ both content and the links between documents.
 - **Plans** — this file, `iteration-plan.md`, `reconciliation-plan.md`,
   `upgrade-camel-4.22-PLAN.md`, `upgrade-camel-4.22-RESUME.md`: retire what is
   spent, reconcile what disagrees
+- **Prerequisites** — confirm item 6 landed everywhere prerequisites are
+  listed, not just in chapter 00
 
 Run `./scripts/validate-content.py` and `./scripts/check-chapter-parity.py` as
 part of this, but do not mistake them for the review — they check endpoint URIs,

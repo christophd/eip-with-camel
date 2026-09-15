@@ -19,13 +19,14 @@ services:
       timeout: 3s
       retries: 20
       start_period: 30s
+    # Start ordering only. The Loki, Tempo and Mimir images are distroless —
+    # no shell, no wget, no curl — so they cannot run a container healthcheck
+    # and `condition: service_healthy` would block here forever. Readiness is
+    # polled from the host instead; see wait_ready() in scripts/setup-stack.sh.
     depends_on:
-      loki:
-        condition: service_healthy
-      tempo:
-        condition: service_healthy
-      mimir:
-        condition: service_healthy
+      - loki
+      - tempo
+      - mimir
     networks:
       - eip-net
 
@@ -40,12 +41,6 @@ services:
       - loki-data:/loki:Z
     command: -config.file=/etc/loki/local-config.yaml
     mem_limit: 512m
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3100/ready || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 15
-      start_period: 20s
     networks:
       - eip-net
 
@@ -60,12 +55,6 @@ services:
       - tempo-data:/var/tempo:Z
     command: -config.file=/etc/tempo/config.yaml
     mem_limit: 512m
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3200/ready || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 15
-      start_period: 20s
     networks:
       - eip-net
 
@@ -80,12 +69,6 @@ services:
       - mimir-data:/data:Z
     command: -config.file=/etc/mimir/config.yaml
     mem_limit: 512m
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:9009/ready || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 15
-      start_period: 30s
     networks:
       - eip-net
 
@@ -96,23 +79,16 @@ services:
     ports:
       - "4317:4317"
       - "4318:4318"
+      - "13133:13133"   # health_check extension, polled from the host
     volumes:
       - ./otel/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:Z
     command: --config=/etc/otelcol-contrib/config.yaml
     mem_limit: 512m
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:13133/health || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
-      start_period: 10s
+    # Start ordering only — see the note on grafana above.
     depends_on:
-      loki:
-        condition: service_healthy
-      tempo:
-        condition: service_healthy
-      mimir:
-        condition: service_healthy
+      - loki
+      - tempo
+      - mimir
     networks:
       - eip-net
 
