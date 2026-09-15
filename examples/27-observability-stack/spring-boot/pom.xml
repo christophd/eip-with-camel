@@ -22,6 +22,7 @@
         <java.version>25</java.version>
         <camel.version>4.22.0</camel.version>
         <citrus.version>5.0.1</citrus.version>
+        <otel.instrumentation.version>2.31.1</otel.instrumentation.version>
     </properties>
 
     <dependencyManagement>
@@ -30,6 +31,16 @@
                 <groupId>org.apache.camel.springboot</groupId>
                 <artifactId>camel-spring-boot-bom</artifactId>
                 <version>${camel.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- Imported after the Camel BOM so it wins: Camel pulls the
+                 OpenTelemetry SDK in transitively but no exporter, which is why
+                 the otel.exporter.otlp.* properties below used to do nothing. -->
+            <dependency>
+                <groupId>io.opentelemetry.instrumentation</groupId>
+                <artifactId>opentelemetry-instrumentation-bom</artifactId>
+                <version>${otel.instrumentation.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -75,7 +86,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.camel.springboot</groupId>
-            <artifactId>camel-opentelemetry-starter</artifactId>
+            <artifactId>camel-opentelemetry2-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.camel.springboot</groupId>
@@ -84,6 +95,27 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <!-- Autoconfigures the OpenTelemetry SDK from the otel.* properties and
+             supplies the OTLP exporter and the Logback appender, so traces and
+             logs actually leave the application. -->
+        <dependency>
+            <groupId>io.opentelemetry.instrumentation</groupId>
+            <artifactId>opentelemetry-spring-boot-starter</artifactId>
+        </dependency>
+        <!-- Spring Boot 4 split its OpenTelemetry support into its own module.
+             Without it, OtlpMetricsExportAutoConfiguration is skipped on a
+             missing-class condition and the registry below never publishes. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-opentelemetry</artifactId>
+        </dependency>
+        <!-- Pushes Micrometer meters — including Camel's camel_* route meters —
+             to the collector over OTLP. The Prometheus registry above only
+             exposes them for a scrape, which nothing in this stack performs. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-otlp</artifactId>
         </dependency>
 
         <!-- Test -->
