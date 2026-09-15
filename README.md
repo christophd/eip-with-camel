@@ -71,6 +71,7 @@ See [Prerequisites & Setup](https://patterncatalyst.github.io/enterprise-integra
 | `examples/20-kafka-deep-dive` | Key-based partitioning, transactional pipeline, consumer lag monitoring | Appendix B |
 | `examples/21-pulsar-deep-dive` | Shared/Key_Shared subscriptions, dead letter topics | Appendix C |
 | `examples/22-redis-integration` | Caching enrichment, idempotent receiver, distributed locking | Appendix D |
+| `examples/23-quarkus-dev` | Dev Services, live reload, continuous testing (Quarkus-only by design) | Appendix E |
 | `examples/24-drools-rules` | Rule-based content routing with Drools 10 rule units | Appendix F |
 | `examples/27-observability-stack` | OpenTelemetry tracing, Micrometer metrics, health probes | Appendix I |
 | `examples/25-quarkus-flow` | Order fulfillment saga with CDI state machine and Camel routes | Appendix G |
