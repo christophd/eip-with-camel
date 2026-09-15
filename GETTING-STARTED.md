@@ -116,6 +116,7 @@ To build a single example, pass a filter:
 | 18 | `examples/22-redis-integration` | Caching enrichment, idempotent receiver, distributed locking |
 | 19 | `examples/24-drools-rules` | Rule-based content routing with Drools 10 rule units |
 | 20 | `examples/25-quarkus-flow` | Order fulfillment saga with CDI state machine |
+| 21 | `examples/26-feature-flags` | Flag-controlled Detour, fractional A/B routing, targeted rollout |
 | 21 | `examples/27-observability-stack` | OpenTelemetry tracing, Micrometer metrics, health probes |
 | 22 | `examples/32-kafka-consumer-tuning` | Throughput-tuned, safety-first, static-membership consumers |
 | 23 | `examples/33-kafka-producer-tuning` | Batched, compressed, idempotent, synchronous producers |

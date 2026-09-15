@@ -147,6 +147,20 @@ services:
     networks:
       - eip-net
 
+  # ── flagd (OpenFeature flag evaluation) ─────────────────────────────────
+  flagd:
+    image: ghcr.io/open-feature/flagd:v0.16.3
+    container_name: eip-flagd
+    ports:
+      - "8013:8013"   # gRPC evaluation
+      - "8014:8014"   # metrics / health
+    volumes:
+      - ./flagd/flags.json:/etc/flagd/flags.json:Z
+    command: start --uri file:/etc/flagd/flags.json
+    mem_limit: 256m
+    networks:
+      - eip-net
+
 volumes:
   kafka-data:
     name: eip-kafka-data

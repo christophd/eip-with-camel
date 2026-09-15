@@ -74,6 +74,7 @@ See [Prerequisites & Setup](https://patterncatalyst.github.io/enterprise-integra
 | `examples/24-drools-rules` | Rule-based content routing with Drools 10 rule units | Appendix F |
 | `examples/27-observability-stack` | OpenTelemetry tracing, Micrometer metrics, health probes | Appendix I |
 | `examples/25-quarkus-flow` | Order fulfillment saga with CDI state machine and Camel routes | Appendix G |
+| `examples/26-feature-flags` | Flag-controlled Detour, fractional A/B routing, targeted rollout (OpenFeature + flagd) | Appendix H |
 | `examples/32-kafka-consumer-tuning` | Throughput-tuned, safety-first, and static-membership consumers | Appendix N |
 | `examples/33-kafka-producer-tuning` | Batched, compressed, idempotent, and synchronous producers | Appendix O |
 | `examples/37-testing-strategies` | Three-tier testing: unit (MockEndpoint), integration (REST Assured), Newman | Appendix S |

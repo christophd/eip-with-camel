@@ -86,12 +86,16 @@ wait_healthy eip-postgres 120
 wait_healthy eip-apicurio 120
 wait_healthy eip-pulsar   180
 
+# flagd is distroless, so it gets the host-side readiness poll too.
+wait_ready eip-flagd http://localhost:8014/healthz 60
+
 echo "==> Base stack ready."
 echo "    Kafka UI:    http://localhost:8090"
 echo "    Pulsar Admin: http://localhost:8080"
 echo "    PostgreSQL:   psql -h localhost -U eipuser -d eipdb"
 echo "    Apicurio:     http://localhost:8081"
 echo "    Redis:        redis-cli -h localhost"
+echo "    flagd:        localhost:8013 (gRPC), http://localhost:8014/healthz"
 
 if $LGTM; then
   echo ""
