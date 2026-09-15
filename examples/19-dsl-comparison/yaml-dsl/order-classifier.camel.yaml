@@ -1,0 +1,37 @@
+# The same route again, this time with no Java and no Maven project at all.
+#   camel run order-classifier.camel.yaml
+#
+# The logic is identical to the Java DSL version in ../quarkus and
+# ../spring-boot. What changes is that the structure is data rather than method
+# calls, which is easier for tooling to generate and harder for a person to
+# refactor.
+- route:
+    id: order-classifier
+    from:
+      uri: "kafka:eip.orders.placed"
+      parameters:
+        brokers: "localhost:9092"
+        groupId: dsl-comparison-yaml
+        autoOffsetReset: earliest
+      steps:
+        - unmarshal:
+            json: {}
+        - choice:
+            when:
+              - simple: "${body[amount]} > 500"
+                steps:
+                  - setHeader:
+                      name: tier
+                      constant: HIGH_VALUE
+            otherwise:
+              steps:
+                - setHeader:
+                    name: tier
+                    constant: STANDARD
+        - log: "Order ${body[order_id]} amount=${body[amount]} tier=${header.tier}"
+        - marshal:
+            json: {}
+        - to:
+            uri: "kafka:eip.orders.classified"
+            parameters:
+              brokers: "localhost:9092"

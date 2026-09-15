@@ -68,6 +68,7 @@ See [Prerequisites & Setup](https://patterncatalyst.github.io/enterprise-integra
 | `examples/17-observability` | Control Bus, Wire Tap, Message History, Message Store (PostgreSQL) | Ch 17 |
 | `examples/18-testing-management` | Test Message, Detour, Smart Proxy, Circuit Breaker | Ch 18 |
 | `examples/loan-broker` | Scatter-Gather case study (13 patterns) | Appendix J |
+| `examples/19-dsl-comparison` | The same route on Quarkus, Spring Boot and the YAML DSL | Appendix A |
 | `examples/20-kafka-deep-dive` | Key-based partitioning, transactional pipeline, consumer lag monitoring | Appendix B |
 | `examples/21-pulsar-deep-dive` | Shared/Key_Shared subscriptions, dead letter topics | Appendix C |
 | `examples/22-redis-integration` | Caching enrichment, idempotent receiver, distributed locking | Appendix D |

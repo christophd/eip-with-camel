@@ -8,6 +8,19 @@ duration: "25 minutes"
 
 This tutorial uses Camel Quarkus exclusively — but most Camel content in the wild targets Spring Boot. If you're coming from Camel Spring Boot, or evaluating which runtime to adopt, this appendix maps the differences: how routes are registered, how configuration works, how testing differs, and what Spring's XML DSL offers that the Java DSL doesn't (and vice versa).
 
+The code is in `examples/19-dsl-comparison/`, which runs the *same* route three
+ways — Quarkus, Spring Boot, and the YAML DSL with no Maven project at all:
+
+```bash
+cd examples/19-dsl-comparison/quarkus      && mvn quarkus:dev
+cd examples/19-dsl-comparison/spring-boot  && mvn spring-boot:run
+cd examples/19-dsl-comparison/yaml-dsl     && camel run order-classifier.camel.yaml
+```
+
+Diff the two Java classes before reading further. They differ by four lines —
+an import and an annotation — and that is the entire argument of this appendix
+made checkable.
+
 ## Two runtimes, one Camel
 
 Apache Camel's core — the route engine, EIP processors, components, and Java DSL — is runtime-agnostic. `RouteBuilder`, `from()`, `to()`, `choice()`, `split()`, `aggregate()` all work identically on both runtimes. What differs is the integration layer: how Camel discovers routes, injects dependencies, manages configuration, and starts up.
@@ -438,4 +451,4 @@ Spring Boot is a perfectly valid choice for Camel. If your organization standard
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — conceptual comparison chapter, no runnable example.*
+*Verification status: <span class="status status--verified">verified</span> — `examples/19-dsl-comparison/` was run on all three runtimes against the Podman stack on 2026-09-15. Each classifies `amount > 500` as `HIGH_VALUE` and the rest as `STANDARD`, with identical output, and the YAML file validates clean against the Camel YAML DSL schema.*
