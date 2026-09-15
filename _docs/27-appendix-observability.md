@@ -30,13 +30,20 @@ mvn spring-boot:run
 
 Our optional `compose.lgtm.yaml` overlay provides the Grafana LGTM stack:
 
-| Component | Role | Port |
+| Component | Role | Port on your machine |
 |-----------|------|------|
 | **Grafana** | Dashboards and alerting | 3000 |
 | **Loki** | Log aggregation | 3100 |
-| **Tempo** | Distributed tracing | 4317 (OTLP gRPC), 3200 (query) |
+| **Tempo** | Distributed tracing | 3200 (query API) |
 | **Mimir** | Metrics (Prometheus-compatible) | 9009 |
-| **OTel Collector** | Telemetry pipeline | 4317 (gRPC), 4318 (HTTP) |
+| **OTel Collector** | Telemetry pipeline | 4317 (gRPC), 4318 (HTTP), 13133 (health) |
+
+Your application never talks to Tempo, Loki or Mimir directly — it sends
+everything to the collector on 4317 or 4318, and the collector fans it out.
+Tempo does run an OTLP receiver of its own, but only inside the container
+network, where the collector reaches it on `tempo:4318`. That is worth knowing
+because pointing an exporter at Tempo's 3200 looks plausible, returns no error,
+and silently discards every span.
 
 Start it alongside the base stack:
 
@@ -44,9 +51,30 @@ Start it alongside the base stack:
 ./scripts/setup-stack.sh --lgtm
 ```
 
+The script waits on each service's HTTP readiness endpoint from the host rather
+than on a container health check. Loki, Mimir and the collector ship distroless
+images with no shell and no `wget`, so an in-container probe cannot run in them
+at all.
+
+Check it came up:
+
+```bash
+curl -s localhost:3000/api/health   # grafana
+curl -s localhost:3100/ready        # loki
+curl -s localhost:3200/ready        # tempo
+curl -s localhost:9009/ready        # mimir
+curl -s localhost:13133/            # otel collector
+```
+
 ## OpenTelemetry instrumentation
 
 ### Dependencies
+
+The OpenTelemetry extensions get you *traces*. Metrics and logs need one more
+dependency each, and this is the step most people miss — see
+[all three signals](#getting-all-three-signals) below for why.
+
+{% include codetabs.html langs="Quarkus|Spring Boot" %}
 
 ```xml
 <dependency>
@@ -57,9 +85,44 @@ Start it alongside the base stack:
     <groupId>org.apache.camel.quarkus</groupId>
     <artifactId>camel-quarkus-opentelemetry</artifactId>
 </dependency>
+<!-- Bridges Micrometer meters and application logs onto the same OTLP
+     exporter. Without it only traces leave the application. -->
+<dependency>
+    <groupId>io.quarkus</groupId>
+    <artifactId>quarkus-micrometer-opentelemetry</artifactId>
+</dependency>
 ```
 
+```xml
+<dependency>
+    <groupId>org.apache.camel.springboot</groupId>
+    <artifactId>camel-opentelemetry2-starter</artifactId>
+</dependency>
+<!-- Autoconfigures the SDK from the otel.* properties and supplies both the
+     OTLP exporter and the Logback appender. -->
+<dependency>
+    <groupId>io.opentelemetry.instrumentation</groupId>
+    <artifactId>opentelemetry-spring-boot-starter</artifactId>
+</dependency>
+<!-- Spring Boot 4 split its OpenTelemetry support into its own module.
+     Leave it out and the OTLP metrics autoconfiguration is skipped. -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-opentelemetry</artifactId>
+</dependency>
+<!-- Carries Micrometer meters, camel_* included, to the collector. -->
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-registry-otlp</artifactId>
+</dependency>
+```
+
+Use `camel-opentelemetry2`, not `camel-opentelemetry`. The v1 component is
+deprecated as of Camel 4.22 and logs a warning on every boot.
+
 ### Configuration
+
+{% include codetabs.html langs="Quarkus|Spring Boot" %}
 
 ```properties
 # application.properties
@@ -67,25 +130,122 @@ quarkus.application.name=order-service
 quarkus.otel.exporter.otlp.endpoint=http://localhost:4317
 quarkus.otel.exporter.otlp.protocol=grpc
 
+quarkus.otel.traces.enabled=true
+quarkus.otel.metrics.enabled=true
+quarkus.otel.logs.enabled=true
+
+# The default is one minute, which is a long time to watch a flat dashboard.
+quarkus.otel.metric.export.interval=10s
+
 # Camel-specific OpenTelemetry settings
 camel.opentelemetry.enabled=true
 camel.opentelemetry.exclude-patterns=timer:*,controlbus:*
 ```
 
+```properties
+# application.properties
+spring.application.name=order-service
+otel.exporter.otlp.endpoint=http://localhost:4317
+otel.exporter.otlp.protocol=grpc
+otel.traces.exporter=otlp
+otel.logs.exporter=otlp
+# Micrometer owns metrics here, so the SDK's own metric exporter stays off.
+otel.metrics.exporter=none
+
+camel.opentelemetry2.enabled=true
+camel.opentelemetry2.exclude-patterns=timer:*,controlbus:*
+
+# Note this one is 4318, not 4317 — the Micrometer OTLP registry speaks HTTP.
+management.otlp.metrics.export.enabled=true
+management.otlp.metrics.export.url=http://localhost:4318/v1/metrics
+management.otlp.metrics.export.step=10s
+# Cumulative is what rate() expects; delta would quietly give you wrong rates.
+management.otlp.metrics.export.aggregation-temporality=cumulative
+```
+
+### Getting all three signals
+
+A Camel application wired only with the OpenTelemetry extension exports traces
+and nothing else. The other two signals fail quietly, and it is worth
+understanding why, because the failure looks like success:
+
+- **Metrics.** Camel registers its route meters through Micrometer. The usual
+  Micrometer setup is a Prometheus registry, which *exposes* meters at
+  `/q/metrics` or `/actuator/prometheus` and waits to be scraped. Nothing in
+  this stack scrapes it. The application looks instrumented — 93 `camel_*`
+  meters, right there in the browser — while Mimir stays empty. The fix is a
+  registry that pushes: the Quarkus `micrometer-opentelemetry` bridge, or
+  `micrometer-registry-otlp` on Spring Boot.
+- **Logs.** Writing JSON to the console does not put logs in Loki. Something
+  has to ship them. Here the OTLP log exporter does it, which also means your
+  log records carry the trace and span IDs of whatever route produced them.
+
+On Spring Boot there is one more trap. Camel's tracer looks for a single
+`OpenTelemetry` instance in the Camel registry and, failing that, calls
+`GlobalOpenTelemetry.get()`. The OpenTelemetry Spring Boot starter keeps its
+SDK as a Spring bean and never registers it globally, so Camel falls back to
+the no-op instance and silently drops every route span — while HTTP spans from
+the starter's own instrumentation keep arriving, which makes tracing look like
+it works. Publish the bean yourself:
+
+```java
+@Configuration
+public class OpenTelemetryGlobalConfig {
+    public OpenTelemetryGlobalConfig(OpenTelemetry openTelemetry) {
+        GlobalOpenTelemetry.set(openTelemetry);
+    }
+}
+```
+
+The ordering works because Spring registers user `@Configuration` before
+auto-configuration, so the global is in place by the time Camel's tracer
+initialises.
+
 ### What gets traced automatically
 
-With `camel-quarkus-opentelemetry` on the classpath, Camel automatically creates spans for:
+With the OpenTelemetry extension on the classpath, Camel automatically creates
+spans for:
+
 - Every route entry (`from()`)
 - Every `to()` / `toD()` call
-- Every EIP processor (split, aggregate, choice, filter)
 - Kafka produce and consume operations
 - HTTP requests (via `platform-http` and `http` components)
 
 Each span includes:
+
 - Route ID, node ID, and processor name
 - Exchange ID (for correlation)
 - Message headers (configurable — default excludes sensitive headers)
 - Duration and status (OK / ERROR)
+
+#### What changed in Camel 4.21
+
+If you have used Camel tracing before, the span tree is a different shape now,
+and the chapter you remember was written against the old one:
+
+- Processors that send to an endpoint — `to`, `toD`, `wireTap`, `enrich` — no
+  longer emit a redundant *processor* span wrapping the endpoint span. They are
+  identified by the new `org.apache.camel.EndpointSending` marker interface.
+  Trees are shallower and there are fewer spans per exchange.
+- `camel-telemetry` gained `disableCoreProcessors`, which separates core DSL
+  processors from your own. `traceProcessors` now accounts only for custom
+  processors.
+- `camel-opentelemetry2` no longer wraps context in a `ThreadLocal`/`Scope`,
+  using Camel's exchange-passing instead. This fixes async components that
+  opened a scope on one thread and closed it on another.
+- `traceCustomIdOnly` now filters at *route* level: routes without an explicit
+  `.routeId()` are excluded from tracing entirely. Every route in this example
+  sets one, so all of them are traced.
+
+Two knobs are worth knowing, because trace cardinality is a real cost once you
+are paying to store spans:
+
+```properties
+# Trace only the processors you name, rather than all of them.
+camel.opentelemetry2.include-patterns=direct:otel-*
+# Leave core DSL processors out of the span tree.
+camel.opentelemetry2.disable-core-processors=true
+```
 
 ### Trace context propagation
 
@@ -135,11 +295,32 @@ Camel Quarkus integrates with Micrometer for Prometheus-compatible metrics:
 </dependency>
 ```
 
-Automatic metrics per route:
-- `camel.exchanges.total` — Total exchanges processed
-- `camel.exchanges.failed` — Failed exchanges
-- `camel.exchanges.processing.time` — Processing duration histogram
-- `camel.routes.running` — Number of running routes
+Automatic metrics per route, as they arrive in Mimir:
+
+| Metric | Meaning |
+|---|---|
+| `camel_exchanges_total` | Exchanges processed, tagged with `routeId` |
+| `camel_exchanges_succeeded_total` | Exchanges that completed without error |
+| `camel_exchanges_failed_total` | Failed exchanges |
+| `camel_exchanges_inflight` | Exchanges currently in flight |
+| `camel_route_policy_milliseconds_bucket` | Route duration histogram |
+| `camel_routes_running` | Routes currently running |
+
+Two naming traps, both of which will cost you an afternoon if you hit them
+cold:
+
+**The same meter has two names depending on how it reaches you.** Scraped from
+the application's own Prometheus endpoint, the route timer is
+`camel_route_policy_seconds_*`. Pushed through the OTLP bridge into Mimir, it
+is `camel_route_policy_milliseconds_*`. Same meter, different unit, different
+name. A dashboard query written against one path silently returns nothing on
+the other.
+
+**Counters appear only once they have counted.** The Prometheus endpoint lists
+every registered meter immediately, including zero-valued ones. The OTLP bridge
+exports only what has recorded a value, so `camel_exchanges_failed_total` will
+not exist in Mimir until something actually fails. Write alerting rules that
+tolerate the series being absent.
 
 Custom business metrics:
 
@@ -154,50 +335,129 @@ from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=metrics")
     .to("micrometer:timer:orders.processing.time?action=stop");
 ```
 
-## Structured logging with Loki
+## Logs in Loki
 
-Configure structured JSON logging for Loki ingestion:
+Logs reach Loki over OTLP, on the same exporter as traces and metrics — there
+is no log shipper and no file to tail. Turning on the log signal is the whole
+configuration:
+
+{% include codetabs.html langs="Quarkus|Spring Boot" %}
 
 ```properties
-# application.properties
-quarkus.log.console.format=%d{yyyy-MM-dd HH:mm:ss} %-5p [%c{3.}] (%t) %s%e%n
-quarkus.log.console.json=true
-quarkus.log.console.json.additional-field.service.value=order-service
-quarkus.log.console.json.additional-field.environment.value=${ENVIRONMENT:dev}
+quarkus.otel.logs.enabled=true
 ```
 
-In Grafana, query Loki with LogQL:
+```properties
+otel.logs.exporter=otlp
+```
+
+Formatting the console as JSON is a separate concern and does *not* put logs in
+Loki. It is worth doing if something else consumes your stdout, but on its own
+it ships nothing.
+
+Because the log records go through the OpenTelemetry SDK, they arrive carrying
+resource and scope attributes as Loki labels, and — for anything logged inside
+a route — the trace and span IDs of the exchange that produced them. That last
+part is what lets you pivot from a slow trace in Tempo straight to the log
+lines it emitted.
+
+The labels you get are not the ones you might guess:
+
+| Label | Value |
+|---|---|
+| `service_name` | from `quarkus.application.name` / `otel.service.name` |
+| `bridge_name` | the Camel route ID that logged the line |
+| `deployment_environment` | whatever you set it to; `local` here |
+| `detected_level` | `info`, `warn`, … |
+| `host_name` | the emitting host |
+
+So in Grafana:
 
 ```logql
-{service="order-service"} |= "order_id" | json | order_id="42"
+{service_name="eip-observability-stack"} |= "ORD-1001"
 ```
 
-This shows all log entries from order-service that mention order 42 — across all routes and threads.
+and, to narrow to one route:
+
+```logql
+{service_name="eip-observability-stack", bridge_name="otel-enrich-order"}
+```
 
 ## Grafana dashboard essentials
 
 Build dashboards around these queries:
 
-**Order throughput** (Mimir/Prometheus):
+These are the metric names as they arrive in Mimir through the OTLP bridge —
+see the two naming traps above before adapting them.
+
+**Order throughput**:
 ```promql
-rate(camel_exchanges_total{routeId="create-order"}[5m])
+rate(camel_exchanges_total{routeId="traced-order-pipeline"}[5m])
 ```
 
-**Error rate**:
+**Error rate** — wrapped in `or vector(0)` because the failure counter does not
+exist until the first failure:
 ```promql
-rate(camel_exchanges_failed_total[5m]) / rate(camel_exchanges_total[5m])
+(
+  rate(camel_exchanges_failed_total{routeId="traced-order-pipeline"}[5m])
+    or vector(0)
+)
+/ rate(camel_exchanges_total{routeId="traced-order-pipeline"}[5m])
 ```
 
-**P99 processing latency**:
+**P99 route latency** — note the bucket is in milliseconds on this path:
 ```promql
-histogram_quantile(0.99, rate(camel_exchanges_processing_time_seconds_bucket[5m]))
+histogram_quantile(
+  0.99,
+  sum by (le, routeId) (
+    rate(camel_route_policy_milliseconds_bucket[5m])
+  )
+)
 ```
 
-**Kafka consumer lag** (if Kafka metrics are exported):
+**Request rate by service, from Tempo's span metrics** — Tempo's
+`metrics_generator` writes these into Mimir itself, so they are available
+without instrumenting anything further:
 ```promql
-kafka_consumer_group_lag{group="inventory-service", topic="eip.orders.placed"}
+sum by (service) (rate(traces_spanmetrics_calls_total[5m]))
 ```
+
+### Seeing it work
+
+Start the stack and the example, then push a few orders through it:
+
+```bash
+./scripts/setup-stack.sh --lgtm
+cd examples/27-observability-stack/quarkus && mvn package -DskipTests
+java -jar target/quarkus-app/quarkus-run.jar &
+
+for i in 1 2 3 4 5; do
+  echo "{\"order_id\":\"ORD-100$i\",\"customer\":\"acme\",\"amount\":$((i*250)).50}"
+done | podman exec -i eip-kafka /opt/kafka/bin/kafka-console-producer.sh \
+  --bootstrap-server localhost:9092 --topic eip.orders.placed
+```
+
+Give it half a minute — Tempo does not make a trace searchable the instant it
+arrives, and the metric export interval is ten seconds — then check all three
+signals without opening Grafana:
+
+```bash
+# Traces
+curl -sG localhost:3200/api/search \
+  --data-urlencode 'q={resource.service.name="eip-observability-stack"}'
+
+# Metrics
+curl -sG localhost:9009/prometheus/api/v1/query \
+  --data-urlencode 'query=camel_exchanges_total'
+
+# Logs
+curl -sG localhost:3100/loki/api/v1/query_range \
+  --data-urlencode '{service_name="eip-observability-stack"}'
+```
+
+If traces are there but metrics and logs are not, you have the single-signal
+problem described in [getting all three signals](#getting-all-three-signals).
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — both runtime variants build against Camel 4.22.0 (Quarkus 3.39.3 / Spring Boot 4.1.1) and their 6 Citrus integration tests pass against live containers (2026-09-14).*
+*Verification status: <span class="status status--verified">verified</span> — the LGTM overlay was brought up with `./scripts/setup-stack.sh --lgtm` and both runtime variants were run against it on 2026-09-15. Five orders through `eip.orders.placed` produced searchable `eip.orders.placed` traces in Tempo, `camel_exchanges_total` carrying its `routeId` label in Mimir, and the routes' log lines in Loki, on Quarkus 3.39.3 and Spring Boot 4.1.1 with Camel 4.22.0. The 6 Citrus integration tests also pass, but they exercise route logic only and are not evidence for anything on this page.*

@@ -28,7 +28,7 @@ Everything below is what that pass did *not* close.
 
 ---
 
-## 1. LGTM stack — infrastructure fixed, chapter still to reconcile  ◐
+## 1. LGTM stack  ☑ done 2026-09-15
 
 **Stack side: done 2026-09-15.** `./scripts/setup-stack.sh --lgtm` now brings up
 all five services and all three signals were observed landing. Starting it for
@@ -52,27 +52,31 @@ the first time surfaced four defects, all fixed:
 Verified with five orders through `eip.orders.placed`: traces queryable in
 Tempo, `camel_exchanges_total{routeId=...}` in Mimir, route log lines in Loki.
 
-**Still open:**
+**Spring Boot variant: done.** It was worse than the Quarkus one — it emitted
+*nothing*. The `otel.exporter.otlp.*` properties had no exporter and no
+autoconfiguration behind them, only the SDK that Camel pulls in transitively.
+Three separate things were needed, each failing silently:
 
-- The **Spring Boot variant** has the same gap and has not been touched. It
-  carries `micrometer-registry-prometheus` only, and its `otel.exporter.otlp.*`
-  properties have no OTel SDK behind them — it likely emits nothing at all.
-  Needs the equivalent wiring, then the same end-to-end check
-- **Chapter 27 does not match reality.** Its PromQL uses
-  `camel_exchanges_failed_total` and
-  `camel_exchanges_processing_time_seconds_bucket`; the real names via the OTLP
-  bridge are `camel_exchanges_succeeded_total` / `camel_exchanges_total` and
-  `camel_route_policy_milliseconds_bucket`. Note the bridge reports
-  **milliseconds** where the Prometheus endpoint reports **seconds** — worth
-  calling out, it is a genuine trap. Its LogQL uses `{service="order-service"}`;
-  the real label is `service_name`, alongside `bridge_name` (the route id),
-  `deployment_environment` and `detected_level`. Its Loki section teaches
-  `quarkus.log.console.json=true`, which writes JSON to stdout and ships it
-  nowhere. Its ports table claims Tempo on 4317, which is not published to the
-  host. And per item 7a, its "what gets traced automatically" list is now wrong
-  for 4.21+
-- The **footer** still claims verification on the strength of Citrus tests
-  alone. Rewrite it to say what was actually observed
+- the OpenTelemetry Spring Boot starter, for the exporter and Logback appender
+- `OpenTelemetryGlobalConfig`, because Camel's tracer resolves its SDK from the
+  Camel registry or `GlobalOpenTelemetry.get()`, and the starter publishes
+  neither — so route spans vanished while the starter's own HTTP spans kept
+  arriving, which made tracing look healthy. Confirmed against both
+  `camel-opentelemetry` and `camel-opentelemetry2`
+- `spring-boot-opentelemetry`, without which Spring Boot 4 skips
+  `OtlpMetricsExportAutoConfiguration` on a missing-class condition while still
+  accepting every `management.otlp.metrics.export.*` property.
+  `/actuator/conditions` is what found it
+
+**Chapter 27: rewritten.** Corrected the metric names (`camel_exchanges_total`,
+`camel_route_policy_milliseconds_bucket`), the LogQL labels (`service_name`,
+`bridge_name`), the ports table, and the Loki section, which taught
+`quarkus.log.console.json=true` — JSON to stdout, shipped nowhere. Added a
+"getting all three signals" section explaining why metrics and logs fail
+quietly, the 4.21 span-shape changes from item 7a, the two metric-naming traps
+(seconds vs milliseconds across the two paths; counters absent until they
+count), and a copy-pasteable end-to-end check. Footer now records what was
+observed and says plainly that the Citrus tests are not evidence for this page.
 
 ## 2. Presentation deck references Camel 3.0.0  ☐
 
