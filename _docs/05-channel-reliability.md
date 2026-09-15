@@ -228,6 +228,13 @@ from("kafka:eip.orders.placed"
 
 **The consumer side:** `autoCommitEnable=false` and `allowManualCommit=true` give the consumer explicit control over when to commit the offset. The offset is committed *after* successful processing — so if the consumer crashes before committing, the message will be redelivered on the next poll. This is **at-least-once** delivery: guaranteed not to lose messages, but may deliver duplicates. Handling duplicates is the Idempotent Receiver pattern (Part 7).
 
+> **This requires Camel 4.22 or later.** Earlier versions accepted
+> `allowManualCommit=true` and then auto-committed offsets anyway, for every
+> record processed, whether or not your route called `commit()` — so a crash
+> between processing and commit could still lose the message, which is exactly
+> what this pattern exists to prevent. [Appendix
+> N]({% link _docs/32-appendix-kafka-consumer-tuning.md %}) covers what changed and how to spot it.
+
 `breakOnFirstError=true` is critical: without it, Camel continues processing the next message in the poll batch even if the current one fails. With it, Camel stops the batch at the first error, allowing the failed message to be retried.
 
 ## Common pitfalls

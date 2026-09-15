@@ -169,6 +169,43 @@ from("kafka:eip.orders.placed"
 
 **Best practice**: use `commitAsync` by default for lower latency, but switch to `commitSync` before shutdown or rebalance to guarantee the final commit. Camel's `allowManualCommit=true` uses synchronous commit, which is the safer default.
 
+#### This only genuinely worked from Camel 4.22
+
+The code above is unchanged from earlier Camel versions, and it has always
+*looked* correct. The guarantee behind it is new.
+
+Before 4.22, `allowManualCommit=true` did not actually stop the framework
+committing on your behalf. Camel auto-committed offsets for every processed
+record whether or not the route ever called `commit()` — which, as the upgrade
+guide puts it, "defeated the purpose of manual commit mode and could cause
+message loss." A route that crashed after `processPayment` but before
+`commit()` could still have had its offset committed, and the order was gone.
+
+From 4.22, offsets are committed only on an explicit `commit()` call. The
+at-least-once claim this appendix and [Chapter 5]({% link _docs/05-channel-reliability.md %}) make
+is true now in a way it was not before.
+
+Two consequences worth internalising:
+
+- If you are reading this against an older Camel, the pattern is not delivering
+  the guarantee you think. Upgrade before relying on it.
+- If you enable `allowManualCommit=true` and then *forget* to call `commit()`,
+  4.22 will no longer quietly paper over the mistake. The consumer reprocesses
+  from the last committed offset on every restart. That is the correct
+  behaviour, and it is a much better failure than silent loss, but it will look
+  like a regression if you upgrade into it.
+
+#### Let every consumer own its group id
+
+Related, same release. When Camel auto-generates a `groupId` because you did
+not set one, all `consumersCount` threads now share it. Previously each thread
+got its own UUID, joined the group alone, and independently consumed *every*
+partition — so `consumersCount=3` meant processing each message three times.
+
+Every Kafka consumer in this tutorial sets an explicit `groupId`, so nothing
+here was affected. Set one in your own routes too; the default is not a name
+you want to depend on.
+
 ### Transactional reads
 
 When consuming from topics that are written transactionally (see Appendix B's EOS section), set `isolation.level` to `read_committed` to skip uncommitted or aborted records:

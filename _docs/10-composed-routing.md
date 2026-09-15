@@ -238,6 +238,32 @@ from("direct:payment-complete")
 
 The saga pattern is essential for distributed transactions where partial completion requires compensating actions. The payment flow above is a textbook example: if fraud review fails after payment is authorized, the authorization must be reversed.
 
+### Compensation became observable in Camel 4.22
+
+If you have run sagas on an earlier Camel, the timing here is different now, and
+the difference matters for how you reason about the pattern.
+
+`InMemorySagaCoordinator.compensate()` and `complete()` used to return an
+already-completed future. The exchange carried on immediately, while
+compensation ran somewhere behind it — and if every retry of a compensating
+action failed, that failure was logged as a warning and otherwise swallowed.
+You could have a saga report success while its rollback had quietly failed.
+
+From 4.22 both methods return the real finalization future. The exchange waits
+for the compensation or completion callbacks, retries included, and if they
+ultimately fail the exception propagates onto the exchange.
+
+This is a better model of what a saga is actually promising, and it is why the
+compensation log lines in the example now appear *before* the route completes
+rather than interleaved unpredictably after it. It also means a compensating
+action that cannot succeed is now your problem to handle, visibly, instead of a
+line in a log nobody reads. Give `direct:payment-compensate` an error handler
+if the refund can fail in ways you need to escalate.
+
+Note this applies to the in-memory coordinator, which is the default and what
+this example uses. A production saga service (LRA, for instance) has its own
+semantics.
+
 ## Pattern: Scatter-Gather
 
 ### The problem

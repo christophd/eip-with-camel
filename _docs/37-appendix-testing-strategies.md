@@ -547,7 +547,7 @@ The `--reporter-junit-export` flag produces JUnit XML that CI systems (GitHub Ac
 ### Before you run them: point Testcontainers at Podman
 
 Anything that starts a container — Tier 2 here, and the Citrus suites in
-[Appendix W](41-appendix-citrus-testing) — goes through Testcontainers, which
+[Appendix W]({% link _docs/41-appendix-citrus-testing.md %}) — goes through Testcontainers, which
 looks for a **Docker** socket and does not know about Podman. Export this once
 in your shell:
 

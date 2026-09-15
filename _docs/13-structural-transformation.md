@@ -126,6 +126,24 @@ public JdbcAggregationRepository aggregationRepo(@Named("orderDataSource") DataS
 
 This ensures that if the service restarts mid-aggregation, in-flight aggregations resume from the database.
 
+**Use Camel 4.22 or later for this.** The Postgres-backed repositories had a
+real correctness bug until that release: their `INSERT … ON CONFLICT` omitted
+the `version` column, so optimistic locking did not behave as intended under
+concurrent updates to the same correlation key. Three things changed in 4.22:
+
+- `PostgresAggregationRepository` and `ClusteredPostgresAggregationRepository`
+  now include `version` in the upsert, and the clustered variant writes
+  `instance_id` to the completed table when `recoveryByInstance` is enabled
+- table names may now be schema-qualified (`myschema.camel_aggregation`), which
+  the validation previously rejected
+- `remove()` throws `OptimisticLockingException` on a stale delete rather than
+  silently doing nothing
+
+Camel 4.21 separately fixed `RedisAggregationRepository` to take per-key locks
+instead of a single global `"aggregationLock"` — worth knowing if you followed
+[Appendix D]({% link _docs/22-appendix-redis.md %}) and put your aggregation state in Redis, since
+before that fix every correlation key contended on one lock.
+
 ## Pattern: Normalizer
 
 ### The problem
