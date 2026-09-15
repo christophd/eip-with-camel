@@ -78,17 +78,20 @@ quietly, the 4.21 span-shape changes from item 7a, the two metric-naming traps
 count), and a copy-pasteable end-to-end check. Footer now records what was
 observed and says plainly that the Citrus tests are not evidence for this page.
 
-## 2. Presentation deck references Camel 3.0.0  ☐
+## 2. Presentation deck references Camel 3.0.0  ☑ not a defect, 2026-09-15
 
-`presentations/Apache Camel and Enterprise Integration (Final).pptx` contains
-`3.0.0`. The other two decks (`eip-101.pptx`, `eip-201.pptx`) carry no version
-strings.
+False positive from the original audit, which matched a bare `3.0.0`.
 
-Find the slide and decide whether the reference is historical (fine) or a stale
-"current version" claim (fix). Note that **this deck has no generator** —
-`presentations/src/` only builds `eip-101` and `eip-201`, and the file predates
-that toolchain. Fixing it means unzipping the pptx, patching the slide XML, and
-rezipping.
+The string is on slide 10 of
+`presentations/Apache Camel and Enterprise Integration (Final).pptx`, and it is
+`openapi: 3.0.0` — the spec version in a sample OpenAPI contract next to a
+sample WSDL. It has nothing to do with Camel and must not be "fixed".
+
+Swept all three decks for version claims while confirming this. The only other
+three-part numbers anywhere are a sample `version: "1.0.0"` in that same
+contract and `127.0.0.1` on slide 21. `eip-101.js` and `eip-201.js` name no
+Camel, Quarkus or Spring Boot version at all, so there is nothing in the decks
+that goes stale on a version bump.
 
 ## 3. Stale handoff document  ☑ done
 
