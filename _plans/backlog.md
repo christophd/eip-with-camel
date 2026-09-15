@@ -98,7 +98,43 @@ that goes stale on a version bump.
 `_plans/upgrade-camel-4.22-HANDOFF.md` deleted — superseded by
 `upgrade-camel-4.22-PLAN.md` and `upgrade-camel-4.22-RESUME.md`.
 
-## 4. 432 chapter/example identifier divergences  ☐
+## 4. Chapter/example identifier divergences  ☑ done 2026-09-15
+
+**The count was the wrong thing to chase, and it barely moved: 438 → 434.** That
+is the correct outcome. Working through it chapter by chapter confirmed the
+original triage — the overwhelming majority are chapters showing three named
+variants of a pattern the example implements once
+(`idempotent-receiver-jdbc`/`-memory`/`-redis` against one
+`idempotent-receiver`, `load-balancer-round-robin`/`-failover`/`-sticky` against
+one `load-balancer-demo`, `polling-consumer-cron`/`-file` against one
+`polling-consumer`). Renaming those would make the tutorial worse, so they stay.
+
+What the pass *did* find is a different and much worse problem that the
+identifier count does not measure: **four chapters teach a pattern their example
+does not implement at all**, while pointing the reader at that example.
+
+| Ch | Pattern with no code behind it |
+|---|---|
+| 10 | **Process Manager** — the chapter shows a full `saga()` with compensation; the example has no saga anywhere |
+| 08 | **Request-Reply** and **Return Address** — no responder in the example |
+| 12 | **Envelope Wrapper** — three of four patterns are implemented, not this one |
+| 13 | **Canonical Data Model** — not missing, but it is the `domain-model` module rather than a route, which nothing said |
+
+Each now states, in the runnable-example callout, which patterns are in the code
+and which are prose only, and why. Verified the other way too: chapters 04, 06,
+11 and 18 have complete pattern coverage, so their divergence really is just
+naming.
+
+Also aligned two identifiers that were plain renames with no teaching purpose
+behind them: ch 20's `exactly-once-pipeline` is the example's
+`transactional-pipeline`, and ch 07's `direct:send-payment-command` is
+`direct:send-command`.
+
+**Do not treat the remaining 434 as a defect count.** Use
+`check-chapter-parity.py` to find chapters worth *looking* at; the question is
+always whether a reader following along is misled, and usually the answer is no.
+
+## 4b. Original framing (kept for context)
 
 Lowest value, largest surface. `./scripts/check-chapter-parity.py` reports the
 current count (432 across 33 chapters as of 2026-09-15).

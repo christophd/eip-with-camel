@@ -116,7 +116,7 @@ For consume-transform-produce patterns (read from topic A, process, write to top
 from("kafka:eip.orders.placed?brokers=localhost:9092"
         + "&groupId=transform-service"
         + "&isolationLevel=read_committed")
-    .routeId("exactly-once-pipeline")
+    .routeId("transactional-pipeline")
     .unmarshal().json(Map.class)
     .to("direct:transform-order")
     .marshal().json()

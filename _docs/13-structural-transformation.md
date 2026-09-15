@@ -7,6 +7,15 @@ duration: "40 minutes"
 ---
 
 > **Runnable example:** The code from this chapter is in [`examples/13-aggregator/`](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/13-aggregator) with Quarkus and Spring Boot subdirectories.
+>
+> **Aggregator** is `order-aggregator`, with `persistent-order-aggregator`
+> showing the JDBC-backed variant, and **Normalizer** is `normalizer-partner-a`
+> through `normalizer-partner-c` — the chapter calls these `normalizer-xml` and
+> `normalizer-mobile` after the format each one handles.
+>
+> **Canonical Data Model** has no routes of its own by design: it is the
+> `examples/domain-model/` module that every other example depends on. That
+> module *is* the pattern.
 
 {% include codetabs.html langs="Quarkus|Spring Boot" %}
 

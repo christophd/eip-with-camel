@@ -67,7 +67,7 @@ Commands typically flow through **point-to-point channels** (a Kafka topic with 
 
 ```java
 // Sending a command
-from("direct:send-payment-command")
+from("direct:send-command")
     .routeId("command-message-producer")
     .setHeader("messageType", constant("COMMAND"))
     .setHeader("commandName", constant("ProcessPayment"))
