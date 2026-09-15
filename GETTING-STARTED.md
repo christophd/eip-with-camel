@@ -117,17 +117,17 @@ To build a single example, pass a filter:
 | 19 | `examples/24-drools-rules` | Rule-based content routing with Drools 10 rule units |
 | 20 | `examples/25-quarkus-flow` | Order fulfillment saga with CDI state machine |
 | 21 | `examples/26-feature-flags` | Flag-controlled Detour, fractional A/B routing, targeted rollout |
-| 21 | `examples/27-observability-stack` | OpenTelemetry tracing, Micrometer metrics, health probes |
-| 22 | `examples/32-kafka-consumer-tuning` | Throughput-tuned, safety-first, static-membership consumers |
-| 23 | `examples/33-kafka-producer-tuning` | Batched, compressed, idempotent, synchronous producers |
-| 24 | `examples/37-testing-strategies` | Three-tier testing: unit, integration, Newman |
-| 25 | `examples/38-kubernetes-deploy` | Kubernetes deployment on Minikube with Strimzi Kafka |
-| 26 | `examples/39-camel-cli` | CLI prototype-to-production workflow (YAML DSL) |
-| 27 | `examples/40-camel-tui` | TUI dashboard demo with order validation (YAML DSL) |
-| 28 | `examples/41-citrus-testing` | End-to-end integration testing with Citrus (YAML DSL) |
-| 29 | `examples/42-ai-mcp` | AI-powered order classification with LangChain4j |
-| 30 | `examples/loan-broker` | Scatter-Gather case study (13 patterns) |
-| 31 | `examples/bond-trading` | Market data normalization (16 patterns) |
+| 22 | `examples/27-observability-stack` | OpenTelemetry tracing, Micrometer metrics, health probes |
+| 23 | `examples/32-kafka-consumer-tuning` | Throughput-tuned, safety-first, static-membership consumers |
+| 24 | `examples/33-kafka-producer-tuning` | Batched, compressed, idempotent, synchronous producers |
+| 25 | `examples/37-testing-strategies` | Three-tier testing: unit, integration, Newman |
+| 26 | `examples/38-kubernetes-deploy` | Kubernetes deployment on Minikube with Strimzi Kafka |
+| 27 | `examples/39-camel-cli` | CLI prototype-to-production workflow (YAML DSL) |
+| 28 | `examples/40-camel-tui` | TUI dashboard demo with order validation (YAML DSL) |
+| 29 | `examples/41-citrus-testing` | End-to-end integration testing with Citrus (YAML DSL) |
+| 30 | `examples/42-ai-mcp` | AI-powered order classification with LangChain4j |
+| 31 | `examples/loan-broker` | Scatter-Gather case study (13 patterns) |
+| 32 | `examples/bond-trading` | Market data normalization (16 patterns) |
 
 ## Tutorial site
 
