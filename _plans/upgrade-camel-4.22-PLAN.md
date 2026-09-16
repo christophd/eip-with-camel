@@ -96,6 +96,10 @@ microprofile-fault-tolerance/health, resilience4j, test-spring-junit5.
 
 ---
 
+> **Historical record.** The upgrade described here is complete and merged to
+> `main`. Work that came after it is tracked in `backlog.md`.
+
+
 ## Resolutions to the five open plan questions
 
 ### Q1 — How do the 21 untested PRs get verified before landing?

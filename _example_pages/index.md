@@ -46,16 +46,27 @@ mvn quarkus:dev
 
 | Example | Patterns | Infrastructure | Appendix |
 |---------|----------|----------------|----------|
+| [19-dsl-comparison](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/19-dsl-comparison) | The same route on Quarkus, Spring Boot and the YAML DSL | Kafka | Appendix A |
 | [20-kafka-deep-dive](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/20-kafka-deep-dive) | Key-based partitioning, transactional pipeline, consumer lag monitoring | Kafka | Appendix B |
 | [21-pulsar-deep-dive](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/21-pulsar-deep-dive) | Shared/Key_Shared subscriptions, dead letter topics | Pulsar | Appendix C |
 | [22-redis-integration](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/22-redis-integration) | Caching enrichment, idempotent receiver, distributed locking | Kafka + Redis | Appendix D |
+| [23-quarkus-dev](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/23-quarkus-dev) | Dev Services, live reload, continuous testing | None (Dev Services) | Appendix E |
 | [24-drools-rules](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/24-drools-rules) | Rule-based content routing with Drools 10 rule units | Kafka | Appendix F |
 | [25-quarkus-flow](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/25-quarkus-flow) | Order fulfillment saga with CDI state machine and Camel routes | Kafka | Appendix G |
+| [26-feature-flags](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/26-feature-flags) | Flag-controlled Detour, fractional A/B routing, targeted rollout | Kafka + flagd | Appendix H |
 | [27-observability-stack](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/27-observability-stack) | OpenTelemetry tracing, Micrometer metrics, health probes | Kafka (LGTM optional) | Appendix I |
 | [32-kafka-consumer-tuning](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/32-kafka-consumer-tuning) | Throughput-tuned, safety-first, and static-membership consumers | Kafka | Appendix N |
 | [33-kafka-producer-tuning](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/33-kafka-producer-tuning) | Batched, compressed, idempotent, and synchronous producers | Kafka | Appendix O |
+| [34-kafka-share-groups](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/34-kafka-share-groups) | KIP-932 share groups: fan-out beyond partition count, ACCEPT/RELEASE/REJECT | Kafka | Appendix P |
+| [35-kafka-diagnostics](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/35-kafka-diagnostics) | The diagnostic workflow as a script: lag, group state, broker health, JVM dumps | Kafka | Appendix Q |
+| [36-kafka-connect-offsets](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/36-kafka-connect-offsets) | Listing, altering and resetting connector offsets over the REST API | Kafka + Connect | Appendix R |
 | [37-testing-strategies](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/37-testing-strategies) | Three-tier testing: unit (MockEndpoint), integration (REST Assured), Newman | None (self-contained) | Appendix S |
 
+| [38-kubernetes-deploy](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/38-kubernetes-deploy) | Container builds and Kubernetes deployment with Strimzi Kafka | Minikube | Appendix T |
+| [39-camel-cli](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/39-camel-cli) | CLI prototype-to-production workflow (YAML DSL, no Maven) | Kafka + Redis | Appendix U |
+| [40-camel-tui](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/40-camel-tui) | TUI dashboard demo with order validation (YAML DSL) | Kafka | Appendix V |
+| [41-citrus-testing](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/41-citrus-testing) | End-to-end integration testing with Citrus (YAML DSL) | Testcontainers | Appendix W |
+| [42-ai-mcp](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/42-ai-mcp) | AI order classification and assistant with LangChain4j | Kafka + Ollama | Appendix X |
 ## Case studies
 
 | Example | Description | Appendix |

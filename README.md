@@ -6,9 +6,9 @@ A comprehensive guide to the **65 Enterprise Integration Patterns** (Hohpe & Woo
 
 ## What's inside
 
-- **41 tutorial chapters** — 10 parts covering all 65 EIP patterns, from integration styles through system management, plus 22 deep-dive appendices.
+- **44 tutorial chapters** — 10 parts covering all 65 EIP patterns, from integration styles through system management, plus 25 deep-dive appendices.
 - **67 Excalidraw diagrams** — visual architecture and pattern flow diagrams with EIP stencil icons embedded throughout.
-- **31 runnable examples** — Camel projects (Quarkus and Spring Boot variants) you can build and run against a local Podman stack, including Loan Broker and Bond Trading case studies.
+- **37 runnable examples** — Camel projects (Quarkus and Spring Boot variants) you can build and run against a local Podman stack, plus operational scripts for the Kafka appendices, including Loan Broker and Bond Trading case studies.
 - **Shipping domain** — A consistent e-commerce scenario (orders, inventory, payments, shipping, notifications) that drives every pattern example.
 - **Local infrastructure** — One-command Podman stack with Kafka (KRaft), Pulsar, Redis, PostgreSQL, Apicurio Registry, and an optional LGTM observability overlay (Grafana, Loki, Tempo, Mimir).
 
@@ -105,7 +105,7 @@ Examples with `quarkus/` and `spring-boot/` subdirectories support both runtimes
 | 6 | Message Transformation | Translator, Enricher, Content Filter, Normalizer, Canonical Model |
 | 7 | Messaging Endpoints | Gateway, Consumers, Dispatcher, Idempotent Receiver, Service Activator |
 | 8 | System Management | Control Bus, Wire Tap, Message History, Message Store |
-| 9 | Appendices | Spring Boot vs Quarkus, Kafka, Pulsar, Redis, Quarkus Flow, Drools, Observability, Kubernetes Deployment, Camel CLI, Camel TUI, Citrus Testing, AI and MCP, Loan Broker & Bond Trading case studies, Glossary, Virtual Threads, Consumer/Producer Tuning, Share Groups, Diagnostics, Kafka Connect Offsets, Testing Strategies |
+| 9 | Appendices | Spring Boot vs Quarkus, Kafka, Pulsar, Redis, Quarkus Dev Mode, Drools, Quarkus Flow, Feature Flags, Observability, Kubernetes Deployment, Camel CLI, Camel TUI, Citrus Testing, AI and MCP, Secure by Default, Loan Broker & Bond Trading case studies, Glossary, Virtual Threads, Consumer/Producer Tuning, Share Groups, Diagnostics, Kafka Connect Offsets, Testing Strategies |
 
 ## Stack
 

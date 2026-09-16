@@ -11,21 +11,16 @@ sections in order and commit each item separately.
 **Last reviewed:** 2026-09-15
 **Branch:** `iteration/post-upgrade-cleanup`, pushed, clean tree
 
-**Resume here:** items 1, 2, 3, 4 and 6 are closed. Item 5 is 3 of 6 done —
-next is deciding the shape of the three Kafka operational examples (34, 35,
-36), which may be scripts rather than Maven projects. Item 7a (stale chapters)
-is done and 7b is done except the optional security appendix. Item 8, the
-close-out review, is last and not started.
-
-Known stale and waiting for item 8: `README.md` still says 41 chapters and 31
-examples; both are now 43 and 35.
+**All eight items are closed as of 2026-09-16.** This file is now a record of
+what was done rather than a list of what is left. Start a new list for new
+work.
 
 ---
 
 ## Where the project stands
 
-Feature-complete. 43 chapters covering all 65 EIP patterns, 35 example projects
-(three added 2026-09-15), 67 diagrams, 3 presentation decks.
+Feature-complete. 44 chapters covering all 65 EIP patterns, 37 examples,
+67 diagrams, 3 presentation decks.
 
 The Camel 4.22 upgrade is merged to `main`: Camel **4.22.0** on all three
 runtimes, Quarkus platform **3.39.3**, Spring Boot **4.1.1** (Spring 7.0.9),
@@ -163,7 +158,7 @@ chapter-only count: 37-testing-strategies (16), 27-observability (14),
 
 ---
 
-## 5. Runnable examples for appendix gaps  ◐ 3 of 6 done
+## 5. Runnable examples for appendix gaps  ☑ done 2026-09-16
 
 **Done and verified 2026-09-15:**
 
@@ -178,11 +173,21 @@ chapter-only count: 37-testing-strategies (16), 27-observability (14),
   runtimes. The two Java classes differ by four lines; the README opens by
   telling you to diff them
 
-**Still to build — 34, 35, 36.** All three are Kafka *operational* topics
-rather than route-level ones, and the open question from the original triage
-still stands: they may be better served by scripts and manifests than by Maven
-projects. Decide per chapter, and if a chapter deliberately gets no Maven
-module, say so in the chapter.
+**34, 35 and 36: done 2026-09-16, all as scripts rather than Maven projects.**
+That was the right call in each case, and each chapter now says why it has no
+Camel code.
+
+- **34 — Share Groups.** camel-kafka 4.22 has no share-group support at all, so
+  the chapter's `&groupType=share` URI was not valid Camel and has been marked
+  as such. The script drives Kafka's own tools. Two broker settings were needed
+  that are not defaults and give no hint when missing: `share` in
+  `group.coordinator.rebalance.protocols`, and RF/min-ISR 1 on the share
+  coordinator's state topic
+- **35 — Diagnostics.** The chapter's own seven-step checklist, automated,
+  with a `--dump` mode
+- **36 — Connect Offsets.** The REST API path rather than Strimzi CRDs, since
+  the CRDs need Kubernetes for what is three HTTP calls. Connect runs as its
+  own compose overlay
 
 | Ch | Topic | Notes before starting |
 |---|---|---|
@@ -261,7 +266,7 @@ Two bugs fixed in passing:
   checks and implied all of them have healthchecks. Now records which are
   distroless and why only Grafana has one
 
-## 7. Camel 4.21 / 4.22 content gap  ◐ mostly done
+## 7. Camel 4.21 / 4.22 content gap  ☑ done 2026-09-16
 
 **7a, stale chapters: done 2026-09-15.** All six corrected — ch 14
 (`allowedSchemes`, with both example variants updated), ch 05/15/32 (the Kafka
@@ -279,14 +284,13 @@ Deliberately skipped, with reasons: group-scoped variables (ch 08 has no
 variables section to extend) and the canonical YAML DSL work (ch 19 compares
 runtimes, not DSLs, despite its title).
 
-**Still open — the optional security appendix.** "Secure out of the box" was
-the headline theme across both releases and the site has no security chapter.
-Write it **only as one argument** — that Camel's posture moved from "safe if
-you configure it" to "safe by default" — covering JEP-290 deserialization
-filters, Jackson polymorphic-type blocking, header filtering at transport
-boundaries, dynamic URI allow-lists, Zip/Tar Slip prevention, credential
-masking and `oauthProfile`. If it cannot be written that way, cut it; the
-`allowedSchemes` work in ch 14 already carries the part that matters most.
+**Security appendix: written, as Appendix Y (chapter 43).** It met the bar —
+one argument, that Camel's posture moved from "safe if you configure it" to
+"safe by default", with the individual fixes hanging off the three shapes that
+recur in integration: deserialization, headers crossing a transport boundary,
+and dynamic destinations. The second half is the three things defaults cannot
+decide for you. Marked **unverified**, because only `allowedSchemes` is
+exercised by code here.
 
 ## 7c. Research detail (kept for reference)
 
@@ -373,7 +377,48 @@ if you configure it" to "safe by default" — not as a list of fifteen
 mitigations. If it cannot be written that way, cut it and keep only the
 `allowedSchemes` work.
 
-## 8. Close-out document review  ☐
+## 8. Close-out document review  ☑ done 2026-09-16
+
+Swept every document in the repo, checking content and the links between them.
+
+**Clean on inspection, no changes needed:**
+
+- Front matter across all 44 chapters — every one has title, order, part,
+  description, duration; no duplicate orders; every `part` resolves to a
+  `_parts` entry; every chapter has a verification footer
+- All 67 diagram includes resolve to a file on disk
+- Every `{% link %}` target exists
+- All 37 examples have a README
+- 152 external URLs checked, **zero broken**. Three flagged by the checker were
+  artifacts: a deliberate `my-resource.openai.azure.com` placeholder, a
+  markdown `**` caught by the URL regex, and `strimzi.io/charts/`, which is the
+  correct Helm repo URL and serves `index.yaml` (200) rather than a listing
+- Five codetabs blocks carry a third fenced block after two labels. Not a
+  defect: `codetabs.js` absorbs exactly N blocks, so the extra one renders
+  below the tab group, which is the intent — a shared class body under two
+  runtime-specific declarations
+
+**Corrected:**
+
+| Where | Was | Now |
+|---|---|---|
+| `README.md` | 41 chapters, 22 appendices, 31 examples | 44, 25, 37 |
+| `README.md` | Appendices row missing Dev Mode, Feature Flags, Secure by Default | listed |
+| `_example_pages/index.md` | **11 examples missing** — six added this week plus 38–42, which had been absent since Phase 5 | all 37 listed |
+| `presentations/README.md` | EIP 101 ~85 slides, EIP 201 ~120, 26 diagram PNGs | 98, 140, 51 |
+| `presentations/README.md` | legacy deck undocumented | noted, with why it has no source |
+| `GETTING-STARTED.md` | EIP 201 "126 slides" — actually the *legacy* deck's count | 140 |
+
+**Plans retired:** `upgrade-camel-4.22-RESUME.md` deleted — it claimed the
+upgrade was unmerged, which stopped being true. `reconciliation-plan.md` and
+`upgrade-camel-4.22-PLAN.md` both carry a superseded/historical banner so
+neither reads as current state.
+
+---
+
+## Everything on this backlog is closed.
+
+Nothing is outstanding. Future work starts a new list.
 
 The final gate. A full read-through of every document in the repo, checking
 both content and the links between documents.

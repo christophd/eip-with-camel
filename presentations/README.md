@@ -2,10 +2,14 @@
 
 Two Red Hat-branded slide decks covering the 65 Enterprise Integration Patterns from Hohpe & Woolf, implemented with Apache Camel on Quarkus.
 
+A third deck, `Apache Camel and Enterprise Integration (Final).pptx`, predates
+this toolchain and has no source under `src/`. It is kept as-is; editing it
+means unzipping the pptx and patching slide XML by hand.
+
 | Deck | Slides | Focus |
 |------|--------|-------|
-| **EIP 101** | ~85 | Conceptual guide — pattern language, categories, visual explanations |
-| **EIP 201** | ~120 | Implementation deep-dive — Java DSL, code examples, case studies |
+| **EIP 101** | 98 | Conceptual guide — pattern language, categories, visual explanations |
+| **EIP 201** | 140 | Implementation deep-dive — Java DSL, code examples, case studies |
 
 ## Prerequisites
 
@@ -34,6 +38,7 @@ node eip-201.js    # → ../eip-201.pptx
 presentations/
 ├── eip-101.pptx              # EIP 101 output
 ├── eip-201.pptx              # EIP 201 output
+├── Apache Camel and Enterprise Integration (Final).pptx   # legacy, no source
 ├── README.md
 └── src/
     ├── eip-101.js             # EIP 101 deck builder
@@ -42,9 +47,9 @@ presentations/
     ├── build.sh               # builds both decks
     ├── convert-diagrams.sh    # SVG → PNG conversion
     ├── assets/                # brand images (cover, divider, logos)
-    └── png/                   # converted diagram PNGs (26 diagrams)
+    └── png/                   # converted diagram PNGs (51 diagrams)
 ```
 
 ## Diagrams
 
-The decks embed 26 Excalidraw diagrams from the tutorial site, converted to PNG. Run `convert-diagrams.sh` to regenerate after adding or updating diagrams in `assets/diagrams/`.
+The decks embed 51 Excalidraw diagrams from the tutorial site, converted to PNG. Run `convert-diagrams.sh` to regenerate after adding or updating diagrams in `assets/diagrams/`.
