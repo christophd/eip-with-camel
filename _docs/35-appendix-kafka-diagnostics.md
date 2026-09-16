@@ -270,6 +270,15 @@ environment:
 
 ## A diagnostic workflow
 
+`examples/35-kafka-diagnostics/kafka-diagnostics.sh` runs this checklist for
+you, in order, against the local stack:
+
+```bash
+./kafka-diagnostics.sh                  # the whole workflow
+./kafka-diagnostics.sh --group my-group # one consumer group
+./kafka-diagnostics.sh --dump <pid>     # thread dump and heap summary
+```
+
 When something goes wrong, work through this checklist:
 
 1. **Check consumer group lag** — is the consumer falling behind? (`kafka-consumer-groups.sh --describe`)
@@ -284,4 +293,4 @@ Most Kafka issues in integration routes fall into three categories: **consumer l
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — conceptual reference chapter, no runnable example.*
+*Verification status: <span class="status status--verified">verified</span> — `examples/35-kafka-diagnostics/kafka-diagnostics.sh` was run against the Podman stack on 2026-09-16 with `examples/09-routing-fundamentals` consuming: it reported six consumer groups with lag and `Stable` state, zero under-replicated partitions, and `--dump` produced a 1072-line thread dump and a heap summary.*
