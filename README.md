@@ -77,6 +77,9 @@ See [Prerequisites & Setup](https://patterncatalyst.github.io/enterprise-integra
 | `examples/27-observability-stack` | OpenTelemetry tracing, Micrometer metrics, health probes | Appendix I |
 | `examples/25-quarkus-flow` | Order fulfillment saga with CDI state machine and Camel routes | Appendix G |
 | `examples/26-feature-flags` | Flag-controlled Detour, fractional A/B routing, targeted rollout (OpenFeature + flagd) | Appendix H |
+| `examples/34-kafka-share-groups` | KIP-932 share groups: fan-out beyond partition count, ACCEPT/RELEASE/REJECT | Appendix P |
+| `examples/35-kafka-diagnostics` | The diagnostic workflow as a script: lag, group state, broker health, JVM dumps | Appendix Q |
+| `examples/36-kafka-connect-offsets` | Listing, altering and resetting connector offsets over the Connect REST API | Appendix R |
 | `examples/32-kafka-consumer-tuning` | Throughput-tuned, safety-first, and static-membership consumers | Appendix N |
 | `examples/33-kafka-producer-tuning` | Batched, compressed, idempotent, and synchronous producers | Appendix O |
 | `examples/37-testing-strategies` | Three-tier testing: unit (MockEndpoint), integration (REST Assured), Newman | Appendix S |

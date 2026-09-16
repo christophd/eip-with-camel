@@ -120,16 +120,19 @@ To build a single example, pass a filter:
 | 22 | `examples/25-quarkus-flow` | Order fulfillment saga with CDI state machine |
 | 23 | `examples/26-feature-flags` | Flag-controlled Detour, fractional A/B routing, targeted rollout |
 | 24 | `examples/27-observability-stack` | OpenTelemetry tracing, Micrometer metrics, health probes |
-| 25 | `examples/32-kafka-consumer-tuning` | Throughput-tuned, safety-first, static-membership consumers |
-| 26 | `examples/33-kafka-producer-tuning` | Batched, compressed, idempotent, synchronous producers |
-| 27 | `examples/37-testing-strategies` | Three-tier testing: unit, integration, Newman |
-| 28 | `examples/38-kubernetes-deploy` | Kubernetes deployment on Minikube with Strimzi Kafka |
-| 29 | `examples/39-camel-cli` | CLI prototype-to-production workflow (YAML DSL) |
-| 30 | `examples/40-camel-tui` | TUI dashboard demo with order validation (YAML DSL) |
-| 31 | `examples/41-citrus-testing` | End-to-end integration testing with Citrus (YAML DSL) |
-| 32 | `examples/42-ai-mcp` | AI-powered order classification with LangChain4j |
-| 33 | `examples/loan-broker` | Scatter-Gather case study (13 patterns) |
-| 34 | `examples/bond-trading` | Market data normalization (16 patterns) |
+| 25 | `examples/34-kafka-share-groups` | KIP-932 share groups: fan-out, ACCEPT/RELEASE/REJECT |
+| 26 | `examples/35-kafka-diagnostics` | Diagnostic workflow script: lag, group state, JVM dumps |
+| 27 | `examples/36-kafka-connect-offsets` | Connector offsets over the Connect REST API |
+| 28 | `examples/32-kafka-consumer-tuning` | Throughput-tuned, safety-first, static-membership consumers |
+| 29 | `examples/33-kafka-producer-tuning` | Batched, compressed, idempotent, synchronous producers |
+| 30 | `examples/37-testing-strategies` | Three-tier testing: unit, integration, Newman |
+| 31 | `examples/38-kubernetes-deploy` | Kubernetes deployment on Minikube with Strimzi Kafka |
+| 32 | `examples/39-camel-cli` | CLI prototype-to-production workflow (YAML DSL) |
+| 33 | `examples/40-camel-tui` | TUI dashboard demo with order validation (YAML DSL) |
+| 34 | `examples/41-citrus-testing` | End-to-end integration testing with Citrus (YAML DSL) |
+| 35 | `examples/42-ai-mcp` | AI-powered order classification with LangChain4j |
+| 36 | `examples/loan-broker` | Scatter-Gather case study (13 patterns) |
+| 37 | `examples/bond-trading` | Market data normalization (16 patterns) |
 
 ## Tutorial site
 
