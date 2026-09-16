@@ -41,6 +41,32 @@ cd examples/<name>/spring-boot && mvn spring-boot:run  # Spring Boot
 cd examples/<name>/yaml-dsl && camel run *             # YAML DSL (Camel CLI)
 ```
 
+## Running the tests
+
+The integration tests use Testcontainers, which looks for a Docker socket.
+Docker is not a dependency of this project — point it at Podman instead:
+
+```bash
+systemctl --user enable --now podman.socket
+export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
+```
+
+Skip this and the tests either fail with "Could not find a valid Docker
+environment" or, if you have Docker installed, quietly run on a different
+engine than the rest of the project.
+
+The tests and the dev stack **cannot both be up** — both bind 9092, 6379, 5432
+and 6650. Stop the stack first:
+
+```bash
+podman-compose -p eip -f examples/_infra/compose.yaml down
+./scripts/build-all-examples.sh --with-tests     # ~2 hours, sequential
+./scripts/build-all-examples.sh 09-routing       # or just one
+```
+
+`build-all-examples.sh` exports `DOCKER_HOST` for you when the Podman socket is
+present. Running `mvn verify` directly in an example directory does not.
+
 ## Adding an example
 
 1. Create `examples/<chapter>-<name>/` with `quarkus/` and `spring-boot/` subdirectories (add `yaml-dsl/` for patterns that translate cleanly to YAML DSL)

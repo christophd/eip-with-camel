@@ -8,6 +8,15 @@ duration: "25 minutes"
 
 Quarkus Dev Mode is where JBang prototyping meets production-grade development. This appendix covers the features that make Camel Quarkus development fast: automatic infrastructure provisioning, live code reload, continuous testing, and the Dev UI.
 
+The code is in `examples/23-quarkus-dev/`. Unlike every other example in this
+tutorial, it is meant to be edited while it runs — and it needs no
+infrastructure started first:
+
+```bash
+cd examples/23-quarkus-dev/quarkus
+mvn quarkus:dev
+```
+
 ## Dev Services — automatic infrastructure
 
 When you run `mvn quarkus:dev`, Quarkus Dev Services automatically starts containers for your dependencies. No Podman compose needed during development:
@@ -29,6 +38,24 @@ When you run in dev mode, Quarkus:
 3. Detects `quarkus-redis-client` → starts a Redis instance.
 
 All containers are cleaned up when dev mode exits.
+
+> **Dev Services back off the moment you configure the connection yourself.**
+> This is the single most common reason they appear not to work. If
+> `application.properties` sets `kafka.bootstrap.servers` outside a profile,
+> Quarkus takes that as you naming a broker deliberately and never starts a
+> container — with no warning and no log line to explain the silence.
+>
+> Scope the property to the profiles that need it:
+>
+> ```properties
+> # %dev is left alone, so Dev Services owns the broker there
+> %prod.kafka.bootstrap.servers=localhost:9092
+> %test.kafka.bootstrap.servers=localhost:9092
+> ```
+>
+> Every other example in this tutorial sets that property unconditionally,
+> because they are all built to run against the Podman stack. That is also why
+> Dev Services never fire in any of them.
 
 ### Dev Services configuration
 
@@ -250,4 +277,4 @@ The native build produces a GraalVM native image: ~20ms startup, ~50MB memory. I
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — conceptual reference chapter, no runnable example.*
+*Verification status: <span class="status status--verified">verified</span> — `examples/23-quarkus-dev/` was run on 2026-09-15. With no infrastructure started, `mvn quarkus:dev` brought up Dev Services for Kafka on a random port (42495) and the routes classified orders against it; `mvn test` passes its 2 continuous tests.*

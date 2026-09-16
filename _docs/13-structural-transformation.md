@@ -7,6 +7,15 @@ duration: "40 minutes"
 ---
 
 > **Runnable example:** The code from this chapter is in [`examples/13-aggregator/`](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/13-aggregator) with Quarkus and Spring Boot subdirectories.
+>
+> **Aggregator** is `order-aggregator`, with `persistent-order-aggregator`
+> showing the JDBC-backed variant, and **Normalizer** is `normalizer-partner-a`
+> through `normalizer-partner-c` — the chapter calls these `normalizer-xml` and
+> `normalizer-mobile` after the format each one handles.
+>
+> **Canonical Data Model** has no routes of its own by design: it is the
+> `examples/domain-model/` module that every other example depends on. That
+> module *is* the pattern.
 
 {% include codetabs.html langs="Quarkus|Spring Boot" %}
 
@@ -125,6 +134,24 @@ public JdbcAggregationRepository aggregationRepo(@Named("orderDataSource") DataS
 ```
 
 This ensures that if the service restarts mid-aggregation, in-flight aggregations resume from the database.
+
+**Use Camel 4.22 or later for this.** The Postgres-backed repositories had a
+real correctness bug until that release: their `INSERT … ON CONFLICT` omitted
+the `version` column, so optimistic locking did not behave as intended under
+concurrent updates to the same correlation key. Three things changed in 4.22:
+
+- `PostgresAggregationRepository` and `ClusteredPostgresAggregationRepository`
+  now include `version` in the upsert, and the clustered variant writes
+  `instance_id` to the completed table when `recoveryByInstance` is enabled
+- table names may now be schema-qualified (`myschema.camel_aggregation`), which
+  the validation previously rejected
+- `remove()` throws `OptimisticLockingException` on a stale delete rather than
+  silently doing nothing
+
+Camel 4.21 separately fixed `RedisAggregationRepository` to take per-key locks
+instead of a single global `"aggregationLock"` — worth knowing if you followed
+[Appendix D]({% link _docs/22-appendix-redis.md %}) and put your aggregation state in Redis, since
+before that fix every correlation key contended on one lock.
 
 ## Pattern: Normalizer
 

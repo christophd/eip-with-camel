@@ -13,6 +13,20 @@ Quick-start guide for running the EIP tutorial examples locally.
 | Podman | 4.x+ | [podman.io](https://podman.io/) |
 | Podman Compose | 1.x+ | `pip install podman-compose` |
 
+Docker is **not** required — not even for the integration tests. But if you
+intend to run them, point Testcontainers at Podman's socket, or it will go
+looking for a Docker one:
+
+```bash
+systemctl --user enable --now podman.socket
+export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
+```
+
+Without this, the tests either fail with "Could not find a valid Docker
+environment" or — if you happen to have Docker installed — silently run on
+Docker while everything else runs on Podman. `scripts/build-all-examples.sh`
+sets it for you; `mvn verify` on its own does not.
+
 For detailed installation instructions, see [Chapter 0 — Prerequisites & Setup](https://patterncatalyst.github.io/enterprise-integration-patterns-with-camel/docs/00-prerequisites/).
 
 ## 1. Clone the repo
@@ -56,12 +70,26 @@ Quarkus Dev Mode starts with live reload — edit a route and the changes take e
 
 ## 4. Run all examples
 
-The CI workflow builds every example with `mvn verify`. To do the same locally:
+Use the build script. It walks the per-runtime subdirectories, points
+Testcontainers at Podman, and summarises what passed and failed:
 
 ```bash
-for dir in examples/*/; do
-  [ -f "$dir/pom.xml" ] && (cd "$dir" && mvn verify -q) && echo "✓ $dir"
-done
+./scripts/build-all-examples.sh              # compile only
+./scripts/build-all-examples.sh --with-tests # also run the integration tests
+```
+
+`--with-tests` takes roughly two hours — it is about two minutes per project and
+strictly sequential — and needs the dev stack **down**, since the tests bind the
+same ports:
+
+```bash
+podman-compose -p eip -f examples/_infra/compose.yaml down
+```
+
+To build a single example, pass a filter:
+
+```bash
+./scripts/build-all-examples.sh 09-routing
 ```
 
 ## Available examples
@@ -83,22 +111,28 @@ done
 | 13 | `examples/16-endpoint-management` | Messaging Gateway, Selective Consumer, Channel Purger, Messaging Mapper |
 | 14 | `examples/17-observability` | Control Bus, Wire Tap, Message History |
 | 15 | `examples/18-testing-management` | Test Message, Detour, Smart Proxy, Circuit Breaker |
-| 16 | `examples/20-kafka-deep-dive` | Key-based partitioning, transactional pipeline, lag monitoring |
-| 17 | `examples/21-pulsar-deep-dive` | Shared/Key_Shared subscriptions, dead letter topics |
-| 18 | `examples/22-redis-integration` | Caching enrichment, idempotent receiver, distributed locking |
-| 19 | `examples/24-drools-rules` | Rule-based content routing with Drools 10 rule units |
-| 20 | `examples/25-quarkus-flow` | Order fulfillment saga with CDI state machine |
-| 21 | `examples/27-observability-stack` | OpenTelemetry tracing, Micrometer metrics, health probes |
-| 22 | `examples/32-kafka-consumer-tuning` | Throughput-tuned, safety-first, static-membership consumers |
-| 23 | `examples/33-kafka-producer-tuning` | Batched, compressed, idempotent, synchronous producers |
-| 24 | `examples/37-testing-strategies` | Three-tier testing: unit, integration, Newman |
-| 25 | `examples/38-kubernetes-deploy` | Kubernetes deployment on Minikube with Strimzi Kafka |
-| 26 | `examples/39-camel-cli` | CLI prototype-to-production workflow (YAML DSL) |
-| 27 | `examples/40-camel-tui` | TUI dashboard demo with order validation (YAML DSL) |
-| 28 | `examples/41-citrus-testing` | End-to-end integration testing with Citrus (YAML DSL) |
-| 29 | `examples/42-ai-mcp` | AI-powered order classification with LangChain4j |
-| 30 | `examples/loan-broker` | Scatter-Gather case study (13 patterns) |
-| 31 | `examples/bond-trading` | Market data normalization (16 patterns) |
+| 16 | `examples/19-dsl-comparison` | The same route on Quarkus, Spring Boot and the YAML DSL |
+| 17 | `examples/20-kafka-deep-dive` | Key-based partitioning, transactional pipeline, lag monitoring |
+| 18 | `examples/21-pulsar-deep-dive` | Shared/Key_Shared subscriptions, dead letter topics |
+| 19 | `examples/22-redis-integration` | Caching enrichment, idempotent receiver, distributed locking |
+| 20 | `examples/23-quarkus-dev` | Dev Services, live reload, continuous testing |
+| 21 | `examples/24-drools-rules` | Rule-based content routing with Drools 10 rule units |
+| 22 | `examples/25-quarkus-flow` | Order fulfillment saga with CDI state machine |
+| 23 | `examples/26-feature-flags` | Flag-controlled Detour, fractional A/B routing, targeted rollout |
+| 24 | `examples/27-observability-stack` | OpenTelemetry tracing, Micrometer metrics, health probes |
+| 25 | `examples/34-kafka-share-groups` | KIP-932 share groups: fan-out, ACCEPT/RELEASE/REJECT |
+| 26 | `examples/35-kafka-diagnostics` | Diagnostic workflow script: lag, group state, JVM dumps |
+| 27 | `examples/36-kafka-connect-offsets` | Connector offsets over the Connect REST API |
+| 28 | `examples/32-kafka-consumer-tuning` | Throughput-tuned, safety-first, static-membership consumers |
+| 29 | `examples/33-kafka-producer-tuning` | Batched, compressed, idempotent, synchronous producers |
+| 30 | `examples/37-testing-strategies` | Three-tier testing: unit, integration, Newman |
+| 31 | `examples/38-kubernetes-deploy` | Kubernetes deployment on Minikube with Strimzi Kafka |
+| 32 | `examples/39-camel-cli` | CLI prototype-to-production workflow (YAML DSL) |
+| 33 | `examples/40-camel-tui` | TUI dashboard demo with order validation (YAML DSL) |
+| 34 | `examples/41-citrus-testing` | End-to-end integration testing with Citrus (YAML DSL) |
+| 35 | `examples/42-ai-mcp` | AI-powered order classification with LangChain4j |
+| 36 | `examples/loan-broker` | Scatter-Gather case study (13 patterns) |
+| 37 | `examples/bond-trading` | Market data normalization (16 patterns) |
 
 ## Tutorial site
 
@@ -117,6 +151,6 @@ bundle exec jekyll serve
 Two PPTX decks are in `presentations/`:
 
 - **EIP 101** (98 slides) — Conceptual guide to all 65 patterns
-- **EIP 201** (126 slides) — Implementation deep-dive with Java DSL
+- **EIP 201** (140 slides) — Implementation deep-dive with Java DSL
 
 To rebuild from source: `cd presentations/src && bash build.sh`

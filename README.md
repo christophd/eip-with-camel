@@ -6,9 +6,9 @@ A comprehensive guide to the **65 Enterprise Integration Patterns** (Hohpe & Woo
 
 ## What's inside
 
-- **41 tutorial chapters** — 10 parts covering all 65 EIP patterns, from integration styles through system management, plus 22 deep-dive appendices.
+- **44 tutorial chapters** — 10 parts covering all 65 EIP patterns, from integration styles through system management, plus 25 deep-dive appendices.
 - **67 Excalidraw diagrams** — visual architecture and pattern flow diagrams with EIP stencil icons embedded throughout.
-- **31 runnable examples** — Camel projects (Quarkus and Spring Boot variants) you can build and run against a local Podman stack, including Loan Broker and Bond Trading case studies.
+- **37 runnable examples** — Camel projects (Quarkus and Spring Boot variants) you can build and run against a local Podman stack, plus operational scripts for the Kafka appendices, including Loan Broker and Bond Trading case studies.
 - **Shipping domain** — A consistent e-commerce scenario (orders, inventory, payments, shipping, notifications) that drives every pattern example.
 - **Local infrastructure** — One-command Podman stack with Kafka (KRaft), Pulsar, Redis, PostgreSQL, Apicurio Registry, and an optional LGTM observability overlay (Grafana, Loki, Tempo, Mimir).
 
@@ -34,6 +34,18 @@ mvn spring-boot:run
 ./scripts/setup-stack.sh --lgtm
 ```
 
+Running the integration tests? Point Testcontainers at Podman first — it looks
+for a Docker socket by default, and Docker is not a dependency of this project:
+
+```bash
+systemctl --user enable --now podman.socket
+export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
+
+# Tests bind the same ports as the dev stack, so stop it first
+podman-compose -p eip -f examples/_infra/compose.yaml down
+./scripts/build-all-examples.sh --with-tests
+```
+
 See [Prerequisites & Setup](https://patterncatalyst.github.io/enterprise-integration-patterns-with-camel/docs/00-prerequisites/) for full environment setup.
 
 ## Runnable examples
@@ -56,12 +68,18 @@ See [Prerequisites & Setup](https://patterncatalyst.github.io/enterprise-integra
 | `examples/17-observability` | Control Bus, Wire Tap, Message History, Message Store (PostgreSQL) | Ch 17 |
 | `examples/18-testing-management` | Test Message, Detour, Smart Proxy, Circuit Breaker | Ch 18 |
 | `examples/loan-broker` | Scatter-Gather case study (13 patterns) | Appendix J |
+| `examples/19-dsl-comparison` | The same route on Quarkus, Spring Boot and the YAML DSL | Appendix A |
 | `examples/20-kafka-deep-dive` | Key-based partitioning, transactional pipeline, consumer lag monitoring | Appendix B |
 | `examples/21-pulsar-deep-dive` | Shared/Key_Shared subscriptions, dead letter topics | Appendix C |
 | `examples/22-redis-integration` | Caching enrichment, idempotent receiver, distributed locking | Appendix D |
+| `examples/23-quarkus-dev` | Dev Services, live reload, continuous testing (Quarkus-only by design) | Appendix E |
 | `examples/24-drools-rules` | Rule-based content routing with Drools 10 rule units | Appendix F |
 | `examples/27-observability-stack` | OpenTelemetry tracing, Micrometer metrics, health probes | Appendix I |
 | `examples/25-quarkus-flow` | Order fulfillment saga with CDI state machine and Camel routes | Appendix G |
+| `examples/26-feature-flags` | Flag-controlled Detour, fractional A/B routing, targeted rollout (OpenFeature + flagd) | Appendix H |
+| `examples/34-kafka-share-groups` | KIP-932 share groups: fan-out beyond partition count, ACCEPT/RELEASE/REJECT | Appendix P |
+| `examples/35-kafka-diagnostics` | The diagnostic workflow as a script: lag, group state, broker health, JVM dumps | Appendix Q |
+| `examples/36-kafka-connect-offsets` | Listing, altering and resetting connector offsets over the Connect REST API | Appendix R |
 | `examples/32-kafka-consumer-tuning` | Throughput-tuned, safety-first, and static-membership consumers | Appendix N |
 | `examples/33-kafka-producer-tuning` | Batched, compressed, idempotent, and synchronous producers | Appendix O |
 | `examples/37-testing-strategies` | Three-tier testing: unit (MockEndpoint), integration (REST Assured), Newman | Appendix S |
@@ -87,7 +105,7 @@ Examples with `quarkus/` and `spring-boot/` subdirectories support both runtimes
 | 6 | Message Transformation | Translator, Enricher, Content Filter, Normalizer, Canonical Model |
 | 7 | Messaging Endpoints | Gateway, Consumers, Dispatcher, Idempotent Receiver, Service Activator |
 | 8 | System Management | Control Bus, Wire Tap, Message History, Message Store |
-| 9 | Appendices | Spring Boot vs Quarkus, Kafka, Pulsar, Redis, Quarkus Flow, Drools, Observability, Kubernetes Deployment, Camel CLI, Camel TUI, Citrus Testing, AI and MCP, Loan Broker & Bond Trading case studies, Glossary, Virtual Threads, Consumer/Producer Tuning, Share Groups, Diagnostics, Kafka Connect Offsets, Testing Strategies |
+| 9 | Appendices | Spring Boot vs Quarkus, Kafka, Pulsar, Redis, Quarkus Dev Mode, Drools, Quarkus Flow, Feature Flags, Observability, Kubernetes Deployment, Camel CLI, Camel TUI, Citrus Testing, AI and MCP, Secure by Default, Loan Broker & Bond Trading case studies, Glossary, Virtual Threads, Consumer/Producer Tuning, Share Groups, Diagnostics, Kafka Connect Offsets, Testing Strategies |
 
 ## Stack
 

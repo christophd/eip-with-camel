@@ -32,10 +32,13 @@ mkdir -p "$LOG_DIR"
 # and will silently use Docker if one is present -- so the tests would run on a
 # different engine than everything else, with no warning. Point it at Podman
 # when the socket is there, unless the caller has already chosen an engine.
+#
+# Ryuk (the Testcontainers cleanup sidecar) is deliberately left enabled: it was
+# verified working against the rootless Podman socket on 2026-09-15. Disabling
+# it leaks containers whenever a run is interrupted.
 PODMAN_SOCK="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock"
 if [ -z "${DOCKER_HOST:-}" ] && [ -S "$PODMAN_SOCK" ]; then
   export DOCKER_HOST="unix://$PODMAN_SOCK"
-  export TESTCONTAINERS_RYUK_DISABLED=true
   echo "Testcontainers -> Podman ($PODMAN_SOCK)"
 fi
 

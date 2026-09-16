@@ -7,6 +7,19 @@ duration: "45 minutes"
 ---
 
 > **Runnable example:** The code from this chapter is in [`examples/10-composed-routing/`](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/10-composed-routing) with Quarkus and Spring Boot subdirectories.
+>
+> It covers two of the three patterns here. The **Routing Slip** is
+> `order-routing-slip`, with its steps as `validate-order`,
+> `customs-classification` and `hazmat-compliance`; **Scatter-Gather** is
+> `carrier-scatter-gather`, fanning out to `quote-fedex`, `quote-ups` and
+> `quote-usps`. The chapter names those steps `slip-step-*` and `carrier-*` to
+> keep the prose readable — same routes, different labels.
+>
+> The **Process Manager** section is prose only. The saga below is not in the
+> example: it needs a saga service and a compensating action per step, which is
+> a lot of moving parts for a pattern whose point is the shape of the
+> coordination rather than the plumbing. Read it as a design, not as something
+> to run.
 
 {% include codetabs.html langs="Quarkus|Spring Boot" %}
 
@@ -237,6 +250,30 @@ from("direct:payment-complete")
 | **Use case** | Long-running transactions, workflows with error recovery | Fixed multi-step processing |
 
 The saga pattern is essential for distributed transactions where partial completion requires compensating actions. The payment flow above is a textbook example: if fraud review fails after payment is authorized, the authorization must be reversed.
+
+### Compensation became observable in Camel 4.22
+
+If you have run sagas on an earlier Camel, the timing here is different now, and
+the difference matters for how you reason about the pattern.
+
+`InMemorySagaCoordinator.compensate()` and `complete()` used to return an
+already-completed future. The exchange carried on immediately, while
+compensation ran somewhere behind it — and if every retry of a compensating
+action failed, that failure was logged as a warning and otherwise swallowed.
+You could have a saga report success while its rollback had quietly failed.
+
+From 4.22 both methods return the real finalization future. The exchange waits
+for the compensation or completion callbacks, retries included, and if they
+ultimately fail the exception propagates onto the exchange.
+
+This is a better model of what a saga is actually promising. It also means a
+compensating action that cannot succeed is now your problem to handle, visibly,
+instead of a line in a log nobody reads. Give `direct:payment-compensate` an
+error handler if the refund can fail in ways you need to escalate.
+
+Note this applies to the in-memory coordinator, which is the default and what
+this example uses. A production saga service (LRA, for instance) has its own
+semantics.
 
 ## Pattern: Scatter-Gather
 

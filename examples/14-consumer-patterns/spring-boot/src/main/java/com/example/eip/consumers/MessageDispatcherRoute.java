@@ -32,7 +32,11 @@ public class MessageDispatcherRoute extends RouteBuilder {
                     String eventType = (String) body.get("event_type");
                     return eventType != null && ALLOWED_EVENT_TYPES.contains(eventType);
                 })
-                    .toD("direct:handle-${body[event_type]}")
+                    // Second layer, new in Camel 4.22: even if the value check
+                    // above were bypassed, the resolved endpoint can only ever be
+                    // a direct: one -- never exec:, http: or file:.
+                    .toD().allowedSchemes("direct")
+                        .uri("direct:handle-${body[event_type]}").endChoice()
                 .otherwise()
                     .to("direct:handle-order_unknown")
             .end();

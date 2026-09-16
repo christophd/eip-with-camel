@@ -8,6 +8,29 @@ duration: "15 minutes"
 
 The Detour pattern (Chapter 18) used configuration properties to toggle processing steps. Feature flags extend this to dynamic, fine-grained control: roll out a new enrichment step to 10% of traffic, enable hazmat routing only for specific customer tiers, or A/B test two content-based routing strategies.
 
+The code is in `examples/26-feature-flags/`, with Quarkus and Spring Boot
+variants and the flag definitions in `examples/_infra/flagd/flags.json`.
+
+{% include codetabs.html langs="Quarkus|Spring Boot" %}
+
+```bash
+# Quarkus
+cd examples/26-feature-flags/quarkus
+mvn quarkus:dev
+```
+
+```bash
+# Spring Boot
+cd examples/26-feature-flags/spring-boot
+mvn spring-boot:run
+```
+
+flagd runs as part of the base stack, so `./scripts/setup-stack.sh` is all the
+infrastructure you need. It watches the flag file, which means editing
+`flags.json` changes behaviour on the very next message — no rebuild, no
+restart, no redeploy. Run the example and try it; that property is the whole
+argument for feature flags and it is much more convincing seen than described.
+
 ## OpenFeature + flagd
 
 **OpenFeature** is a vendor-neutral API for feature flag evaluation. **flagd** is a lightweight flag evaluation daemon that reads flag definitions from a file or ConfigMap.
@@ -123,15 +146,26 @@ Add flagd to `compose.yaml`:
 
 ```yaml
 flagd:
-  image: ghcr.io/open-feature/flagd:latest
+  image: ghcr.io/open-feature/flagd:v0.16.3
+  container_name: eip-flagd
   ports:
-    - "8013:8013"
+    - "8013:8013"   # gRPC evaluation
+    - "8014:8014"   # metrics / health
   volumes:
-    - ./flags.json:/etc/flagd/flags.json
+    - ./flagd/flags.json:/etc/flagd/flags.json:Z
   command: start --uri file:/etc/flagd/flags.json
+  mem_limit: 256m
   networks:
     - eip-net
 ```
+
+**Pin the version, and pin it above v0.16.** The Java provider 0.14.2 cannot
+establish its event stream against flagd v0.13.1. The failure is quiet in the
+worst way: evaluation over the Connect RPC still works if you curl it by hand,
+but the provider never reaches ready, so the SDK returns the *default* for
+every flag and your application looks like it is simply ignoring the flag file.
+flagd is distroless, so it has no in-container healthcheck — `setup-stack.sh`
+polls `http://localhost:8014/healthz` from the host instead.
 
 ## Dependencies
 
@@ -139,15 +173,25 @@ flagd:
 <dependency>
     <groupId>dev.openfeature</groupId>
     <artifactId>sdk</artifactId>
-    <version>1.7.0</version>
+    <version>1.22.1</version>
 </dependency>
 <dependency>
     <groupId>dev.openfeature.contrib.providers</groupId>
     <artifactId>flagd</artifactId>
-    <version>0.7.0</version>
+    <version>0.14.2</version>
 </dependency>
 ```
 
+On Quarkus you also need `camel-quarkus-bean`: the flag lookup is a bean-backed
+expression, and Quarkus resolves the bean language only when that extension is
+present. Without it the route fails at startup with `No language could be found
+for: bean`, which does not obviously point at the cause.
+
+On Spring Boot, set `camel.main.run-controller=true`. Without a web starter
+there is nothing else holding the JVM open, and the application shuts down a
+few seconds after the routes start. Note the property name — `camel.main.`, not
+`camel.springboot.`; the latter is silently ignored.
+
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — conceptual reference chapter, no runnable example.*
+*Verification status: <span class="status status--verified">verified</span> — `examples/26-feature-flags/` was run on both runtimes against flagd v0.16.3 in the Podman stack on 2026-09-15. The detour enriches while `enrichment-enabled` is on; ENTERPRISE and VIP orders resolve `hazmat-compliance-v2` to `v2` while STANDARD gets `v1`; and the fractional flag split 31 orders 29/2 between the legacy and new routing algorithms, consistent with its 90/10 targeting.*

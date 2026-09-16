@@ -273,7 +273,18 @@ In our shipping domain, we use datatype channels (`eip.orders.placed`, `eip.inve
 
 ### Safety with `toD()`
 
-The `toD()` (dynamic to) resolves the endpoint URI at runtime from the message body or headers. This is powerful but risky — a malicious `event_type` value could route to an unexpected endpoint. Validate the event type before dispatching:
+The `toD()` (dynamic to) resolves the endpoint URI at runtime from the message body or headers. This is powerful but risky: the message decides where the message goes. A value like `../../exec:rm` does not just pick the wrong handler — it picks a wrong *component*. Guard it in two layers.
+
+**Layer one — constrain the scheme.** Camel 4.22 added `allowedSchemes` to `toD` (and to `enrich`, and to the Dynamic Router's endpoint). It is a comma-separated allow-list of component schemes the resolved URI may use; anything else is rejected before an endpoint is created:
+
+```java
+.toD().allowedSchemes("direct")
+    .uri("direct:handle-${body[event_type]}");
+```
+
+That single option closes the whole class of attack where a crafted value redirects the exchange into `exec:`, `http:` or `file:`. Set it on every `toD` whose URI derives from message content — the cost is one line and there is no reason not to.
+
+**Layer two — constrain the value.** `allowedSchemes` restricts the *scheme*, not the rest of the URI. With the list above, `direct:handle-anything-at-all` still passes. So you still need to know that the computed endpoint is one you meant to expose:
 
 ```java
 .process(exchange -> {
@@ -283,8 +294,13 @@ The `toD()` (dynamic to) resolves the endpoint URI at runtime from the message b
         throw new IllegalArgumentException("Unknown event type: " + eventType);
     }
 })
-.toD("direct:handle-${body[event_type]}");
+.toD().allowedSchemes("direct")
+    .uri("direct:handle-${body[event_type]}");
 ```
+
+The value check also does double duty against a plainer failure discussed under [common pitfalls](#common-pitfalls): an unrecognised event type resolves to an endpoint that does not exist, and Camel throws `NoSuchEndpointException`.
+
+Note the fluent form. `toD()` with no argument returns a builder, so `uri(...)` comes last — and inside a `choice()` you close the branch with `.endChoice()`, since the builder does not return the `ChoiceDefinition` on its own.
 
 ## Common pitfalls
 

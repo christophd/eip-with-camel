@@ -36,6 +36,32 @@ camel plugin get
 
 You should see `test` in the list of installed plugins.
 
+### Point Testcontainers at Podman
+
+Citrus starts its infrastructure through **Testcontainers**, which looks for a
+Docker socket. This tutorial runs on Podman, and Docker is not a dependency —
+but Testcontainers will not find Podman on its own. Export this once:
+
+```bash
+systemctl --user enable --now podman.socket
+export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/podman/podman.sock"
+```
+
+Without it you will either see "Could not find a valid Docker environment", or
+— if Docker happens to be installed — tests that pass while running on a second
+container engine you did not intend to use.
+
+Ryuk, the cleanup sidecar, works against rootless Podman; you do not need
+`TESTCONTAINERS_RYUK_DISABLED`, and disabling it leaves containers behind when
+a run is interrupted.
+
+Finally, shut the dev stack down before running tests. Citrus brings up its own
+Kafka, Redis, PostgreSQL and Pulsar on the same ports:
+
+```bash
+podman-compose -p eip -f examples/_infra/compose.yaml down
+```
+
 ### Dependencies
 
 Test dependencies are declared in `jbang.properties` alongside your route files. The Citrus framework is modular — you add only the connectors you need:

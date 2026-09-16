@@ -284,6 +284,29 @@ camel trace order-pipeline
 #   4. direct:check-inventory → direct:process-pay [120ms]
 ```
 
+### Percentiles without a metrics pipeline
+
+Before reaching for a Wire Tap and a Micrometer registry, check whether you
+already have the number you want. Camel 4.22 added p50, p95 and p99 to the base
+performance counters, exposed over JMX and surfaced by the dev console, the
+[TUI]({% link _docs/40-appendix-camel-tui.md %}) and the CLI:
+
+```bash
+camel get route --name=order-splitter
+```
+
+The same release switched the `Throughput` JMX attribute to an EWMA with a
+one-minute decay window, so it converges on a readable figure instead of
+oscillating with every sample.
+
+This does not replace a metrics pipeline — nothing here is stored, so there is
+no history and no alerting. But "what is the p95 on this route right now" is a
+question you can now answer on a running process without standing up Prometheus
+first, and that is often the question you actually have.
+
+Two other consoles arrived alongside: a **SQL trace** console capturing the SQL
+your routes execute, and a **heap histogram** panel.
+
 ## Pattern: Wire Tap (for monitoring)
 
 ### The problem

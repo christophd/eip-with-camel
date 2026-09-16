@@ -284,6 +284,55 @@ Declaring parameters matters nearly as much. Without them the model has to smugg
 > shared `AiToolRegistry` that LangChain4j, Spring AI and the embedded MCP
 > server all read from, so one route definition serves every consumer instead
 > of being tied to LangChain4j.
+>
+> On the Spring AI side the same release went further and *removed*
+> `camel-spring-ai-tools` outright rather than deprecating it, with the
+> remaining `camel-spring-ai-*` components moving to Spring AI 2.0. Spring Boot
+> users also get `camel-mcp-server-starter`, which exposes `ai-tool:` routes on
+> the same MCP server as Spring AI's native `@McpTool` beans with no wiring
+> between them.
+
+### Tool-calling safety rails
+
+Three 4.22 changes govern what happens when tool calling goes wrong, and the
+first will change the behaviour of routes you have already written.
+
+**Tool errors now go back to the model, not to your route.** When a tool
+invocation throws, the failure is returned to the LLM so it can react —
+retrying with different arguments, or explaining itself — rather than
+propagating as an exception onto the calling exchange. If you wrapped an agent
+call in `onException(...)` expecting to catch tool failures there, that handler
+no longer fires. Two options control it:
+
+```properties
+# failExchange | repromptModel
+camel.component.langchain4j-agent.toolExecutionErrorStrategy=failExchange
+camel.component.langchain4j-agent.hallucinatedToolNameStrategy=repromptModel
+```
+
+Set `failExchange` to get the old behaviour back. `hallucinatedToolNameStrategy`
+covers the related case where the model invents a tool that does not exist.
+
+**Round trips are now bounded.** `maxToolCallingRoundTrips` defaults to 10. It
+was previously unbounded, which meant a model that kept calling tools could loop
+until something else gave out. If you have a legitimately deep tool chain, raise
+it deliberately.
+
+**Each tool call gets its own exchange.** Tool invocations run on an independent
+exchange copy, and the arguments the model supplies are filtered against the
+tool's declared parameter schema — so an LLM cannot inject an undeclared header
+into your route by hallucinating an extra argument. This is why declaring typed
+parameters, as `OrderLookupToolRoute` does below, is worth the small effort:
+undeclared arguments are silently dropped.
+
+One more thing worth knowing if you write a custom agent rather than using
+Camel's built-in one: `Agent.chat()` now returns `Result<String>` instead of
+`String`, and exposes token usage and finish reason as exchange headers, plus
+`CamelLangChain4jAgentSources` and `CamelLangChain4jAgentToolExecutions` when
+RAG or tools are in play. The examples here use the built-in
+`AgentWithoutMemory`, so they are unaffected — but those headers are the hook
+for tracking token cost, which is the operational concern that tends to arrive
+shortly after the first thing works.
 
 ### OrderLookupToolRoute
 

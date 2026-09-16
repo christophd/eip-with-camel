@@ -23,8 +23,10 @@ processors:
         action: upsert
 
 exporters:
+  # Tempo's OTLP receiver listens on 4318 (HTTP). 3200 is its query/API port —
+  # exporting there silently fails.
   otlphttp/tempo:
-    endpoint: http://tempo:3200
+    endpoint: http://tempo:4318
     tls:
       insecure: true
 

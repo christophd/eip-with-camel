@@ -7,6 +7,15 @@ duration: "40 minutes"
 ---
 
 > **Runnable example:** The code from this chapter is in [`examples/12-transformation/`](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/12-transformation) with Quarkus and Spring Boot subdirectories.
+>
+> Three of the four patterns are in there: **Message Translator**
+> (`message-translator`), **Content Enricher** (`content-enricher`, with
+> `redis-product-lookup` as the enrichment source) and **Content Filter**
+> (`content-filter`).
+>
+> **Envelope Wrapper** is prose only. It is the one pattern here whose point is
+> the shape of the message rather than the shape of the route, so the code
+> below is the whole idea — there is no extra behaviour to watch at runtime.
 
 {% include codetabs.html langs="Quarkus|Spring Boot" %}
 

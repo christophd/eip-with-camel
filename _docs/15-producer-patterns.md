@@ -86,6 +86,11 @@ from("kafka:eip.orders.placed?brokers=localhost:9092"
 
 For our shipping domain, at-least-once with manual commit is the safe default. The cost of a duplicate notification is low (an extra email). The cost of a missed notification is high (customer never knows their order shipped). The next pattern — Idempotent Receiver — handles the duplicates.
 
+The at-least-once row of that table holds from Camel 4.22 onward. Before it,
+`allowManualCommit=true` did not suppress the framework's own commits, so the
+"manual" mode could still lose a message in the gap it was meant to close —
+see [Appendix N]({% link _docs/32-appendix-kafka-consumer-tuning.md %}).
+
 ### Pulsar durable subscriptions
 
 Pulsar's subscription model is also durable by default. The subscription maintains a cursor that tracks acknowledged messages. Unacknowledged messages are redelivered:

@@ -59,6 +59,19 @@ from("kafka:eip.orders.placed?brokers=localhost:9092&groupId=dynamic-routing")
     .dynamicRouter(method(OrderRoutingBean.class, "route"));
 ```
 
+Everything the Dynamic Router routes to is an endpoint URI computed at runtime,
+which makes it the same injection surface as `toD` — see [safety with
+`toD()`]({% link _docs/14-consumer-patterns.md %}#safety-with-tod) in Chapter 14. Camel 4.22 added
+the same `allowedSchemes` allow-list to the dynamic-router endpoint, and it is
+worth setting whenever the routing bean's return value is influenced by message
+content rather than being chosen purely from your own code.
+
+If you drive routing decisions from control messages rather than a bean, note
+that 4.22.1 tightened this further: a control message may only supply a
+subscription `predicate` or `expressionLanguage` when the endpoint sets
+`allowPredicateFromMessage=true`. It is off by default, because letting a
+message supply an expression is letting a message supply code.
+
 The bean is called repeatedly until it returns `null`:
 
 {% include codetabs.html langs="Quarkus|Spring Boot" %}

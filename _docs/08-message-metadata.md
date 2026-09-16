@@ -7,6 +7,17 @@ duration: "45 minutes"
 ---
 
 > **Runnable example:** The code from this chapter is in [`examples/08-message-metadata/`](https://github.com/patterncatalyst/enterprise-integration-patterns-with-camel/tree/main/examples/08-message-metadata) with subdirectories for each runtime.
+>
+> Four of the six patterns are in there: **Correlation Identifier**
+> (`correlation-id-*`), **Message Sequence** (`message-sequence-splitter` and
+> `message-sequence-aggregator`), **Message Expiration**
+> (`message-expiration-*`) and **Format Indicator** (`format-indicator-*`).
+>
+> **Request-Reply** and **Return Address** are prose only. Both need a
+> responding service to talk to, and standing one up would make the example
+> about the responder rather than about the header that routes the reply. The
+> synchronous request-reply you can actually run is the REST gateway in
+> [Chapter 16]({% link _docs/16-endpoint-management.md %}).
 
 {% include codetabs.html langs="Quarkus|Spring Boot|YAML DSL" %}
 

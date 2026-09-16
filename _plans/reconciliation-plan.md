@@ -4,6 +4,13 @@ description: "Verification log for all claims, examples, and infrastructure refe
 render_with_liquid: false
 ---
 
+> **Superseded — historical record only.** This log captures a verification
+> pass over 17 examples on 2026-07-11. There are now 37, and every one of them
+> was re-verified during the Camel 4.22 upgrade (see
+> `upgrade-camel-4.22-PLAN.md`) and again during the post-upgrade cleanup (see
+> `backlog.md`). Nothing below should be read as the current state.
+
+
 ## Example Verification Checklist
 
 All 17 runnable examples verified against the live Podman infrastructure stack

@@ -24,7 +24,24 @@ The `--port` flag matters: the embedded HTTP server defaults to 8080, which the 
 
 ## Installation
 
-The Camel CLI is distributed through [JBang](https://www.jbang.dev/), a tool that runs Java programs without requiring a project setup. Install JBang first, then install the Camel CLI as a JBang application:
+As of Camel 4.22 the canonical way to install the CLI is a one-line web
+installer:
+
+```bash
+# macOS / Linux
+curl -fsSL https://camel.apache.org/install.sh | sh
+
+# Windows (PowerShell)
+irm https://camel.apache.org/install.ps1 | iex
+```
+
+The installer pulls from Maven Central, verifies the download against its
+SHA-256, checks you have a Java 17+ runtime, and installs per-user — it never
+needs `sudo`.
+
+The older route still works and is what the rest of this tutorial assumes you
+may have used, since it also gets you [JBang](https://www.jbang.dev/), which
+several examples use directly:
 
 ```bash
 # Install JBang (if not already installed)
@@ -48,13 +65,43 @@ The CLI ships as a single binary that delegates to JBang under the hood. When yo
 
 ### Upgrading
 
-To upgrade the CLI after a new Camel release:
+Camel 4.22 added a self-updater, which is the simplest path if you installed
+with the web installer:
+
+```bash
+camel self-update
+```
+
+It checks for a newer launcher release and installs it. If the CLI came from a
+package manager it declines and tells you that manager's upgrade command
+instead, rather than fighting it.
+
+For a JBang-installed CLI:
 
 ```bash
 jbang app install --force camel@apache/camel
 ```
 
-This pulls the latest version from the Apache Camel GitHub repository and replaces the cached binary. Verify with `camel version` to confirm the upgrade.
+Either way, verify with `camel version`.
+
+Do not confuse `camel self-update` with `camel update`, covered later in this
+appendix — that one runs OpenRewrite recipes against *your project's* source to
+migrate it across Camel versions. One upgrades the tool; the other upgrades your
+code.
+
+### Diagnosing a broken install
+
+`camel doctor` reports on your environment, and as of 4.22 it enumerates every
+Camel CLI installation it can find on the machine and flags conflicts between
+them:
+
+```bash
+camel doctor
+```
+
+This is the first thing to run when `camel version` disagrees with what you
+think you installed — usually a JBang-installed CLI and a web-installed one
+both on `PATH`.
 
 ## Running routes
 
@@ -455,6 +502,62 @@ camel infra run kafka redis
 ```
 
 This is the fastest path from zero to a working prototype. Write a route, run `camel infra run kafka`, and `camel run --dev *.yaml` — three commands to a live integration with real infrastructure.
+
+### The observability set
+
+One of the available sets is worth calling out, because it replaces a lot of
+manual wiring. Camel 4.22 bundles an observability stack — Prometheus,
+VictoriaTraces, VictoriaLogs and Perses:
+
+```bash
+camel infra run observability
+camel run MyRoute.java --observe
+```
+
+`--observe` turns on health checks, metrics, the dev console, and lightweight
+Camel-only tracing in the [TUI]({% link _docs/40-appendix-camel-tui.md %})
+Spans tab. Together the two commands need no configuration: metrics are scraped
+and traces and logs exported without a property file.
+
+Note this is a *different* stack from the LGTM overlay in [Appendix
+I]({% link _docs/27-appendix-observability.md %}) — different components,
+different query languages, nothing portable between them. This one is for the
+dev loop.
+
+For auto-instrumentation of the libraries around Camel rather than Camel
+itself — JDBC, HTTP clients, Kafka clients, gRPC — attach the OpenTelemetry
+Java Agent instead:
+
+```bash
+camel run MyRoute.java --open-telemetry-agent
+camel run MyRoute.java --open-telemetry-agent --open-telemetry-agent-export=otlp
+```
+
+The export target accepts `observability` and `otlp`. (`jaeger` is still
+accepted as an alias for `otlp`, but it is deprecated.)
+
+### Profiling with JFR
+
+```bash
+camel run MyRoute.java --jfr
+camel run MyRoute.java --jfr --jfr-profile=profile
+```
+
+This writes a `<name>.jfr` recording on exit and pulls in the JFR dependency
+automatically. Worth knowing if you tried this before 4.22: the flag was
+accepted and silently ignored, so anyone who profiled a CLI-run route on an
+earlier release got nothing. It starts a real recording now.
+
+The same release let `camel-jfr` emit events *during* message routing rather
+than only at startup:
+
+```properties
+camel.main.startup-recorder-runtime-enabled=true
+```
+
+That is the setting that makes JFR useful for the profiling work described in
+[Appendix K]({% link _docs/31-appendix-virtual-threads.md %}) and
+[Appendix Q]({% link _docs/35-appendix-kafka-diagnostics.md %}).
 
 ### How it relates to the Podman stack
 
