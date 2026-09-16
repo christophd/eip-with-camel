@@ -23,6 +23,17 @@ services:
       - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
       - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
       - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+      # Share groups (KIP-932, Appendix P) need the share protocol enabled on
+      # the coordinator. share.version is finalized by default in Kafka 4.x, but
+      # without "share" listed here every share consumer times out with no
+      # explanation -- the feature looks enabled and simply does not deliver.
+      - KAFKA_GROUP_COORDINATOR_REBALANCE_PROTOCOLS=classic,consumer,streams,share
+      # The share coordinator keeps its state in an internal topic that defaults
+      # to replication factor 3 and min ISR 2 -- neither satisfiable on a single
+      # broker, so the coordinator never becomes usable and share consumers just
+      # time out. Same workaround as the offsets and transaction state topics.
+      - KAFKA_SHARE_COORDINATOR_STATE_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_SHARE_COORDINATOR_STATE_TOPIC_MIN_ISR=1
       - CLUSTER_ID=RUlQQ2FtZWxQYXR0ZXJucw
     volumes:
       - kafka-data:/var/lib/kafka/data:Z

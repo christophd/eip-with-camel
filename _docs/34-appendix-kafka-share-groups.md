@@ -53,25 +53,40 @@ The message cannot be processed (bad data, validation failure). The broker moves
 
 The consumer cannot process the message right now (downstream service unavailable, temporary resource constraint). The broker returns the message to the pool for another consumer to pick up.
 
+> **Camel cannot do this yet.** As of Camel 4.22 the Kafka component has no
+> share-group support — there is no `groupType` option and no share consumer.
+> Earlier drafts of this appendix showed a route with `&groupType=share`; that
+> parameter does not exist and the route would fail to start. The client-side
+> API is `KafkaShareConsumer` in `kafka-clients`, which Camel does not wrap.
+>
+> That is why the runnable example for this appendix is a shell script driving
+> Kafka's own tools rather than a Camel route. When Camel gains support, the
+> sketch below is roughly the shape it should take:
+
 ```java
-// Conceptual Camel route with share group acknowledgment
-from("kafka:eip.orders.placed"
-        + "?brokers={{kafka.brokers}}"
-        + "&groupId=order-processors"
-        + "&groupType=share")
+// NOT VALID CAMEL — illustrative only. groupType is not a Camel option.
+from("kafka:eip.orders.placed?groupId=order-processors&groupType=share")
     .routeId("share-group-consumer")
     .unmarshal().json(java.util.Map.class)
     .doTry()
-        .bean(orderService, "process")
-        // ACCEPT: Camel commits on successful processing
+        .bean(orderService, "process")     // ACCEPT on success
     .doCatch(ValidationException.class)
-        .log("Invalid order — rejecting: ${exception.message}")
-        // REJECT: message will not be retried
+        .log("Invalid order — rejecting")  // REJECT: never redelivered
     .doCatch(ServiceUnavailableException.class)
-        .log("Service unavailable — releasing for retry")
-        // RELEASE: message returns to the pool
+        .log("Unavailable — releasing")    // RELEASE: back to the pool
     .end();
 ```
+
+What you *can* run today is in `examples/34-kafka-share-groups/`:
+
+```bash
+./scripts/setup-stack.sh
+cd examples/34-kafka-share-groups && ./share-groups-demo.sh
+```
+
+It walks all three acknowledgment modes and shows a share group spreading nine
+orders across three workers on a three-partition topic — the thing a consumer
+group cannot do.
 
 ## Share group configuration
 
@@ -167,4 +182,4 @@ For workloads that need queue semantics today, Pulsar's Shared subscription (App
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — conceptual reference chapter, no runnable example.*
+*Verification status: <span class="status status--verified">verified</span> — `examples/34-kafka-share-groups/share-groups-demo.sh` was run against Kafka 4.3.1 in the Podman stack on 2026-09-16. Nine orders split 3/3/3 across three workers on a three-partition topic; accepted and rejected messages did not reappear on a second pass, released ones did. Camel itself has no share-group support at 4.22, which is why the example is a script.*
