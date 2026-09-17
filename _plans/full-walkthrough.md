@@ -20,7 +20,7 @@ chapter says it does.
 |---|---|---|---|
 | **1** | Site materials | `iteration/full-walkthrough-01` | ☑ **complete** — 1 bug found and fixed |
 | **2** | PPTX decks | `iteration/full-walkthrough-02` | ☑ **complete** — 2 issues found and fixed |
-| **3** | Every example, run not compiled | `iteration/full-walkthrough-03` | ☐ not started |
+| **3** | Every example, run not compiled | `iteration/full-walkthrough-03` | ☑ **complete** — 2 bugs, 3 CI gaps |
 | **4** | Case studies end to end | `iteration/full-walkthrough-04` | ☐ not started |
 
 Scope as of the start: **44 chapters, 37 examples, 61 Maven projects, 11 YAML
@@ -229,10 +229,10 @@ stack up.
 |---|---|---|
 | 3.1 | Compile sweep — 61 Maven projects (`build-all-examples.sh`) | ☑ pass 61/61 |
 | 3.2 | Boot sweep — every built artifact starts (`verify-all-runtime.sh`) | ☑ **1 failure found and fixed** |
-| 3.3 | Route activity — each example actually processes messages, not just boots | ☐ |
+| 3.3 | Route activity — each example actually processes messages, not just boots | ☑ pass, with 2 gated |
 | 3.4 | YAML DSL — 11 directories via the Camel CLI | ☑ pass 11/11 |
 | 3.5 | Operational scripts — share groups, diagnostics, Connect offsets | ☑ pass 3/3 |
-| 3.6 | Verification footers reconciled with what was observed | ☐ |
+| 3.6 | Verification footers reconciled with what was observed | ☑ pass — 1 corrected |
 | 3.7 | CI workflows reviewed — all three, including the externally contributed `tests.yml` | ☑ **3 gaps closed** |
 
 **On 3.7.** There are three workflows and we have only ever looked at one.
@@ -309,6 +309,34 @@ the health wait, `wait_healthy` gained a nonfatal mode and stops waiting out
 the timeout on an already-exited container, and it prints logs when it gives up
 rather than failing silently. Verified by corrupting the ledger deliberately
 and re-running: FAILED, wiped, retried, healthy.
+
+**3.3 — message flow, scoped to where it adds information.** The boot sweep
+already proves every artifact starts and its routes come up, and the Citrus
+suites already assert message flow for 43 of the projects. So rather than
+re-driving everything, this checked the examples where *nothing* has ever
+asserted that a message moves — the eight with runtimes but no test suite:
+
+| Example | Evidence |
+|---|---|
+| `19-dsl-comparison` | driven end to end on all three runtimes, 2026-09-15 |
+| `26-feature-flags` | driven end to end on both runtimes, 2026-09-15 |
+| `32-kafka-consumer-tuning` | **driven now** — routes processed messages |
+| `33-kafka-producer-tuning` | **driven now** — routes processed messages |
+| `loan-broker`, `bond-trading` | Part 4 |
+| `38-kubernetes-deploy` | gated: needs a cluster, and its footer says so |
+| `42-ai-mcp` | gated: needs Ollama |
+
+An attempt to infer activity from the boot-sweep logs was abandoned — the
+detection kept over- or under-matching because Quarkus and Spring Boot format
+route logging differently, and a log-shaped heuristic is not evidence. Driving
+the examples is.
+
+**3.6 — footers hold up.** Three chapters claim "verified" on the strength of
+compilation: 02 and 03 are conceptual and say so explicitly, and 38 states that
+the application runs but that the Kubernetes manifests "are not exercised here;
+that needs a cluster." All three describe exactly what was and was not done.
+The only overstated footer found in this part was `23-quarkus-dev`, corrected
+under 3.2.
 
 > **A note for whoever runs this next.** Two attempts at scripting the YAML DSL
 > sweep killed the harness shell. The first used `pkill -f "camel run"`, which
