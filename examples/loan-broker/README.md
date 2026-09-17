@@ -30,18 +30,24 @@ Kafka (KRaft mode) only.
 
 ## How to test
 
-Submit a loan request:
+Submit a loan request. **The path differs by runtime** — Quarkus serves the
+gateway at the root, while the Spring Boot variant runs under camel-servlet,
+whose default mapping puts it beneath `/camel`:
 
 ```bash
+# Quarkus
 curl -X POST http://localhost:8082/api/loans \
   -H "Content-Type: application/json" \
-  -d '{
-    "customerId": "CUST-042",
-    "amount": 250000,
-    "termMonths": 360,
-    "creditScore": 740
-  }'
+  -d '{"customerId":"CUST-042","amount":250000,"termMonths":360,"creditScore":740}'
+
+# Spring Boot
+curl -X POST http://localhost:8082/camel/api/loans \
+  -H "Content-Type: application/json" \
+  -d '{"customerId":"CUST-042","amount":250000,"termMonths":360,"creditScore":740}'
 ```
+
+Either returns `202 Accepted` with the generated `requestId`; the winning offer
+is logged by `loan-offer-aggregator` and published to the `loan.results` topic.
 
 Returns HTTP 202 with `{"status": "ACCEPTED", "requestId": "..."}`. Watch the
 application logs to see credit enrichment, individual bank quotes, and best-offer
@@ -68,7 +74,7 @@ You can also inspect Kafka topics via the Kafka UI at <http://localhost:8090>.
 
 ## Patterns demonstrated
 
-1. **Messaging Gateway** -- REST POST `/api/loans` accepts requests and publishes to Kafka
+1. **Messaging Gateway** -- REST POST accepts requests and publishes to Kafka (`/api/loans` on Quarkus, `/camel/api/loans` on Spring Boot)
 2. **Content Enricher** -- credit-enricher simulates credit bureau lookup, adds creditHistory years and debtToIncome ratio headers
 3. **Recipient List** -- dynamically builds eligible bank list based on creditScore and amount thresholds
 4. **Scatter-Gather** -- fans out to multiple banks in parallel and collects responses
@@ -84,4 +90,6 @@ You can also inspect Kafka topics via the Kafka UI at <http://localhost:8090>.
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.39.3, Camel 4.22.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.1.1, Camel 4.22.0.*
+*Verification status: **both runtimes verified end to end** against the Podman stack on 2026-09-17 (Quarkus 3.39.3 / Spring Boot 4.1.1, Camel 4.22.0). A POSTed request returns 202 with its requestId, is enriched with credit data, fans out to all three banks, and the aggregator selects the lowest approved rate and publishes to `loan.results`.*
+
+*The Spring Boot variant had previously only been compiled, and did not in fact work: its gateway returned an empty HTTP 500. `restConfiguration()` sets `bindingMode(json)`, so Camel already serialises the response, and the route marshalled it a second time — which Quarkus tolerated by double-encoding the body and camel-servlet turned into a 500 with no exception logged. The redundant marshal is gone from both runtimes.*

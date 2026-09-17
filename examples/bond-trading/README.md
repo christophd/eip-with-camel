@@ -64,6 +64,7 @@ You can also inspect Kafka topics via the Kafka UI at <http://localhost:8090>.
 | `bond.prices.filtered.desk-c`  | All bonds for Desk C                               |
 | `bond.orders.new`              | Incoming trade orders                              |
 | `bond.orders.validated`        | Orders that passed validation                      |
+| `bond.orders.invalid`          | Orders rejected by validation (invalid message channel) |
 | `bond.audit.log`               | Audit trail of all orders (wire tap)               |
 
 ## Patterns demonstrated
@@ -83,8 +84,10 @@ You can also inspect Kafka topics via the Kafka UI at <http://localhost:8090>.
 13. **Message Endpoint** -- each route is a consumer endpoint
 14. **Datatype Channel** -- each desk topic carries a specific bond type
 15. **Content Filter / Validator** -- validates trade orders (positive price, positive quantity)
-16. **Dead Letter Channel** -- invalid trade orders are logged and dropped
+16. **Invalid Message Channel** -- orders failing validation are published to `bond.orders.invalid` for inspection
 
 ---
 
-*Verification status: Quarkus variant verified against Quarkus 3.39.3, Camel 4.22.0 on Podman (2026-07-11). Spring Boot variant compiles against Spring Boot 4.1.1, Camel 4.22.0.*
+*Verification status: **both runtimes verified end to end** against the Podman stack on 2026-09-17 (Quarkus 3.39.3 / Spring Boot 4.1.1, Camel 4.22.0). Every stage shows traffic — all three feed adapters, the normalizer, the desk distributor, all three desk filters and the trade validator — with no errors on either runtime.*
+
+*Two corrections came out of that. The Spring Boot variant had only ever been compiled. And pattern 16 was listed as a **Dead Letter Channel** whose invalid orders were "logged and dropped" — which is neither pattern: the order simply vanished. Chapter 5 draws the distinction this case study needed, between a dead letter (delivery failed after retries) and an invalid message (the consumer understood it and rejected it). Rejected orders now go to `bond.orders.invalid`, verified by injecting a negative quantity and a negative limit price and seeing both arrive.*

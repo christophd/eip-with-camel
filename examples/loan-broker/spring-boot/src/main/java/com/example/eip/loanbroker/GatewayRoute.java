@@ -41,7 +41,10 @@ public class GatewayRoute extends RouteBuilder {
                     "requestId", requestId
                 ));
             })
-            .setHeader("CamelHttpResponseCode", constant(202))
-            .marshal().json();
+            // No explicit marshal here. restConfiguration() sets
+            // bindingMode(json), so Camel already serialises the response --
+            // marshalling again double-encodes it on Quarkus and produces an
+            // empty HTTP 500, with no exception logged, under camel-servlet.
+            .setHeader("CamelHttpResponseCode", constant(202));
     }
 }

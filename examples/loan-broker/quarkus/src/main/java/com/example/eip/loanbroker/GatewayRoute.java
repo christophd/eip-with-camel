@@ -41,7 +41,9 @@ public class GatewayRoute extends RouteBuilder {
                     "requestId", requestId
                 ));
             })
-            .setHeader("CamelHttpResponseCode", constant(202))
-            .marshal().json();
+            // No explicit marshal here. restConfiguration() sets
+            // bindingMode(json), so Camel already serialises the response --
+            // marshalling again double-encodes it.
+            .setHeader("CamelHttpResponseCode", constant(202));
     }
 }
