@@ -11,6 +11,10 @@ means unzipping the pptx and patching slide XML by hand.
 | **EIP 101** | 98 | Conceptual guide — pattern language, categories, visual explanations |
 | **EIP 201** | 140 | Implementation deep-dive — Java DSL, code examples, case studies |
 
+Slide counts are total slides in the file. EIP 201 numbers 126 of its 140 —
+the rest are the cover and section dividers, which is what its build output
+means by "126 numbered slides + cover/dividers".
+
 ## Prerequisites
 
 - Node.js with `pptxgenjs` installed globally (`npm install -g pptxgenjs`)

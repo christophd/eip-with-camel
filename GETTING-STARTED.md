@@ -151,6 +151,6 @@ bundle exec jekyll serve
 Two PPTX decks are in `presentations/`:
 
 - **EIP 101** (98 slides) — Conceptual guide to all 65 patterns
-- **EIP 201** (140 slides) — Implementation deep-dive with Java DSL
+- **EIP 201** (140 slides, 126 numbered) — Implementation deep-dive with Java DSL
 
 To rebuild from source: `cd presentations/src && bash build.sh`

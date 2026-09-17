@@ -409,7 +409,13 @@ Swept every document in the repo, checking content and the links between them.
 | `_example_pages/index.md` | **11 examples missing** — six added this week plus 38–42, which had been absent since Phase 5 | all 37 listed |
 | `presentations/README.md` | EIP 101 ~85 slides, EIP 201 ~120, 26 diagram PNGs | 98, 140, 51 |
 | `presentations/README.md` | legacy deck undocumented | noted, with why it has no source |
-| `GETTING-STARTED.md` | EIP 201 "126 slides" — actually the *legacy* deck's count | 140 |
+| `GETTING-STARTED.md` | EIP 201 "126 slides" | 140 (see correction below) |
+
+> **Correction, 2026-09-17.** The note above claimed EIP 201's "126 slides" was
+> the *legacy* deck's count. That was wrong. 126 is EIP 201's own **numbered**
+> slide count; it has 140 slides in total, the difference being the cover and
+> section dividers. The legacy deck also having 126 slides is a coincidence, and
+> this asserted a cause from it. The docs now give both numbers.
 
 **Plans retired:** `upgrade-camel-4.22-RESUME.md` deleted — it claimed the
 upgrade was unmerged, which stopped being true. `reconciliation-plan.md` and
