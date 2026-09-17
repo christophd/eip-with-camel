@@ -163,13 +163,27 @@ class EipTests implements EipTestSupport {
 
             t.then(
                 repeatOnError()
-                    .until((i, context) -> i > 10)
+                    .until((i, context) -> i > 20)
                     .autoSleep(Duration.ofSeconds(1))
                     .actions(
-                        receive()
-                            .endpoint("kafka:eip.orders.resequenced?consumerGroup=citrus-resequenced-group")
-                            .message()
-                            .body(Resources.create("templates/order.json"))
+                        sequential()
+                            .actions(
+                                receive()
+                                    .endpoint("kafka:eip.orders.resequenced?consumerGroup=citrus-resequenced-group")
+                                    .message()
+                                    .body(Resources.create("templates/order.json"))
+                                    .header("sequenceNumber", 1),
+                                receive()
+                                    .endpoint("kafka:eip.orders.resequenced?consumerGroup=citrus-resequenced-group")
+                                    .message()
+                                    .body(Resources.create("templates/order.json"))
+                                    .header("sequenceNumber", 2),
+                                receive()
+                                    .endpoint("kafka:eip.orders.resequenced?consumerGroup=citrus-resequenced-group")
+                                    .message()
+                                    .body(Resources.create("templates/order.json"))
+                                    .header("sequenceNumber", 3)
+                            )
                     )
             );
         }
