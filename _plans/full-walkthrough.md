@@ -8,7 +8,7 @@ The final quality gate: does all of this actually work together. Explicitly
 **not** a compile sweep — the standard is that the thing runs and does what the
 chapter says it does.
 
-**Started:** 2026-09-17
+**Started:** 2026-09-17 · **Completed:** 2026-09-17
 **One branch per part**, merged to `main` as each part closes:
 `iteration/full-walkthrough-01` … `-04`.
 
@@ -21,7 +21,7 @@ chapter says it does.
 | **1** | Site materials | `iteration/full-walkthrough-01` | ☑ **complete** — 1 bug found and fixed |
 | **2** | PPTX decks | `iteration/full-walkthrough-02` | ☑ **complete** — 2 issues found and fixed |
 | **3** | Every example, run not compiled | `iteration/full-walkthrough-03` | ☑ **complete** — 2 bugs, 3 CI gaps |
-| **4** | Case studies end to end | `iteration/full-walkthrough-04` | ☐ not started |
+| **4** | Case studies end to end | `iteration/full-walkthrough-04` | ☑ **complete** — 3 issues found and fixed |
 
 Scope as of the start: **44 chapters, 37 examples, 61 Maven projects, 11 YAML
 DSL directories, 3 operational scripts, 3 decks, 67 diagrams.**
@@ -353,14 +353,85 @@ The two largest examples, and the only ones claiming a specific pattern count.
 
 | # | Checkpoint | State |
 |---|---|---|
-| 4.1 | loan-broker — both runtimes, end to end | ☐ |
-| 4.2 | bond-trading — both runtimes, end to end | ☐ |
-| 4.3 | Pattern claims verified — 13 for loan-broker, 16 for bond-trading | ☐ |
-| 4.4 | Chapters 28 and 29 reconciled with observed behaviour | ☐ |
+| 4.1 | loan-broker — both runtimes, end to end | ☑ **2 issues fixed** |
+| 4.2 | bond-trading — both runtimes, end to end | ☑ pass |
+| 4.3 | Pattern claims verified — 13 for loan-broker, 16 for bond-trading | ☑ **1 false claim fixed** |
+| 4.4 | Chapters 28 and 29 reconciled with observed behaviour | ☑ done |
 
 **Findings:**
 
+Both case studies carried the same footer: *"Quarkus variant verified… Spring
+Boot variant compiles."* Driving the Spring Boot side for the first time is
+what produced everything below.
+
+**4.1 — loan-broker: two issues.**
+
+*The Spring Boot gateway returned an empty HTTP 500* while the business chain
+behind it completed perfectly. `restConfiguration()` sets `bindingMode(json)`,
+so Camel already serialises the response — and the route marshalled it a second
+time. Quarkus tolerated that by double-encoding the body; camel-servlet turned
+it into a 500 with **no exception logged anywhere**, which is a genuinely
+unpleasant thing to debug. The redundant `.marshal().json()` is gone from both
+runtimes, and both now return a clean `202` with properly encoded JSON.
+
+*The documented URL 404s on Spring Boot.* camel-servlet maps under `/camel`, so
+the gateway is at `/camel/api/loans`, while the README and chapter only gave
+the Quarkus path. Both now give both.
+
+Verified end to end on each runtime: request accepted, enriched with credit
+data, fanned out to all three banks, best approved rate published to
+`loan.results`.
+
+**4.2 — bond-trading runs clean on both runtimes.** Every stage shows traffic —
+three feed adapters, normalizer, desk distributor, three desk filters, trade
+validator — with zero errors.
+
+**4.3 — one of the 16 claimed patterns did not exist.** The README listed a
+**Dead Letter Channel**, described as invalid orders being "logged and
+dropped". That is not a dead letter channel, and it is not an invalid message
+channel either: the `.otherwise()` branch logged the rejection and the order
+vanished. There was no `deadLetterChannel`, no `errorHandler`, and no DLQ topic
+anywhere in the example.
+
+[Chapter 5]({% link _docs/05-channel-reliability.md %}) draws exactly the
+distinction that settles it — a dead letter is a message that could not be
+delivered after retries; an invalid message is one the consumer understood and
+rejected. Rejected trade orders are the second. They now go to
+`bond.orders.invalid`, the claim is relabelled **Invalid Message Channel**, and
+the count stays at 16. Verified by injecting a negative quantity and a negative
+limit price and watching both arrive on the topic.
+
+Every other claimed pattern was checked against the source and is genuinely
+implemented — 13/13 for loan-broker, 16/16 for bond-trading after the fix.
+
+**4.4 — the chapters and the READMEs had been contradicting each other.** Both
+chapter footers claimed the example "runs against the live stack on both
+runtimes" while both example READMEs said the Spring Boot variant only
+compiled. The chapters were closer to right, but neither was tested: the Spring
+Boot loan-broker gateway was returning 500. All four footers now record what was
+actually observed on 2026-09-17, including the corrections.
+
 ---
+
+## Outcome
+
+All four parts complete. Eight real defects found and fixed, none of which a
+build or a test run would have caught:
+
+| # | Defect | How it hid |
+|---|---|---|
+| 1 | 34 Camel placeholders eaten by Liquid in 9 chapters | invisible in markdown; snippets rendered `?brokers=` |
+| 2 | `01-order-flow` deck diagram a day out of date since July | nothing rebuilds the PNGs when an SVG changes |
+| 3 | `convert-diagrams.sh` could not reproduce its own output | regenerating silently downgraded every slide image |
+| 4 | `23-quarkus-dev` would not start as a packaged app | tests and dev mode both passed |
+| 5 | `setup-stack.sh` could not recover a corrupt Pulsar volume | its check only fired when the container still existed |
+| 6 | three CI coverage gaps | `37-testing-strategies` had tests since July, never run |
+| 7 | loan-broker's Spring Boot gateway returned an empty 500 | the business chain behind it worked, nothing was logged |
+| 8 | bond-trading claimed a pattern it did not implement | the list said 16 and 16 were listed |
+
+The recurring theme: **every one of these lived in the gap between "it builds",
+"the tests pass" and "the thing actually does what the page says".** Four of the
+eight were in artefacts that had been marked verified.
 
 ## Working notes
 

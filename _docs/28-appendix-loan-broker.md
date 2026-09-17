@@ -457,4 +457,6 @@ from("kafka:eip.shipping.rate-requests?brokers=localhost:9092&groupId=carrier-sc
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span> — the example runs against the live stack on both runtimes: the demo generator submits a loan request, the recipient list fans out to the eligible banks, and the aggregator selects the best offer, with zero errors (2026-09-14). Step 6's result store is illustrative and is not exercised.*
+*Verification status: <span class="status status--verified">verified</span> — re-verified end to end on both runtimes on 2026-09-17. A request POSTed to the gateway returns 202 with its requestId, is enriched with credit data, fans out to all three banks, and the aggregator publishes the lowest approved rate to `loan.results`. Step 6's result store is illustrative and is not exercised.*
+
+*The gateway path differs by runtime: `/api/loans` on Quarkus, `/camel/api/loans` on Spring Boot, whose camel-servlet mapping sits under `/camel`. The Spring Boot gateway also used to return an empty HTTP 500 — `restConfiguration()` sets `bindingMode(json)`, so Camel already serialises the response, and the route marshalled it a second time. Quarkus tolerated that by double-encoding the body; camel-servlet did not. The redundant marshal is gone from both.*

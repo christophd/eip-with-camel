@@ -43,7 +43,15 @@ public class TradeValidationRoute extends RouteBuilder {
                     .marshal().json()
                     .to("kafka:bond.orders.validated?brokers={{kafka.brokers}}")
                 .otherwise()
+                    // Invalid Message Channel, not a Dead Letter Channel. The
+                    // consumer understands this message and is rejecting it on
+                    // business grounds, so it belongs on a channel someone can
+                    // inspect -- see Chapter 5 for why the two are different.
+                    // Logging and dropping, which this route used to do, is
+                    // neither pattern: the order simply disappeared.
                     .log("Order ${body[orderId]} REJECTED: ${header.RejectionReason}")
+                    .marshal().json()
+                    .to("kafka:bond.orders.invalid?brokers={{kafka.brokers}}")
             .end();
     }
 }
