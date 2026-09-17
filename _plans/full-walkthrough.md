@@ -40,8 +40,8 @@ changed since.
 |---|---|---|
 | 1.1 | Structural re-check — front matter, diagram includes, `{% link %}` targets, Jekyll build clean | ☑ pass |
 | 1.2 | Every chapter page renders — all 44 reachable, no Liquid leakage, no broken layout | ☑ **bug found and fixed** |
-| 1.3 | Codetabs actually behave — tabs switch, selection syncs across a page, persists across pages | ☐ |
-| 1.4 | Diagrams render — all 67 present, referenced, and not visually broken | ☐ |
+| 1.3 | Codetabs — label/content correspondence and label vocabulary (HTML checks; behaviour spot-checked by the user) | ☑ pass |
+| 1.4 | Diagrams — integrity, pairing, alt/caption, and accounting across chapters, READMEs and decks | ☑ pass |
 | 1.5 | Navigation — part indexes, prev/next, breadcrumbs, homepage card grid | ☐ |
 | 1.6 | Internal + external links resolve | ☐ |
 
@@ -78,6 +78,42 @@ fails with "Unknown tag endraw" in a *different* chapter than the one at fault.
 
 Re-verified after the fix: 34/34 placeholders present, all 61 codetabs markers
 still have their blocks, and no raw tags leak into the HTML.
+
+**1.3 — clean.** 132 tab panels checked for label/content correspondence: every
+"Quarkus" panel looks like Quarkus, every "Spring Boot" panel like Spring Boot,
+no panel carries the other runtime's markers. This is the failure that matters,
+because the convention is positional — the Nth block must match the Nth label —
+and nothing enforces it.
+
+The label vocabulary is also consistent, which is load-bearing: `codetabs.js`
+syncs selection *by label text*, so a single "SpringBoot" or "Spring boot" would
+silently break persistence for that group. Exactly three labels are in use
+(`Quarkus` 61, `Spring Boot` 61, `YAML DSL` 10) across two combinations, and
+both assets ship and are referenced.
+
+**1.4 — clean, and nothing is orphaned.** 67 SVGs, each with a paired
+`.excalidraw` source, all valid XML with dimensions, all shipped to `_site`,
+and every `excalidraw.html` include carries both alt text and a caption.
+
+Accounting for all 67, which took three passes because they are used in three
+different places:
+
+| Where | Count |
+|---|---|
+| Chapter `excalidraw.html` includes | 47 |
+| Example READMEs (the `ex-*` architecture diagrams) | 17 |
+| Deck PNGs under `presentations/src/png/` | 51 |
+| **Used somewhere** | **67 — no orphans** |
+
+A first pass that only scanned `_docs/` reported 20 orphans. It was wrong: 17
+are embedded in example READMEs, and the remaining three — `11-resequencer`,
+`12-type-conversion`, `17-purger-proxy` — are used by the slide decks.
+
+> **Do not delete unreferenced assets.** 22 of the 51 deck PNGs are not
+> currently placed on a slide. They stay: they are cheap, and they are the
+> obvious raw material for future slides. The same goes for any diagram that
+> looks unused — check chapters, example READMEs *and* the decks before
+> concluding anything.
 
 ---
 
