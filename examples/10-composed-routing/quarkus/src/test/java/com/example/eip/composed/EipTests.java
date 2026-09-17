@@ -6,7 +6,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.apache.camel.BindToRegistry;
 import org.apache.camel.CamelContext;
-import org.apache.camel.ServiceStatus;
 import org.citrusframework.TestCaseRunner;
 import org.citrusframework.annotations.CitrusResource;
 import org.citrusframework.quarkus.CitrusSupport;
@@ -51,15 +50,9 @@ class EipTests implements EipTestSupport {
                     .header("kafka.KEY", "${id}")
             );
 
-            t.then(sleep().seconds(5));
-
-            t.then(
-                camel().camelContext(camelContext)
-                    .controlBus()
-                    .route("order-routing-slip")
-                    .status()
-                    .result(ServiceStatus.Started)
-            );
+            t.then(assertProcessedExchanges("order-routing-slip", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("validate-order", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("assign-carrier", it -> it >= 1, camelContext));
         }
     }
 
@@ -89,15 +82,9 @@ class EipTests implements EipTestSupport {
                     .header("kafka.KEY", "${id}")
             );
 
-            t.then(sleep().seconds(5));
-
-            t.then(
-                camel().camelContext(camelContext)
-                    .controlBus()
-                    .route("hazmat-compliance")
-                    .status()
-                    .result(ServiceStatus.Started)
-            );
+            t.then(assertProcessedExchanges("validate-order", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("hazmat-compliance", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("assign-carrier", it -> it >= 1, camelContext));
         }
     }
 
@@ -127,15 +114,43 @@ class EipTests implements EipTestSupport {
                     .header("kafka.KEY", "${id}")
             );
 
-            t.then(sleep().seconds(5));
+            t.then(assertProcessedExchanges("validate-order", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("customs-classification", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("assign-carrier", it -> it >= 1, camelContext));
+        }
+    }
 
-            t.then(
-                camel().camelContext(camelContext)
-                    .controlBus()
-                    .route("customs-classification")
-                    .status()
-                    .result(ServiceStatus.Started)
+    @Nested
+    class RoutingSlipFullPipelineTest {
+
+        @Test
+        public void shouldRouteInternationalHazmatOrderThroughAllSteps() {
+            t.given(
+                createVariables()
+                    .variable("id", "citrus:randomNumber(4)")
+                    .variable("country", "DE")
+                    .variable("hazmat", true)
             );
+
+            t.given(waitForCamelRouteStarted("order-routing-slip", camelContext));
+
+            t.given(
+                print().message("Send international hazmat order — slip: validate → hazmat-compliance → customs-classification → assign-carrier")
+            );
+
+            t.when(
+                send()
+                    .endpoint("kafka:eip.orders.placed")
+                    .message()
+                    .body(Resources.create("templates/order.json"))
+                    .header("kafka.KEY", "${id}")
+            );
+
+            t.then(assertProcessedExchanges("order-routing-slip", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("validate-order", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("hazmat-compliance", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("customs-classification", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("assign-carrier", it -> it >= 1, camelContext));
         }
     }
 
