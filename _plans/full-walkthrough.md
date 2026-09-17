@@ -38,14 +38,46 @@ changed since.
 
 | # | Checkpoint | State |
 |---|---|---|
-| 1.1 | Structural re-check — front matter, diagram includes, `{% link %}` targets, Jekyll build clean | ☐ |
-| 1.2 | Every chapter page renders — all 44 reachable, no Liquid leakage, no broken layout | ☐ |
+| 1.1 | Structural re-check — front matter, diagram includes, `{% link %}` targets, Jekyll build clean | ☑ pass |
+| 1.2 | Every chapter page renders — all 44 reachable, no Liquid leakage, no broken layout | ☑ **bug found and fixed** |
 | 1.3 | Codetabs actually behave — tabs switch, selection syncs across a page, persists across pages | ☐ |
 | 1.4 | Diagrams render — all 67 present, referenced, and not visually broken | ☐ |
 | 1.5 | Navigation — part indexes, prev/next, breadcrumbs, homepage card grid | ☐ |
 | 1.6 | Internal + external links resolve | ☐ |
 
-**Findings:** _(recorded as they are found)_
+**Findings:**
+
+**1.1 — clean.** 44 chapters, 10 parts, orders 0–43 with no gaps or duplicates,
+every chapter has the five required front matter keys and a verification
+footer, all diagram includes and `{% link %}` targets resolve, and a
+from-scratch Jekyll build (cache deleted) is warning-free.
+
+**1.2 — 34 Camel property placeholders were being eaten by Liquid across nine
+chapters.** The published site was showing
+
+```
+from("kafka:eip.orders.placed?brokers=&groupId=inventory-service")
+```
+
+where the source says `?brokers={{kafka.brokers}}`. Liquid parses `{{...}}` as
+an output tag *inside fenced code blocks too*, evaluates `kafka.brokers` as an
+undefined variable, and substitutes empty string. Every affected snippet was
+uncopyable, and the damage was invisible in the markdown.
+
+Fixed by wrapping the offending fences in `{% raw %}` / `{% endraw %}`, which is
+the convention chapter 19 already used. Affected: 04, 09, 12, 32, 33, 34, 38,
+39, 40. Chapter 19 was already safe.
+
+Two things worth remembering. First, presence-checking is not enough: chapters
+04, 09 and 12 looked fine because each had *one* correctly guarded mention in
+prose, which masked two broken ones in code. Only counting occurrences source
+against rendered exposed it. Second, the naive fix nests `raw` inside an
+existing `raw` region, and Liquid treats the inner tag as literal text so the
+first `endraw` closes the outer block and the second is orphaned — the build
+fails with "Unknown tag endraw" in a *different* chapter than the one at fault.
+
+Re-verified after the fix: 34/34 placeholders present, all 61 codetabs markers
+still have their blocks, and no raw tags leak into the HTML.
 
 ---
 

@@ -185,6 +185,7 @@ The route logic is identical across runtimes — only the class annotations and 
 
 {% include codetabs.html langs="Quarkus|Spring Boot" %}
 
+{% raw %}
 ```java
 @ApplicationScoped
 public class OrderProcessorRoute extends RouteBuilder {
@@ -205,7 +206,9 @@ public class OrderProcessorRoute extends RouteBuilder {
     }
 }
 ```
+{% endraw %}
 
+{% raw %}
 ```java
 @Component
 public class OrderProcessorRoute extends RouteBuilder {
@@ -226,6 +229,7 @@ public class OrderProcessorRoute extends RouteBuilder {
     }
 }
 ```
+{% endraw %}
 
 The `enrichFromCache` method looks up `customer:<customerId>` in Redis and adds the customer name to the order. On a cache miss, it falls back to a default value — in production, you'd call a customer service here.
 

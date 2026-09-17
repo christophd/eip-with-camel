@@ -49,6 +49,7 @@ With `acks=all`, combine with the broker's `min.insync.replicas` setting. If `mi
 
 In Camel:
 
+{% raw %}
 ```java
 from("direct:publish-order")
     .routeId("durable-producer")
@@ -57,6 +58,7 @@ from("direct:publish-order")
         + "?brokers={{kafka.brokers}}"
         + "&requestRequiredAcks=all");
 ```
+{% endraw %}
 
 ## Batching — batch.size and linger.ms
 
@@ -90,6 +92,7 @@ camel.component.kafka.configuration.linger-ms=20
 
 For the shipping domain: set `linger.ms=5` for the order intake producer (low latency) and `linger.ms=50` for the analytics event producer (high throughput):
 
+{% raw %}
 ```java
 from("direct:order-analytics")
     .routeId("batched-producer")
@@ -99,6 +102,7 @@ from("direct:order-analytics")
         + "&lingerMs=50"
         + "&batchSize=65536");
 ```
+{% endraw %}
 
 ## Compression
 
@@ -118,6 +122,7 @@ camel.component.kafka.configuration.compression-codec=lz4
 
 For JSON messages in the shipping domain (order events, inventory updates), `lz4` typically achieves 2–3x compression with negligible CPU overhead. This is almost always worth enabling:
 
+{% raw %}
 ```java
 from("direct:publish-order")
     .routeId("compressed-producer")
@@ -127,6 +132,7 @@ from("direct:publish-order")
         + "&requestRequiredAcks=all"
         + "&compressionCodec=lz4");
 ```
+{% endraw %}
 
 ## Buffer management
 
@@ -195,6 +201,7 @@ Idempotence requires `acks=all` and `max.in.flight.requests.per.connection <= 5`
 
 For the shipping domain, **enable idempotence on every producer** unless you have a specific reason not to:
 
+{% raw %}
 ```java
 from("direct:publish-order")
     .routeId("idempotent-producer")
@@ -204,6 +211,7 @@ from("direct:publish-order")
         + "&requestRequiredAcks=all"
         + "&additionalProperties.enable.idempotence=true");
 ```
+{% endraw %}
 
 ## Tuning profiles for the shipping domain
 
@@ -222,6 +230,7 @@ from("direct:publish-order")
 
 **Ignoring delivery failures**: by default, Camel's Kafka producer logs failures but doesn't throw exceptions back to the route. Use `synchronous=true` in the Kafka endpoint URI to make the route wait for broker acknowledgment and handle failures via Camel's error handler:
 
+{% raw %}
 ```java
 from("direct:publish-order")
     .routeId("synchronous-producer")
@@ -231,6 +240,7 @@ from("direct:publish-order")
         + "&synchronous=true"
         + "&requestRequiredAcks=all");
 ```
+{% endraw %}
 
 ---
 

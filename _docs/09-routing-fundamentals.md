@@ -59,6 +59,7 @@ The route logic is identical across runtimes — only the class annotations diff
 
 {% include codetabs.html langs="Quarkus|Spring Boot" %}
 
+{% raw %}
 ```java
 // Quarkus — CDI discovers the route via @ApplicationScoped
 @ApplicationScoped
@@ -71,7 +72,9 @@ public class ContentBasedRouterRoute extends RouteBuilder {
     }
 }
 ```
+{% endraw %}
 
+{% raw %}
 ```java
 // Spring Boot — Spring discovers the route via @Component
 @Component
@@ -84,6 +87,7 @@ public class ContentBasedRouterRoute extends RouteBuilder {
     }
 }
 ```
+{% endraw %}
 
 The `choice()` DSL inside `configure()` is pure Camel — identical on both runtimes:
 
