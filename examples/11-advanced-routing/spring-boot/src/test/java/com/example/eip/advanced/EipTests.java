@@ -4,7 +4,6 @@ import java.time.Duration;
 
 import com.example.eip.advanced.config.EipInfraSetup;
 import org.apache.camel.CamelContext;
-import org.apache.camel.ServiceStatus;
 import org.apache.camel.test.spring.junit5.CamelSpringBootTest;
 import org.citrusframework.TestCaseRunner;
 import org.citrusframework.annotations.CitrusResource;
@@ -47,31 +46,29 @@ class EipTests implements EipTestSupport {
             );
 
             t.given(waitForCamelRouteStarted("wire-tap-main", camelContext));
+            t.given(waitForCamelRouteStarted("wire-tap-audit", camelContext));
 
             t.when(
                 send()
                     .endpoint("kafka:eip.orders.processing")
                     .message()
+                    .fork(true)
                     .body(Resources.create("templates/order.json"))
                     .header(KafkaMessageHeaders.MESSAGE_KEY, "${id}")
             );
 
-            t.then(sleep().seconds(5));
-
             t.then(
-                camel().camelContext(camelContext)
-                    .controlBus()
-                    .route("wire-tap-main")
-                    .status()
-                    .result(ServiceStatus.Started)
-            );
-
-            t.then(
-                camel().camelContext(camelContext)
-                    .controlBus()
-                    .route("wire-tap-audit")
-                    .status()
-                    .result(ServiceStatus.Started)
+                parallel()
+                    .actions(
+                        receive()
+                            .endpoint("kafka:eip.orders.processed?consumerGroup=citrus-wiretap-processed-group")
+                            .message()
+                            .body(Resources.create("templates/processed-order.json")),
+                        receive()
+                            .endpoint("kafka:eip.orders.audit?consumerGroup=citrus-wiretap-audit-group")
+                            .message()
+                            .body(Resources.create("templates/audit-order.json"))
+                    )
             );
         }
     }
@@ -240,7 +237,6 @@ class EipTests implements EipTestSupport {
         public void shouldDistributeOrdersAcrossFulfillmentCenters() {
             t.given(
                 createVariables()
-                    .variable("id", "citrus:randomNumber(4)")
                     .variable("amount", "75.00")
                     .variable("country", "US")
                     .variable("priority", "STANDARD")
@@ -248,23 +244,21 @@ class EipTests implements EipTestSupport {
 
             t.given(waitForCamelRouteStarted("load-balancer-demo", camelContext));
 
-            t.when(
-                send()
-                    .endpoint("kafka:eip.orders.loadbalanced")
-                    .message()
-                    .body(Resources.create("templates/order.json"))
-                    .header(KafkaMessageHeaders.MESSAGE_KEY, "${id}")
-            );
+            for (int i = 0; i < 3; i++) {
+                t.given(createVariables().variable("id", "citrus:randomNumber(4)"));
+                t.when(
+                    send()
+                        .endpoint("kafka:eip.orders.loadbalanced")
+                        .message()
+                        .body(Resources.create("templates/order.json"))
+                        .header(KafkaMessageHeaders.MESSAGE_KEY, "${id}")
+                );
+            }
 
-            t.then(sleep().seconds(5));
-
-            t.then(
-                camel().camelContext(camelContext)
-                    .controlBus()
-                    .route("load-balancer-demo")
-                    .status()
-                    .result(ServiceStatus.Started)
-            );
+            t.then(assertProcessedExchanges("load-balancer-demo", it -> it >= 3, camelContext));
+            t.then(assertProcessedExchanges("fulfillment-center-east", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("fulfillment-center-central", it -> it >= 1, camelContext));
+            t.then(assertProcessedExchanges("fulfillment-center-west", it -> it >= 1, camelContext));
         }
     }
 }
