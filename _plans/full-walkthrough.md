@@ -19,7 +19,7 @@ chapter says it does.
 | Part | Scope | Branch | State |
 |---|---|---|---|
 | **1** | Site materials | `iteration/full-walkthrough-01` | ☑ **complete** — 1 bug found and fixed |
-| **2** | PPTX decks | `iteration/full-walkthrough-02` | ☐ not started |
+| **2** | PPTX decks | `iteration/full-walkthrough-02` | ☑ **complete** — 2 issues found and fixed |
 | **3** | Every example, run not compiled | `iteration/full-walkthrough-03` | ☐ not started |
 | **4** | Case studies end to end | `iteration/full-walkthrough-04` | ☐ not started |
 
@@ -157,13 +157,66 @@ examples and a new security appendix.
 
 | # | Checkpoint | State |
 |---|---|---|
-| 2.1 | Decks rebuild from source (`presentations/src/build.sh`) | ☐ |
-| 2.2 | EIP 101 (98 slides) — content accurate against current chapters | ☐ |
-| 2.3 | EIP 201 (140 slides) — same, with attention to code slides and versions | ☐ |
-| 2.4 | Embedded diagrams current — 51 PNGs against 67 diagrams on disk | ☐ |
-| 2.5 | Legacy deck — keep as-is, regenerate, or retire | ☐ |
+| 2.1 | Decks rebuild from source (`presentations/src/build.sh`) | ☑ pass — byte-identical |
+| 2.2 | EIP 101 (98 slides) — content accurate against current chapters | ☑ pass |
+| 2.3 | EIP 201 (140 slides) — same, with attention to code slides and versions | ☑ pass |
+| 2.4 | Embedded diagrams current — 51 PNGs against 67 diagrams on disk | ☑ **2 issues fixed** |
+| 2.5 | Legacy deck — keep as-is, regenerate, or retire | ☑ keep as-is |
 
 **Findings:**
+
+**2.1 — pass, and better than hoped.** Both decks rebuild and the slide XML is
+**byte-identical** to what was committed, so the shipped decks are genuinely in
+sync with their source and the build is deterministic. `pptxgenjs` is a local
+dependency in `presentations/src/package.json`, so the README's instruction to
+install it globally is unnecessary — `npm install` in that directory is enough.
+
+**2.2 / 2.3 — no factual errors.** Extracted all text from both decks (39,737
+and 82,635 characters) and tested it against every claim the chapters were
+corrected on:
+
+| Checked | Result |
+|---|---|
+| Camel version strings | none anywhere — nothing to go stale |
+| `toD` / dynamic-router security guidance | neither deck gives any, so none is superseded |
+| at-least-once / manual commit | conceptual only, not tied to the mechanism that changed in 4.22 |
+| `stopOnException` | one use, on a **recipientList**, which is unchanged |
+| `camel-opentelemetry` v1 deprecation | not mentioned |
+| saga / compensation | conceptual, no version-specific claim |
+
+The gaps are **omissions, not errors**: `allowedSchemes` and the Splitter's new
+partial-failure options appear in neither deck. That is defensible — these decks
+teach the 65 patterns, not the Camel release notes — so it is recorded as a
+choice rather than a defect.
+
+EIP 101's "complete catalog" slide gives per-category counts that sum correctly
+to 65 and abbreviates the longest categories with "more"; five patterns are
+never named in full, which is a slide-space decision, not a miscount.
+
+**2.4 — two real problems, both fixed.**
+
+*One diagram was stale.* `01-order-flow` was redrawn on 2026-07-12, the day
+after the PNGs were generated, and the deck had been showing the old render
+ever since. Caught by comparing each SVG's viewBox aspect ratio against its
+PNG's: 50 of 51 matched within 8%, and that one was 29% off. Regenerated; EIP
+101's embedded media changes as a result, EIP 201 does not use it.
+
+*The conversion script could not reproduce its own output.* The SVGs carry a
+viewBox but no width, so LibreOffice picks its own size — the committed PNGs
+were uniformly 1920 wide, while a re-run produced 1426 to 1843. Anyone
+regenerating would have silently downgraded every slide image. `-resize` now
+pins the width (override with `DIAGRAM_WIDTH`), the script takes diagram names
+as arguments so single diagrams can be refreshed without touching the rest, and
+it handles ImageMagick 7's rename of `convert`.
+
+Sixteen diagrams added since the last conversion run had no PNG at all. They do
+now, at the same 1920. All 67 PNGs are uniform, and the 50 untouched ones were
+deliberately left alone rather than churned.
+
+**2.5 — keep the legacy deck.** `Apache Camel and Enterprise Integration
+(Final).pptx` has no source under `src/`, is referenced only by the README that
+explains exactly that, and is not a build target. It stays, per the standing
+instruction not to discard material that may be wanted later.
 
 ---
 
