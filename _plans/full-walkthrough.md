@@ -20,7 +20,7 @@ chapter says it does.
 |---|---|---|---|
 | **1** | Site materials | `iteration/full-walkthrough-01` | ☑ **complete** — 1 bug found and fixed |
 | **2** | PPTX decks | `iteration/full-walkthrough-02` | ☑ **complete** — 2 issues found and fixed |
-| **3** | Every example, run not compiled | `iteration/full-walkthrough-03` | ☐ not started |
+| **3** | Every example, run not compiled | `iteration/full-walkthrough-03` | ☑ **complete** — 2 bugs, 3 CI gaps |
 | **4** | Case studies end to end | `iteration/full-walkthrough-04` | ☐ not started |
 
 Scope as of the start: **44 chapters, 37 examples, 61 Maven projects, 11 YAML
@@ -227,13 +227,13 @@ stack up.
 
 | # | Checkpoint | State |
 |---|---|---|
-| 3.1 | Compile sweep — 61 Maven projects (`build-all-examples.sh`) | ☐ |
-| 3.2 | Boot sweep — every built artifact starts (`verify-all-runtime.sh`) | ☐ |
-| 3.3 | Route activity — each example actually processes messages, not just boots | ☐ |
-| 3.4 | YAML DSL — 11 directories via the Camel CLI | ☐ |
-| 3.5 | Operational scripts — share groups, diagnostics, Connect offsets | ☐ |
-| 3.6 | Verification footers reconciled with what was observed | ☐ |
-| 3.7 | CI workflows reviewed — all three, including the externally contributed `tests.yml` | ☐ |
+| 3.1 | Compile sweep — 61 Maven projects (`build-all-examples.sh`) | ☑ pass 61/61 |
+| 3.2 | Boot sweep — every built artifact starts (`verify-all-runtime.sh`) | ☑ **1 failure found and fixed** |
+| 3.3 | Route activity — each example actually processes messages, not just boots | ☑ pass, with 2 gated |
+| 3.4 | YAML DSL — 11 directories via the Camel CLI | ☑ pass 11/11 |
+| 3.5 | Operational scripts — share groups, diagnostics, Connect offsets | ☑ pass 3/3 |
+| 3.6 | Verification footers reconciled with what was observed | ☑ pass — 1 corrected |
+| 3.7 | CI workflows reviewed — all three, including the externally contributed `tests.yml` | ☑ **3 gaps closed** |
 
 **On 3.7.** There are three workflows and we have only ever looked at one.
 `tests.yml` was contributed in August by Christoph Deppisch (the Citrus
@@ -251,6 +251,99 @@ exercise the test classpath; only booting the built artifact exercises the
 runtime one.
 
 **Findings:**
+
+**3.1 — 61/61 compile.**
+
+**3.2 — 58 of 59 booted; the one failure was the exact trap this script exists
+for, in an example added two days ago.** `23-quarkus-dev` failed with
+`No language could be found for: bean`. Its `.log()` uses Simple map accessors
+(`${body[order_id]}`), which resolve through the bean language, and the pom
+never declared `camel-quarkus-bean` — while the Citrus test dependencies were
+supplying `camel-bean` on the *test* classpath. So `mvn test` passed, `mvn
+quarkus:dev` ran, and only the artefact you would actually ship failed to
+start.
+
+Its verification footer claimed more than had been checked. Both the chapter
+footer and the example README now record that the packaged application boots,
+and say why that check was added.
+
+This is the third time this specific trap has appeared in three days. It is
+worth treating "does the packaged artifact boot" as a separate, mandatory gate
+rather than something implied by a green test run.
+
+**3.7 — three real gaps in CI, all closed.**
+
+| Workflow | Was missing | Why it mattered |
+|---|---|---|
+| `examples.yml` | `19-dsl-comparison`, `23-quarkus-dev`, `26-feature-flags` | three Maven examples never compiled by CI |
+| `tests.yml` (quarkus) | `23-quarkus-dev`, `37-testing-strategies` | `37` has had tests since July and had **never** run in CI |
+| `tests.yml` (spring-boot) | `37-testing-strategies` | same |
+
+Both additions were checked against a CI-like environment first — stack fully
+down, Testcontainers on the Podman socket — and both pass: `23-quarkus-dev`
+2/2, `37-testing-strategies` 4/4.
+
+`19-dsl-comparison` is deliberately **not** in the yaml-dsl test job. That job
+runs `citrus run <example>/yaml-dsl/test`, and the example has no `test/`
+directory because it exists to be diffed across runtimes, not tested. The
+yaml-dsl matrix covers exactly the ten directories that do have one.
+
+All three matrices are now complete against what is on disk: 32/32 Maven
+projects, 22/22 Quarkus test suites, 21/21 Spring Boot, 10/10 YAML DSL.
+
+**3.4 — 11/11 YAML DSL examples start** under `camel run`, with route counts
+from 1 to 13.
+
+**3.5 — all three operational scripts work.** Share groups splits nine orders
+3/3/3 across workers and demonstrates ACCEPT, RELEASE and REJECT correctly;
+diagnostics walks its seven steps; Connect offsets takes the topic from 10
+records to 20 after the `PATCH` rewind and resets cleanly.
+
+**Also found during 3.5: `setup-stack.sh` could not recover a corrupt Pulsar
+volume.** Bringing the stack up after a `podman-compose down` died on "Bookie
+handle is not available". The script already knew about BookKeeper corruption
+and wiped the volume when it found the container in an exited state — but that
+check runs *before* startup, and `down` removes the container while leaving the
+volume, so it saw nothing. Pulsar now gets one automatic recovery attempt after
+the health wait, `wait_healthy` gained a nonfatal mode and stops waiting out
+the timeout on an already-exited container, and it prints logs when it gives up
+rather than failing silently. Verified by corrupting the ledger deliberately
+and re-running: FAILED, wiped, retried, healthy.
+
+**3.3 — message flow, scoped to where it adds information.** The boot sweep
+already proves every artifact starts and its routes come up, and the Citrus
+suites already assert message flow for 43 of the projects. So rather than
+re-driving everything, this checked the examples where *nothing* has ever
+asserted that a message moves — the eight with runtimes but no test suite:
+
+| Example | Evidence |
+|---|---|
+| `19-dsl-comparison` | driven end to end on all three runtimes, 2026-09-15 |
+| `26-feature-flags` | driven end to end on both runtimes, 2026-09-15 |
+| `32-kafka-consumer-tuning` | **driven now** — routes processed messages |
+| `33-kafka-producer-tuning` | **driven now** — routes processed messages |
+| `loan-broker`, `bond-trading` | Part 4 |
+| `38-kubernetes-deploy` | gated: needs a cluster, and its footer says so |
+| `42-ai-mcp` | gated: needs Ollama |
+
+An attempt to infer activity from the boot-sweep logs was abandoned — the
+detection kept over- or under-matching because Quarkus and Spring Boot format
+route logging differently, and a log-shaped heuristic is not evidence. Driving
+the examples is.
+
+**3.6 — footers hold up.** Three chapters claim "verified" on the strength of
+compilation: 02 and 03 are conceptual and say so explicitly, and 38 states that
+the application runs but that the Kubernetes manifests "are not exercised here;
+that needs a cluster." All three describe exactly what was and was not done.
+The only overstated footer found in this part was `23-quarkus-dev`, corrected
+under 3.2.
+
+> **A note for whoever runs this next.** Two attempts at scripting the YAML DSL
+> sweep killed the harness shell. The first used `pkill -f "camel run"`, which
+> matched the runner's own command line — the exact thing the working notes
+> below warn about. The second used `kill -TERM -- -$pid` on a child that was
+> not a process-group leader, which signalled the caller's group instead. Let
+> `timeout` own process lifecycle and never kill by pattern or by group.
 
 ---
 

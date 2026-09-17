@@ -45,8 +45,17 @@ they are all built to run against the Podman stack.
 
 ## Verified
 
-2026-09-15. `mvn quarkus:dev` starts Dev Services for Kafka on a random port
-(observed: 42495) with no infrastructure running, the routes classify orders
-against it (129.99 → STANDARD, 640.00 → EXPEDITED at a 500.00 threshold), and
-`mvn test` passes 2 tests. Testcontainers needs `DOCKER_HOST` pointed at the
+2026-09-15, re-verified 2026-09-17. `mvn quarkus:dev` starts Dev Services for
+Kafka on a random port (observed: 42495) with no infrastructure running, the
+routes classify orders against it (129.99 → STANDARD, 640.00 → EXPEDITED at a
+500.00 threshold), `mvn test` passes 2 tests, **and the packaged application
+boots**.
+
+That last one matters. The original verification skipped it, and the packaged
+app did not in fact start: the Simple map accessors in `.log()` resolve through
+the bean language, which Quarkus registers only when `camel-quarkus-bean` is
+present — and the Citrus test dependencies were quietly supplying `camel-bean`
+on the *test* classpath. Dev mode ran, the tests passed, and the artefact you
+would actually ship failed at startup. This is exactly what
+`scripts/verify-all-runtime.sh` exists to catch. Testcontainers needs `DOCKER_HOST` pointed at the
 Podman socket — see [CONTRIBUTING.md](../../CONTRIBUTING.md#running-the-tests).

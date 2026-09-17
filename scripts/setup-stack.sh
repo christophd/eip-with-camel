@@ -24,7 +24,12 @@ if $CLEAN; then
 fi
 
 # Pulsar's embedded BookKeeper corrupts its ledger data across dirty shutdowns.
-# If Pulsar exited with an error, wipe its volume before restarting.
+# If Pulsar is sitting in a crashed state, wipe its volume before restarting.
+#
+# This only catches the case where the container still exists. After a
+# `podman-compose down` the container is gone while the corrupt volume remains,
+# and the next start fails with "Bookie handle is not available". The recovery
+# after the health wait below handles that case.
 pulsar_status=$(podman inspect --format='{{.State.Status}}' eip-pulsar 2>/dev/null || echo "absent")
 if [[ "$pulsar_status" == "exited" ]] || [[ "$pulsar_status" == "dead" ]]; then
   echo "==> Detected crashed Pulsar container — cleaning volume to prevent ledger corruption..."
@@ -37,18 +42,28 @@ echo "==> Starting EIP base stack (Kafka, Pulsar, Redis, PostgreSQL, Apicurio)..
 podman-compose -p eip -f "$INFRA_DIR/compose.yaml" up -d
 
 echo "==> Waiting for base services to become healthy..."
+# wait_healthy <service> [timeout] [nonfatal]
+# With "nonfatal" it returns 1 instead of exiting, so a caller can attempt
+# recovery rather than the whole script dying.
 wait_healthy() {
   local svc=$1
   local svc_timeout=${2:-120}
+  local mode=${3:-fatal}
   printf "    %-20s " "$svc"
   while ! podman inspect --format='{{.State.Health.Status}}' "$svc" 2>/dev/null | grep -q healthy; do
-    sleep 2
-    svc_timeout=$((svc_timeout - 2))
+    # A container that has exited will never become healthy; stop waiting.
+    local state
+    state=$(podman inspect --format='{{.State.Status}}' "$svc" 2>/dev/null || echo absent)
+    if [[ "$state" == "exited" ]] || [[ "$state" == "dead" ]]; then svc_timeout=0; fi
     if [[ $svc_timeout -le 0 ]]; then
-      echo "TIMEOUT"
+      echo "FAILED"
+      [[ "$mode" == "nonfatal" ]] && return 1
       echo "ERROR: $svc did not become healthy within the timeout"
+      podman logs --tail 15 "$svc" 2>&1 | sed 's/^/      /'
       exit 1
     fi
+    sleep 2
+    svc_timeout=$((svc_timeout - 2))
   done
   echo "healthy"
 }
@@ -84,7 +99,17 @@ wait_healthy eip-kafka    120
 wait_healthy eip-redis    120
 wait_healthy eip-postgres 120
 wait_healthy eip-apicurio 120
-wait_healthy eip-pulsar   180
+# Pulsar gets one automatic recovery attempt. A corrupt bookie ledger is by far
+# the most common reason it fails here, the only fix is to wipe the volume, and
+# the data is throwaway development state.
+if ! wait_healthy eip-pulsar 180 nonfatal; then
+  echo "    Pulsar did not come up. This is almost always a corrupt BookKeeper"
+  echo "    ledger from an unclean shutdown. Wiping its volume and retrying once."
+  podman rm -f eip-pulsar >/dev/null 2>&1 || true
+  podman volume rm eip-pulsar-data >/dev/null 2>&1 || true
+  podman-compose -p eip -f "$INFRA_DIR/compose.yaml" up -d pulsar >/dev/null 2>&1
+  wait_healthy eip-pulsar 180
+fi
 
 # flagd is distroless, so it gets the host-side readiness poll too.
 wait_ready eip-flagd http://localhost:8014/healthz 60

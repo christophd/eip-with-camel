@@ -67,6 +67,17 @@
             <groupId>org.apache.camel.quarkus</groupId>
             <artifactId>camel-quarkus-mock</artifactId>
         </dependency>
+        <!-- The .log() below uses map accessors (${body[order_id]}), which the
+             Simple language resolves through the bean language. Quarkus only
+             registers a language when its extension is present, and the Citrus
+             test dependencies pull camel-bean onto the *test* classpath, so
+             without this the tests pass, dev mode runs, and only the packaged
+             application fails at startup with "No language could be found
+             for: bean". -->
+        <dependency>
+            <groupId>org.apache.camel.quarkus</groupId>
+            <artifactId>camel-quarkus-bean</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>io.quarkus</groupId>
