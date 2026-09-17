@@ -114,6 +114,7 @@ If your order enrichment route calls three external services (inventory, payment
 
 A practical approach in Camel: reduce `max.poll.records` to 1–10 for I/O-heavy routes and keep `max.poll.interval.ms` at the default. This keeps batches small and predictable:
 
+{% raw %}
 ```java
 from("kafka:eip.orders.placed"
         + "?brokers={{kafka.brokers}}"
@@ -127,6 +128,7 @@ from("kafka:eip.orders.placed"
     .marshal().json()
     .to("kafka:eip.orders.enriched?brokers={{kafka.brokers}}");
 ```
+{% endraw %}
 
 ## Offset commit strategies
 
@@ -148,6 +150,7 @@ camel.component.kafka.configuration.auto-commit-interval-ms=1000
 
 For the shipping domain — where losing an order or processing a payment twice are both unacceptable — manual commit with at-least-once semantics plus idempotent receivers is the standard pattern:
 
+{% raw %}
 ```java
 from("kafka:eip.orders.placed"
         + "?brokers={{kafka.brokers}}"
@@ -166,6 +169,7 @@ from("kafka:eip.orders.placed"
     .marshal().json()
     .to("kafka:eip.orders.payment-confirmed?brokers={{kafka.brokers}}");
 ```
+{% endraw %}
 
 **Best practice**: use `commitAsync` by default for lower latency, but switch to `commitSync` before shutdown or rebalance to guarantee the final commit. Camel's `allowManualCommit=true` uses synchronous commit, which is the safer default.
 
@@ -264,6 +268,7 @@ Rebalances pause all consumers in a group while partitions are redistributed. Fo
 
 Assign each consumer a stable `group.instance.id`. When a consumer restarts with the same instance ID, the broker skips the rebalance and reassigns the same partitions immediately:
 
+{% raw %}
 ```java
 from("kafka:eip.orders.placed"
         + "?brokers={{kafka.brokers}}"
@@ -274,6 +279,7 @@ from("kafka:eip.orders.placed"
     .unmarshal().json(java.util.Map.class)
     .to("direct:check-inventory");
 ```
+{% endraw %}
 
 With static membership, the broker waits `session.timeout.ms` before reassigning partitions from a departed consumer. This gives the consumer time to restart without triggering a rebalance. Set `session.timeout.ms` higher (e.g., 60 seconds) to accommodate rolling restarts.
 

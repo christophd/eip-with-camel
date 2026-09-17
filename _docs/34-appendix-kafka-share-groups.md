@@ -158,6 +158,7 @@ Chapter 14 covered the Competing Consumers pattern using Kafka consumer groups. 
 
 With consumer groups, "competing consumers" is a misnomer: consumers don't compete for messages, they each own a fixed set of partitions. The competition happens only during rebalancing. Share groups make the competition continuous and per-message.
 
+{% raw %}
 ```java
 // Competing Consumers with share groups — natural queue semantics
 from("kafka:eip.notifications.outbound"
@@ -169,6 +170,7 @@ from("kafka:eip.notifications.outbound"
     .bean(notificationService, "send")
     .log("Notification sent for order ${body[order_id]}");
 ```
+{% endraw %}
 
 Scale by adding more instances of this route — each instance automatically receives a share of the messages without partition assignment or rebalancing.
 

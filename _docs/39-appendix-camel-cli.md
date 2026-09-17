@@ -139,6 +139,7 @@ The seeding goes through the same `spring-redis` component as the lookup. Writin
 
 **order-router.yaml** — A REST API that accepts POST requests on `/api/orders` and routes each order to a Kafka topic based on the `orderType` header:
 
+{% raw %}
 ```yaml
 # REST API that accepts order submissions and routes each order
 # to a Kafka topic determined by its orderType header —
@@ -192,9 +193,11 @@ The seeding goes through the same `spring-redis` component as the lookup. Writin
                     parameters:
                       brokers: "{{camel.component.kafka.brokers}}"
 ```
+{% endraw %}
 
 **order-enricher.yaml** — Consumes express orders from Kafka, looks up customer data in Redis, and publishes the enriched order downstream:
 
+{% raw %}
 ```yaml
 # Consumes express orders from Kafka, enriches each order with
 # customer data retrieved from Redis, and publishes the enriched
@@ -242,6 +245,7 @@ The seeding goes through the same `spring-redis` component as the lookup. Writin
             parameters:
               brokers: "{{camel.component.kafka.brokers}}"
 ```
+{% endraw %}
 
 ### Configuration
 

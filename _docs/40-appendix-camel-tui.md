@@ -61,6 +61,7 @@ The TUI discovers the running integration and populates all tabs with live data.
 
 The REST API in `monitored-route.yaml` accepts JSON orders and validates that the required fields — `orderId`, `customerId`, and `item` — are present:
 
+{% raw %}
 ```yaml
 # REST API that accepts order submissions, validates each order,
 # and routes it to Kafka topics for downstream processing.
@@ -126,9 +127,11 @@ The REST API in `monitored-route.yaml` accepts JSON orders and validates that th
                 - setBody:
                     simple: '{"status":"rejected","reason":"missing required fields (orderId, customerId, item)"}'
 ```
+{% endraw %}
 
 Valid orders flow to `eip.orders.validated`. A second route consumes from that topic, applies a 100ms processing delay, and publishes to `eip.orders.processed`:
 
+{% raw %}
 ```yaml
 - route:
     id: process-validated-orders
@@ -156,6 +159,7 @@ Valid orders flow to `eip.orders.validated`. A second route consumes from that t
             parameters:
               brokers: "{{camel.component.kafka.brokers}}"
 ```
+{% endraw %}
 
 This multi-route, multi-topic setup gives the TUI plenty to display: three routes, three Kafka topics, choice-based branching, headers being set, delays introducing measurable latency, and a steady stream of exchanges flowing end-to-end.
 
