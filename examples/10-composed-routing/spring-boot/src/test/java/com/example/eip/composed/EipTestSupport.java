@@ -1,7 +1,9 @@
 package com.example.eip.composed;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.ServiceStatus;
@@ -27,6 +29,33 @@ public interface EipTestSupport extends TestActionSupport {
                             .description("Waiting for Camel route '%s' to be started ...".formatted(routeId)),
                     sleep().seconds(5)
                 );
+    }
+
+    default TestActionBuilder<?> resetRouteStatistics(CamelContext camelContext, String... routeIds) {
+        return sequential()
+                .actions(Arrays.stream(routeIds)
+                        .map(routeId -> resetRouteStatistics(routeId, camelContext))
+                        .collect(Collectors.toSet())
+                        .toArray(TestActionBuilder[]::new));
+    }
+
+    default TestActionBuilder<?> resetRouteStatistics(String routeId, CamelContext camelContext) {
+        return () -> (context) -> {
+            ManagedCamelContext managedContext = camelContext.getCamelContextExtension()
+                    .getContextPlugin(ManagedCamelContext.class);
+
+            ManagedRouteMBean routeMBean = managedContext.getManagedRoute(routeId);
+
+            if (routeMBean != null) {
+                try {
+                    routeMBean.reset(true);
+                } catch (Exception e) {
+                    throw new CitrusRuntimeException(String.format("Failed to reset route statistics for routeId '%s'", routeId), e);
+                }
+            } else {
+                throw new CitrusRuntimeException(String.format("Failed to get managed route statistics for routeId '%s'", routeId));
+            }
+        };
     }
 
     default TestActionBuilder<?> assertProcessedExchanges(String routeId, long expected, CamelContext camelContext) {
