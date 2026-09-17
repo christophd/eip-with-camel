@@ -4,9 +4,11 @@ description: "The single live tracker for remaining work on the tutorial — pos
 render_with_liquid: false
 ---
 
-This is the canonical list of what is left to do. `iteration-plan.md` is the
-historical record of what shipped; this file is what is still open. Work the
-sections in order and commit each item separately.
+> **Closed and historical.** Every item here was completed by 2026-09-16. The
+> active tracker is now [`full-walkthrough.md`](full-walkthrough.md);
+> `iteration-plan.md` remains the longer historical record. Keep this file for
+> the reasoning behind each decision — several items were closed by concluding
+> the premise was wrong, and that is worth not re-deriving.
 
 **Last reviewed:** 2026-09-15
 **Branch:** `iteration/post-upgrade-cleanup`, pushed, clean tree

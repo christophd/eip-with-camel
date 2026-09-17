@@ -4,8 +4,9 @@ description: "Build roadmap for the Enterprise Integration Patterns with Apache 
 render_with_liquid: false
 ---
 
-> **This is the historical record of what shipped.** For work that is still
-> open, see [`backlog.md`](backlog.md). Last reconciled 2026-09-15.
+> **This is the historical record of what shipped.** The active tracker is
+> [`full-walkthrough.md`](full-walkthrough.md); [`backlog.md`](backlog.md) holds
+> the closed post-upgrade cleanup. Last reconciled 2026-09-17.
 
 ## Iteration 1 — Site Scaffold & Foundations
 
