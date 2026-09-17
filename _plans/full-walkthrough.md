@@ -230,8 +230,8 @@ stack up.
 | 3.1 | Compile sweep — 61 Maven projects (`build-all-examples.sh`) | ☑ pass 61/61 |
 | 3.2 | Boot sweep — every built artifact starts (`verify-all-runtime.sh`) | ☑ **1 failure found and fixed** |
 | 3.3 | Route activity — each example actually processes messages, not just boots | ☐ |
-| 3.4 | YAML DSL — 11 directories via the Camel CLI | ☐ |
-| 3.5 | Operational scripts — share groups, diagnostics, Connect offsets | ☐ |
+| 3.4 | YAML DSL — 11 directories via the Camel CLI | ☑ pass 11/11 |
+| 3.5 | Operational scripts — share groups, diagnostics, Connect offsets | ☑ pass 3/3 |
 | 3.6 | Verification footers reconciled with what was observed | ☐ |
 | 3.7 | CI workflows reviewed — all three, including the externally contributed `tests.yml` | ☑ **3 gaps closed** |
 
@@ -290,6 +290,32 @@ yaml-dsl matrix covers exactly the ten directories that do have one.
 
 All three matrices are now complete against what is on disk: 32/32 Maven
 projects, 22/22 Quarkus test suites, 21/21 Spring Boot, 10/10 YAML DSL.
+
+**3.4 — 11/11 YAML DSL examples start** under `camel run`, with route counts
+from 1 to 13.
+
+**3.5 — all three operational scripts work.** Share groups splits nine orders
+3/3/3 across workers and demonstrates ACCEPT, RELEASE and REJECT correctly;
+diagnostics walks its seven steps; Connect offsets takes the topic from 10
+records to 20 after the `PATCH` rewind and resets cleanly.
+
+**Also found during 3.5: `setup-stack.sh` could not recover a corrupt Pulsar
+volume.** Bringing the stack up after a `podman-compose down` died on "Bookie
+handle is not available". The script already knew about BookKeeper corruption
+and wiped the volume when it found the container in an exited state — but that
+check runs *before* startup, and `down` removes the container while leaving the
+volume, so it saw nothing. Pulsar now gets one automatic recovery attempt after
+the health wait, `wait_healthy` gained a nonfatal mode and stops waiting out
+the timeout on an already-exited container, and it prints logs when it gives up
+rather than failing silently. Verified by corrupting the ledger deliberately
+and re-running: FAILED, wiped, retried, healthy.
+
+> **A note for whoever runs this next.** Two attempts at scripting the YAML DSL
+> sweep killed the harness shell. The first used `pkill -f "camel run"`, which
+> matched the runner's own command line — the exact thing the working notes
+> below warn about. The second used `kill -TERM -- -$pid` on a child that was
+> not a process-group leader, which signalled the caller's group instead. Let
+> `timeout` own process lifecycle and never kill by pattern or by group.
 
 ---
 
