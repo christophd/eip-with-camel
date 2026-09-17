@@ -8,7 +8,7 @@ The final quality gate: does all of this actually work together. Explicitly
 **not** a compile sweep — the standard is that the thing runs and does what the
 chapter says it does.
 
-**Started:** 2026-09-17
+**Started:** 2026-09-17 · **Completed:** 2026-09-17
 **One branch per part**, merged to `main` as each part closes:
 `iteration/full-walkthrough-01` … `-04`.
 
@@ -412,6 +412,26 @@ Boot loan-broker gateway was returning 500. All four footers now record what was
 actually observed on 2026-09-17, including the corrections.
 
 ---
+
+## Outcome
+
+All four parts complete. Eight real defects found and fixed, none of which a
+build or a test run would have caught:
+
+| # | Defect | How it hid |
+|---|---|---|
+| 1 | 34 Camel placeholders eaten by Liquid in 9 chapters | invisible in markdown; snippets rendered `?brokers=` |
+| 2 | `01-order-flow` deck diagram a day out of date since July | nothing rebuilds the PNGs when an SVG changes |
+| 3 | `convert-diagrams.sh` could not reproduce its own output | regenerating silently downgraded every slide image |
+| 4 | `23-quarkus-dev` would not start as a packaged app | tests and dev mode both passed |
+| 5 | `setup-stack.sh` could not recover a corrupt Pulsar volume | its check only fired when the container still existed |
+| 6 | three CI coverage gaps | `37-testing-strategies` had tests since July, never run |
+| 7 | loan-broker's Spring Boot gateway returned an empty 500 | the business chain behind it worked, nothing was logged |
+| 8 | bond-trading claimed a pattern it did not implement | the list said 16 and 16 were listed |
+
+The recurring theme: **every one of these lived in the gap between "it builds",
+"the tests pass" and "the thing actually does what the page says".** Four of the
+eight were in artefacts that had been marked verified.
 
 ## Working notes
 
