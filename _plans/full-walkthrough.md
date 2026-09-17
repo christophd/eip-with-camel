@@ -18,7 +18,7 @@ chapter says it does.
 
 | Part | Scope | Branch | State |
 |---|---|---|---|
-| **1** | Site materials | `iteration/full-walkthrough-01` | ☐ in progress |
+| **1** | Site materials | `iteration/full-walkthrough-01` | ☑ **complete** — 1 bug found and fixed |
 | **2** | PPTX decks | `iteration/full-walkthrough-02` | ☐ not started |
 | **3** | Every example, run not compiled | `iteration/full-walkthrough-03` | ☐ not started |
 | **4** | Case studies end to end | `iteration/full-walkthrough-04` | ☐ not started |
@@ -42,8 +42,8 @@ changed since.
 | 1.2 | Every chapter page renders — all 44 reachable, no Liquid leakage, no broken layout | ☑ **bug found and fixed** |
 | 1.3 | Codetabs — label/content correspondence and label vocabulary (HTML checks; behaviour spot-checked by the user) | ☑ pass |
 | 1.4 | Diagrams — integrity, pairing, alt/caption, and accounting across chapters, READMEs and decks | ☑ pass |
-| 1.5 | Navigation — part indexes, prev/next, breadcrumbs, homepage card grid | ☐ |
-| 1.6 | Internal + external links resolve | ☐ |
+| 1.5 | Navigation — part indexes, prev/next, breadcrumbs, homepage card grid | ☑ pass |
+| 1.6 | Internal + external links resolve | ☑ pass |
 
 **Findings:**
 
@@ -114,6 +114,34 @@ are embedded in example READMEs, and the remaining three — `11-resequencer`,
 > obvious raw material for future slides. The same goes for any diagram that
 > looks unused — check chapters, example READMEs *and* the decks before
 > concluding anything.
+
+**1.5 — clean.** All 44 chapter pages carry breadcrumb and prev/next markup,
+and the prev/next chain is unbroken end to end: walking chapters in `order`,
+every page links to both of its neighbours, 0 through 43. The homepage links
+all 10 part pages, every part index lists its chapters, and of 105 internal
+hrefs across chapters, parts, examples and the homepage, none is broken.
+
+**1.6 — clean.** 199 external URLs across chapters, example READMEs and the
+root documents. Twenty do not resolve and all twenty are correct:
+
+- eighteen are deliberately fictional or container-internal hosts inside code
+  examples — `*.example.com`, `payment-1:8080`, `credit-bureau:8080`,
+  `otel-collector:4317`, and `http://d/v1.41/version`, which is the dummy host
+  in a `curl --unix-socket` call
+- `my-resource.openai.azure.com` is a placeholder endpoint
+- `strimzi.io/charts/` is the Helm repository URL; a browser GET 404s but
+  `index.yaml` returns 200, which is what Helm fetches
+
+A future run should skip `*.example.com`, single-label hosts and anything
+inside a fenced code block, or it will re-report these every time.
+
+### Part 1 outcome
+
+One real defect, found and fixed: the Liquid placeholder loss. Everything else
+verified clean. Structural checks were done against the built HTML rather than
+a browser, by agreement — **worth a spot check from a human:** that tabs visibly
+switch and persist across pages, and that a few diagrams read well at page
+width.
 
 ---
 
