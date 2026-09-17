@@ -30,11 +30,14 @@ jobs:
           - 16-endpoint-management
           - 17-observability
           - 18-testing-management
+          - 19-dsl-comparison
           - 20-kafka-deep-dive
           - 21-pulsar-deep-dive
           - 22-redis-integration
+          - 23-quarkus-dev
           - 24-drools-rules
           - 25-quarkus-flow
+          - 26-feature-flags
           - 27-observability-stack
           - 32-kafka-consumer-tuning
           - 33-kafka-producer-tuning

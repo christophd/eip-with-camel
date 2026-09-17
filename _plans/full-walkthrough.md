@@ -227,13 +227,13 @@ stack up.
 
 | # | Checkpoint | State |
 |---|---|---|
-| 3.1 | Compile sweep — 61 Maven projects (`build-all-examples.sh`) | ☐ |
-| 3.2 | Boot sweep — every built artifact starts (`verify-all-runtime.sh`) | ☐ |
+| 3.1 | Compile sweep — 61 Maven projects (`build-all-examples.sh`) | ☑ pass 61/61 |
+| 3.2 | Boot sweep — every built artifact starts (`verify-all-runtime.sh`) | ☑ **1 failure found and fixed** |
 | 3.3 | Route activity — each example actually processes messages, not just boots | ☐ |
 | 3.4 | YAML DSL — 11 directories via the Camel CLI | ☐ |
 | 3.5 | Operational scripts — share groups, diagnostics, Connect offsets | ☐ |
 | 3.6 | Verification footers reconciled with what was observed | ☐ |
-| 3.7 | CI workflows reviewed — all three, including the externally contributed `tests.yml` | ☐ |
+| 3.7 | CI workflows reviewed — all three, including the externally contributed `tests.yml` | ☑ **3 gaps closed** |
 
 **On 3.7.** There are three workflows and we have only ever looked at one.
 `tests.yml` was contributed in August by Christoph Deppisch (the Citrus
@@ -251,6 +251,45 @@ exercise the test classpath; only booting the built artifact exercises the
 runtime one.
 
 **Findings:**
+
+**3.1 — 61/61 compile.**
+
+**3.2 — 58 of 59 booted; the one failure was the exact trap this script exists
+for, in an example added two days ago.** `23-quarkus-dev` failed with
+`No language could be found for: bean`. Its `.log()` uses Simple map accessors
+(`${body[order_id]}`), which resolve through the bean language, and the pom
+never declared `camel-quarkus-bean` — while the Citrus test dependencies were
+supplying `camel-bean` on the *test* classpath. So `mvn test` passed, `mvn
+quarkus:dev` ran, and only the artefact you would actually ship failed to
+start.
+
+Its verification footer claimed more than had been checked. Both the chapter
+footer and the example README now record that the packaged application boots,
+and say why that check was added.
+
+This is the third time this specific trap has appeared in three days. It is
+worth treating "does the packaged artifact boot" as a separate, mandatory gate
+rather than something implied by a green test run.
+
+**3.7 — three real gaps in CI, all closed.**
+
+| Workflow | Was missing | Why it mattered |
+|---|---|---|
+| `examples.yml` | `19-dsl-comparison`, `23-quarkus-dev`, `26-feature-flags` | three Maven examples never compiled by CI |
+| `tests.yml` (quarkus) | `23-quarkus-dev`, `37-testing-strategies` | `37` has had tests since July and had **never** run in CI |
+| `tests.yml` (spring-boot) | `37-testing-strategies` | same |
+
+Both additions were checked against a CI-like environment first — stack fully
+down, Testcontainers on the Podman socket — and both pass: `23-quarkus-dev`
+2/2, `37-testing-strategies` 4/4.
+
+`19-dsl-comparison` is deliberately **not** in the yaml-dsl test job. That job
+runs `citrus run <example>/yaml-dsl/test`, and the example has no `test/`
+directory because it exists to be diffed across runtimes, not tested. The
+yaml-dsl matrix covers exactly the ten directories that do have one.
+
+All three matrices are now complete against what is on disk: 32/32 Maven
+projects, 22/22 Quarkus test suites, 21/21 Spring Boot, 10/10 YAML DSL.
 
 ---
 
