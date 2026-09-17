@@ -7,7 +7,5 @@
   "destination_country": "${country}",
   "shipping_priority": "${priority}",
   "status": "PROCESSED",
-  "processed_at": "@ignore@",
-  "audit_timestamp": "@ignore@",
-  "audit_source": "wire-tap"
+  "processed_at": "@ignore@"
 }
